@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
     const [tickers, setTickers] = useState([]);
+    const navigate = useNavigate();
 
     const { lastMessage } = useWebSocket("ws://192.168.0.103:8080");
 
@@ -12,6 +14,10 @@ const Dashboard = () => {
             setTickers(data);
         }
     }, [lastMessage]);
+
+    const handleCoinClick = (symbol) => {
+        navigate(`/candlestick/${symbol}`);
+    };
 
     return (
         <div>
@@ -27,7 +33,11 @@ const Dashboard = () => {
                 </thead>
                 <tbody>
                     {tickers.map((ticker, index) => (
-                        <tr key={index}>
+                        <tr
+                            key={index}
+                            onClick={() => handleCoinClick(ticker.symbol)}
+                            style={{ cursor: "pointer" }}
+                        >
                             <td>{ticker.symbol}</td>
                             <td>${ticker.price}</td>
                             <td>{ticker.volume}</td>

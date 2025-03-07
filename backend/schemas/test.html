@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>OANDA Streaming Client Example</title>
+</head>
+<body>
+
+  <h1>Rates</h1>
+  <div id="output"></div>
+
+  <script>
+    const eventSource = new EventSource("https://exchange-rates-api.oanda.com/v2/stream.[json]?base=[base currency]&quote=[quote currency(optional)]&api_key=b85121cb-f17b-4953-a5b7-e47856ddfe09&data_set=[datasets offered by OANDA(optional)]");
+
+    eventSource.onopen = () => {
+      console.log("Connection established with streaming server.");
+      document.getElementById("output").innerHTML += "<p>Connected</p>";
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("Error => ", error);
+      if (error.target.readyState === EventSource.CLOSED) {
+        console.log("Connection closed.");
+        document.getElementById("output").innerHTML += "<p>SSE connection closed.</p>";
+        // You might want to attempt reconnection here:
+        // setTimeout(() => {
+        //   new EventSource("[SAME URL as ABOVE]");
+        // }, 5000); // Reconnect after 5 seconds
+      }
+    };
+
+    eventSource.addEventListener("tick", (e) => { // you only need to read "tick" events
+      // following example is based on the JSON response. You might have to change following code for the XML or CSV.
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Received data:", data);
+        document.getElementById("output").innerHTML += JSON.stringify(data);
+      } catch (e) {
+        console.log("Received raw data:", event.data);
+        document.getElementById("output").innerHTML += event.data;
+      }
+    });
+  </script>
+
+</body>
+</html>
