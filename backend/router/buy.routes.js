@@ -1,15 +1,17 @@
 import express from "express";
-import { UserModel, OrderModel } from "../schemas/userSchema.js"; 
+import { UserModel } from "../schemas/userSchema.js";
+import OrderModel from "../schemas/orderSchema.js"; 
 import connectDB from "../ConnectDB/ConnectionDB.js";
 
 const router = express.Router();
 
-router.post("/buy", async (req, res) => {
+router.post("/", async (req, res) => {
+
     await connectDB(); 
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss , status } = req.body;
 
-         if (!userId || !symbol || !quantity || !price || !leverage || !takeProfit || !stopLoss || !status) {
+         if (!userId || !symbol || !quantity || !price || !leverage || !status) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss , status",
@@ -25,14 +27,21 @@ router.post("/buy", async (req, res) => {
         }
 
         const marginRequired = (quantity * price) / leverage;
+        console.log("marginRequired => ", marginRequired);
+        console.log("user => " , user);
+        
+        console.log("user.demoWallet.available => ", user.demoWallet.available);
+        
         if (user.demoWallet.available < marginRequired) {
             return res.status(400).json({
                 success: false,
-                message: "Insufficient balance",
+                message: "Insufficient available balance",
             });
         }
 
         user.demoWallet.available -= marginRequired;
+        console.log("user.demoWallet.available => ", user.demoWallet.available);
+        
         await user.save();
 
         const order = new OrderModel({

@@ -16,7 +16,7 @@ const Dashboard = () => {
     }, [lastMessage]);
 
     const handleCoinClick = (symbol) => {
-        navigate(`/candlestick/${symbol}`);
+        navigate(`/admin/${symbol}`);
     };
 
     return (

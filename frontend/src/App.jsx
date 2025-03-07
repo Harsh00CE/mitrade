@@ -3,6 +3,7 @@ import Login from "../Pages/Login/Login";
 import Dashboard from "../Pages/Dashboard/Dashboard";
 import CandlestickChart from "../Pages/Chart/ChartPage";
 import LoginPage from "../Pages/LoginPage";
+import AdminPage from "../Pages/Admin/AdminPage";
 
 
 
@@ -14,6 +15,7 @@ function App() {
         {/* <Route path="/register" element={<Register />} /> */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/candlestick/:symbol" element={<CandlestickChart />} />
+        <Route path="/admin/:symbol" element={<AdminPage />} />
         <Route path="/" element={<LoginPage />} />
       </Routes>
     </Router>

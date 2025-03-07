@@ -10,6 +10,7 @@ import verifyCodeRoutes from "./router/verify-code.routes.js";
 import "./passport.mjs"
 import passport from "passport";
 import adminRoutes from "./router/admin.routes.js";
+import buyRoutes from "./router/buy.routes.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -57,6 +58,7 @@ app.get("/logout", (req, res) => {
 
 
 app.use("/api/users", userRoutes)
+app.use("/api/buy", buyRoutes)
 app.use("/api/signup", signUpRoutes)
 app.use("/api/login", logInRoutes)
 app.use("/api/varify-code", verifyCodeRoutes)

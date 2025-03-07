@@ -1,5 +1,5 @@
 import express from "express";
-import { UserModel, OrderModel } from "../schemas/userSchema.js"; 
+import { UserModel, OrderModel } from "../schemas/userSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 
 const router = express.Router();
@@ -9,7 +9,7 @@ router.post("/sell", async (req, res) => {
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage || !takeProfit || !stopLoss) {
+        if (!userId || !symbol || !quantity || !price || !leverage) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss",
@@ -47,7 +47,9 @@ router.post("/sell", async (req, res) => {
             margin: marginRequired,
             status: "pending",
             position: "open",
+            openingValue: price,
             openingTime: new Date(),
+            tradingAccount:"demo"
         });
 
         await order.save();
