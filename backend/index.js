@@ -2,17 +2,9 @@ import { app } from "./app.js";
 import dotenv from "dotenv";
 import { WebSocketServer } from "ws";
 import WebSocket from "ws";
-import connectDB from "./ConnectDB/ConnectionDB.js";
 import { calculateAvailableBalance } from "./utils/utilityFunctions.js";
+import mongoose from "mongoose";
 dotenv.config({ path: ".env" });
-
-
-await connectDB();
-
-app.listen(process.env.PORT || 3000, () => {
-    console.log(`Server is running on port ${process.env.PORT || 3000}`);
-});
-
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -83,3 +75,16 @@ wss.on("connection", (ws) => {
     });
 });
 
+const main = async () => {
+    const DB_CONNECTION_URL = process.env.DB_CONNECTION_URL;
+    if(DB_CONNECTION_URL){
+        await mongoose.connect(DB_CONNECTION_URL);
+        console.log("DB connection established");
+    }else{
+        console.error("Unable to set database connection");
+    }
+    app.listen(3000);
+    console.log("Server started successfully.");
+}
+
+main();
