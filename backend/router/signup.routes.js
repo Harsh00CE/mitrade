@@ -2,9 +2,10 @@ import bcryptjs from "bcryptjs";
 import { log } from "console";
 import { usernameValidation } from "../schemas/signUpScheme.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
-import { DemoWalletModel, UserModel } from "../schemas/userSchema.js";
+import UserModel from "../schemas/userSchema.js";
 import { sendVerificationEmail } from "../helpers/sendVerificationEmail.js";
 import express from "express";
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 
 const router = express.Router();
 

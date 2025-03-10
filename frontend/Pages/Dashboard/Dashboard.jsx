@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import { useNavigate } from "react-router-dom";
+import BalanceComponent from "../../src/components/BalanceComponent/BalanceComponent";
 
 const Dashboard = () => {
     const [tickers, setTickers] = useState([]);
@@ -19,9 +20,20 @@ const Dashboard = () => {
         navigate(`/admin/${symbol}`);
     };
 
+    const handleBuy = (symbol) => {
+        console.log(`Buying ${symbol}`);
+        // Add buy logic here
+    };
+
+    const handleSell = (symbol) => {
+        console.log(`Selling ${symbol}`);
+        // Add sell logic here
+    };
+
     return (
         <div>
             <h1>Real-Time Crypto Prices</h1>
+            <BalanceComponent userId={"67cabb0e560d5ce9742ccbef"} />
             <table>
                 <thead>
                     <tr>
@@ -29,19 +41,21 @@ const Dashboard = () => {
                         <th>Price (USD)</th>
                         <th>24h Volume</th>
                         <th>24h Change (%)</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {tickers.map((ticker, index) => (
-                        <tr
-                            key={index}
-                            onClick={() => handleCoinClick(ticker.symbol)}
-                            style={{ cursor: "pointer" }}
-                        >
-                            <td>{ticker.symbol}</td>
+                        <tr key={index} style={{ cursor: "pointer" }}>
+                            <td onClick={() => handleCoinClick(ticker.symbol)}>{ticker.symbol}</td>
                             <td>${ticker.price}</td>
                             <td>{ticker.volume}</td>
                             <td>{ticker.change}%</td>
+                            <td>
+                                <button onClick={() => handleBuy(ticker.symbol)}>Buy</button>
+                                <button onClick={() => handleSell(ticker.symbol)}>Sell</button>
+                                <button onClick={() => handleCoinClick(ticker.symbol)}>Trade</button>
+                            </td>
                         </tr>
                     ))}
                 </tbody>

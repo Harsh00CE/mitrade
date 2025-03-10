@@ -1,4 +1,6 @@
-import TransactionModel from "../schemas/transactionSchema";
+import OrderModel from "../schemas/orderSchema.js";
+import TransactionModel from "../schemas/transactionSchema.js";
+import UserModel from "../schemas/userSchema.js";
 
 const calculateBalance = async (userId) => {
     try {
@@ -9,7 +11,7 @@ const calculateBalance = async (userId) => {
 
         const transactions = await TransactionModel.find({ userId });
 
-        let balance = user.demoWallet.initialBalance || 0;
+        let balance = user.demoWallet.initialBalance || 50000;
 
         for (const transaction of transactions) {
             switch (transaction.type) {
@@ -42,7 +44,8 @@ const calculateBalance = async (userId) => {
 
 const calculateEquity = async (userId) => {
     try {
-        const user = await UserModel.findById(userId);
+        const user = await UserModel.findById(userId).populate("demoWallet");
+        
         if (!user) {
             throw new Error("User not found");
         }
@@ -72,7 +75,7 @@ const calculateEquity = async (userId) => {
         const equity = currentBalance + unrealizedPL + overnightFees;
 
         user.demoWallet.equity = equity;
-        await user.save();
+        await user.demoWallet.save();
 
         return equity;
     } catch (error) {
@@ -81,12 +84,14 @@ const calculateEquity = async (userId) => {
     }
 };
 
+
 const calculateAvailableBalance = async (userId) => {
     try {
-        const user = await UserModel.findById(userId);
+        const user = await UserModel.findById(userId).populate("demoWallet");
         if (!user) {
             throw new Error("User not found");
         }
+        const currentBalance = user.demoWallet.balance;
 
         const openPositions = await OrderModel.find({
             userId,
@@ -124,10 +129,10 @@ const calculateAvailableBalance = async (userId) => {
             totalInitialMargin += position.margin;
         }
 
-        const availableBalance = depositBalance + unrealizedPL - overnightFees - totalInitialMargin;
+        const availableBalance = currentBalance + unrealizedPL - overnightFees - totalInitialMargin;
 
         user.demoWallet.available = availableBalance;
-        await user.save();
+        await user.demoWallet.save();
 
         return availableBalance;
     } catch (error) {
@@ -135,7 +140,6 @@ const calculateAvailableBalance = async (userId) => {
         throw error;
     }
 };
-
 
 
 

@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
+
 const demoWalletSchema = new Schema({
     balance: {
         type: Number,
@@ -30,7 +31,7 @@ const demoWalletSchema = new Schema({
         type: Number,
         required: [true, "pl is required"],
         default: 0,
-    }
+    },
 });
 
 const DemoWalletModel = (mongoose.models.demoWallet) || mongoose.model("demoWallet", demoWalletSchema);

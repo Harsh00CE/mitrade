@@ -1,17 +1,41 @@
 import mongoose, { Schema } from "mongoose";
 
 const orderSchema = new Schema({
+    orderId: {
+        type: String,
+        default: () => uuidv4(),
+        unique: true,
+    },
     symbol: {
         type: String,
         required: [true, "Symbol is required"],
     },
-    status:{
-        type:String,
-        require:[true , "Set status active/pending/closed"]
+    type: {
+        type: String,
+        required: [true, "Type is required (buy/sell)"],
+        enum: ["buy", "sell"],
     },
-    position:{
-        type:String,
-        require:[true , "Set position open/close"]
+    quantity: {
+        type: Number,
+        required: [true, "Quantity is required"],
+    },
+    price: {
+        type: Number,
+        required: [true, "Price is required"],
+    },
+    leverage: {
+        type: Number,
+        required: [true, "Leverage is required"],
+    },
+    status: {
+        type: String,
+        required: [true, "Status is required (active/pending/closed)"],
+        enum: ["active", "pending", "closed"],
+    },
+    position: {
+        type: String,
+        required: [true, "Position is required (open/close)"],
+        enum: ["open", "close"],
     },
     openingTime: {
         type: Date,
@@ -19,9 +43,6 @@ const orderSchema = new Schema({
     },
     closingTime: {
         type: Date,
-    },
-    closingReason: {
-        type: String,
     },
     takeProfit: {
         type: Number,
@@ -44,23 +65,21 @@ const orderSchema = new Schema({
         type: Number,
         required: [true, "Margin is required"],
     },
-    m_margin:{
-        type: Number,
-    },
     openingValue: {
         type: Number,
-        // required: [true, "Opening value is required"],
     },
     closingValue: {
         type: Number,
     },
     tradingAccount: {
         type: String,
-        // required: [true, "Trading account is required"],
+        required: [true, "Trading account is required (demo/live)"],
+        enum: ["demo", "live"],
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        required: [true, "User ID is required"],
     },
 });
 

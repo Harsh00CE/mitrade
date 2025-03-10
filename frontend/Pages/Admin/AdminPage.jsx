@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
+import useWebSocket from "react-use-websocket";
 
 const AdminPage = () => {
+    const { symbol } = useParams();
+    const [currentPrice, setCurrentPrice] = useState(null);
+
     const [formData, setFormData] = useState({
         symbol: "",
         volumePerTrade: "",
@@ -22,12 +27,21 @@ const AdminPage = () => {
             [name]: value,
         });
     };
+    const { lastMessage } = useWebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@trade`);
+
+    useEffect(() => {
+        if (lastMessage) {
+            const tradeData = JSON.parse(lastMessage.data);
+            console.log("tradeData => ", tradeData);
+            
+        }
+    }, [lastMessage]);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
-            // Send form data to the backend API
             const response = await axios.post("/api/pair-info", formData);
             console.log("Response:", response.data);
 

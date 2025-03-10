@@ -1,6 +1,6 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
-import { UserModel } from "../schemas/userSchema.js";
+import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 

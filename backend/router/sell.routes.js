@@ -1,22 +1,28 @@
 import express from "express";
-import { UserModel, OrderModel } from "../schemas/userSchema.js";
+import UserModel from "../schemas/userSchema.js";
+import OrderModel from "../schemas/orderSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
+import { v4 as uuidv4 } from 'uuid';
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 
 const router = express.Router();
 
 router.post("/sell", async (req, res) => {
     await connectDB();
-    try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage) {
+    try {
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status } = req.body;
+
+        if (!userId || !symbol || !quantity || !price || !leverage || !status) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss",
+                message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status",
             });
         }
 
         const user = await UserModel.findById(userId);
+        const demoWallet = await DemoWalletModel.findById(user.demoWallet._id);
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -25,34 +31,40 @@ router.post("/sell", async (req, res) => {
         }
 
         const marginRequired = (quantity * price) / leverage;
-        if (user.demoWallet.available < marginRequired) {
+
+        if (demoWallet.available < marginRequired) {
             return res.status(400).json({
                 success: false,
-                message: "Insufficient balance",
+                message: "Insufficient available balance",
             });
         }
 
-        user.demoWallet.available -= marginRequired;
-        await user.save();
+        demoWallet.available -= marginRequired;
+        
+        const orderId = uuidv4();
 
         const order = new OrderModel({
+            orderId,
             userId,
             symbol,
-            type: "sell",
+            type: "sell", 
             quantity,
             price,
             leverage,
             takeProfit,
             stopLoss,
             margin: marginRequired,
-            status: "pending",
+            status: status,
             position: "open",
-            openingValue: price,
             openingTime: new Date(),
-            tradingAccount:"demo"
+            tradingAccount: "demo",
         });
 
         await order.save();
+        await demoWallet.save();
+        user.orderList.push(order._id);
+
+        await user.save();
 
         return res.status(200).json({
             success: true,
