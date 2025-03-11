@@ -59,7 +59,7 @@ binanceWs.on("message", (data) => {
 
 
     const usdPairs = tickers.filter(ticker =>
-        ticker.s.endsWith('USDT') || ticker.s.endsWith('BUSD') || ticker.s.endsWith('USDC')
+        ticker.s.endsWith('USDT')
     );
     const formattedTickers = usdPairs.map((ticker) => ({
         symbol: ticker.s,

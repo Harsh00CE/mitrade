@@ -41,6 +41,10 @@ const UserSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Order", 
   }],
+  favoriteTokens: {
+    type: [String], 
+    default: [], 
+  },
 });
 
 const UserModel = mongoose.models.User || mongoose.model("User", UserSchema);

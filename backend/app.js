@@ -11,6 +11,9 @@ import "./passport.mjs"
 import passport from "passport";
 import adminRoutes from "./router/admin.routes.js";
 import buyRoutes from "./router/buy.routes.js";
+import getInfo from "./router/getInfo.routes.js";
+import getUserWallet from "./router/getWallet.routes.js";
+import favoriteTokensRouter from "./router/favorite.routes.js"
 
 const app = express();
 app.use(bodyParser.json());
@@ -63,6 +66,9 @@ app.use("/api/signup", signUpRoutes)
 app.use("/api/login", logInRoutes)
 app.use("/api/varify-code", verifyCodeRoutes)
 app.use("/api/admin", adminRoutes)
+app.use("/api/pair-info", getInfo)
+app.use("/api/user-wallet",getUserWallet)
+app.use("/api/favorite-tokens", favoriteTokensRouter);
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
 

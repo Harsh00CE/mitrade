@@ -5,13 +5,19 @@ const pairInfoSchema = new Schema({
         type: String,
         required: [true, "Symbol is required"],
     },
-   volumePerTrade: {
-        type: Number,
-        required: [true, "Volume per trade is required"],
+    volumePerTrade: {
+        min: {
+            type: Number,
+            required: [true, "Minimum volume per trade is required"],
+        },
+        max: {
+            type: Number,
+            required: [true, "Maximum volume per trade is required"],
+        },
     },
-    maxLeverage: {
-        type: Number,
-        required: [true, "Max leverage is required"],
+    leverages: {
+        type: [Number],
+        required: [true, "Leverages are required"],
     },
     ContractSize: {
         type: Number,
@@ -21,28 +27,28 @@ const pairInfoSchema = new Schema({
         type: Number,
         required: [true, "Max volume of open position is required"],
     },
-    CurrencyOfQuote :{
+    CurrencyOfQuote: {
         type: String,
         required: [true, "Currency of quote is required"],
     },
-    floatingSpread :{
-        type: Number,  
+    floatingSpread: {
+        type: Number,
         required: [true, "Floating spread is required"],
     },
-    OvernightFundingRateBuy :{
-        type: Number,  
-        required: [true, "Overnight funding rate is required"],
+    OvernightFundingRateBuy: {
+        type: Number,
+        required: [true, "Overnight funding rate (buy) is required"],
     },
-    OvernightFundingRateSell :{
-        type: Number,  
-        required: [true, "Overnight funding rate is required"],
+    OvernightFundingRateSell: {
+        type: Number,
+        required: [true, "Overnight funding rate (sell) is required"],
     },
-    OvernightFundingRateTime :{
-        type: Number,  
-        required: [true, "Overnight funding rate is required"],
+    OvernightFundingRateTime: {
+        type: String,
+        required: [true, "Overnight funding rate time is required"],
     },
 });
 
-const PairInfoModel = (mongoose.models.pairInfo) || mongoose.model("pairInfo", pairInfoSchema);
+const PairInfoModel = mongoose.models.PairInfo || mongoose.model("PairInfo", pairInfoSchema);
 
 export default PairInfoModel;

@@ -1,6 +1,6 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
-
+import PairInfoModel from "../schemas/pairInfo.js";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -9,7 +9,7 @@ router.post("/", async (req, res) => {
         const {
             symbol,
             volumePerTrade,
-            maxLeverage,
+            leverages, 
             ContractSize,
             maxVolumeOfOpenPosition,
             CurrencyOfQuote,
@@ -19,10 +19,17 @@ router.post("/", async (req, res) => {
             OvernightFundingRateTime,
         } = req.body;
 
+        if (!Array.isArray(leverages)) {
+            return res.status(400).json({
+                success: false,
+                message: "Leverages must be provided as an array",
+            });
+        }
+
         const pairInfo = await PairInfoModel.create({
             symbol,
             volumePerTrade,
-            maxLeverage,
+            leverages, 
             ContractSize,
             maxVolumeOfOpenPosition,
             CurrencyOfQuote,
@@ -31,12 +38,12 @@ router.post("/", async (req, res) => {
             OvernightFundingRateSell,
             OvernightFundingRateTime,
         });
-        res.json(pairInfo);
 
         if (pairInfo) {
             return res.status(200).json({
                 success: true,
                 message: "Pair info added successfully",
+                data: pairInfo,
             });
         } else {
             return res.status(500).json({
@@ -44,9 +51,12 @@ router.post("/", async (req, res) => {
                 message: "Error adding pair info",
             });
         }
-
     } catch (error) {
-
+        console.error("Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
     }
 });
 

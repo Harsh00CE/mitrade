@@ -22,12 +22,10 @@ const Dashboard = () => {
 
     const handleBuy = (symbol) => {
         console.log(`Buying ${symbol}`);
-        // Add buy logic here
     };
 
     const handleSell = (symbol) => {
         console.log(`Selling ${symbol}`);
-        // Add sell logic here
     };
 
     return (

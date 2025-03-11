@@ -23,7 +23,7 @@ router.post("/", async (req, res) => {
         const user = await UserModel.findById(userId);
         const demoWallet = await DemoWalletModel.findById(user.demoWallet._id);
         if (!user) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User not found",
             });
@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
         const marginRequired = (quantity * price) / leverage;
 
         if (demoWallet.available < marginRequired) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Insufficient available balance",
             });
@@ -66,7 +66,6 @@ router.post("/", async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Buy order placed successfully",
-            order,
         });
     } catch (error) {
         console.error("Error placing buy order:", error);
