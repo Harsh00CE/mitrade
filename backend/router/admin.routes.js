@@ -1,10 +1,9 @@
-import express from "express";
-import connectDB from "../ConnectDB/ConnectionDB.js";
+import { Router } from "express";
+import PairInfoModel from "../schemas/pairInfo";
 
-const router = express.Router();
+const adminRouter = Router();
 
-router.post("/", async (req, res) => {
-    await connectDB();
+adminRouter.post("/", async (req, res) => {
     try {
         const {
             symbol,
@@ -31,7 +30,7 @@ router.post("/", async (req, res) => {
             OvernightFundingRateSell,
             OvernightFundingRateTime,
         });
-        res.json(pairInfo);
+        // res.json(pairInfo);
 
         if (pairInfo) {
             return res.status(200).json({
@@ -46,8 +45,12 @@ router.post("/", async (req, res) => {
         }
 
     } catch (error) {
-
+        console.error("Error creating Pair Info:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error creating Pair Info",
+        });
     }
 });
 
-export default router;
+export default adminRouter;

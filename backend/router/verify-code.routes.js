@@ -1,11 +1,9 @@
-import express from "express";
-import connectDB from "../ConnectDB/ConnectionDB.js";
+import { Router } from "express";
 import UserModel from "../schemas/userSchema.js";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/", async (req, res) => {
-    await connectDB();
     try {
         const { username, code } = req.body;
 

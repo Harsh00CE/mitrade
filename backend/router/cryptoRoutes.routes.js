@@ -1,8 +1,8 @@
-import express from "express";
+import { Router } from "express";
 import { getCryptoData } from "../controllers/cryptoController.js";
 
-const router = express.Router();
+const router = Router();
 
-router.get("/crypto", getCryptoData);
+router.get("/", getCryptoData);
 
 export default router;

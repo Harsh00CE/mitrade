@@ -5,14 +5,14 @@ const pairInfoSchema = new Schema({
         type: String,
         required: [true, "Symbol is required"],
     },
-   volumePerTrade: {
+    volumePerTrade: {
         type: Number,
         required: [true, "Volume per trade is required"],
     },
-    maxLeverage: {
+    maxLeverage: [{
         type: Number,
         required: [true, "Max leverage is required"],
-    },
+    }],
     ContractSize: {
         type: Number,
         required: [true, "Contract size is required"],
@@ -21,24 +21,24 @@ const pairInfoSchema = new Schema({
         type: Number,
         required: [true, "Max volume of open position is required"],
     },
-    CurrencyOfQuote :{
+    CurrencyOfQuote: {
         type: String,
         required: [true, "Currency of quote is required"],
     },
-    floatingSpread :{
-        type: Number,  
+    floatingSpread: {
+        type: Number,
         required: [true, "Floating spread is required"],
     },
-    OvernightFundingRateBuy :{
-        type: Number,  
+    OvernightFundingRateBuy: {
+        type: Number,
         required: [true, "Overnight funding rate is required"],
     },
-    OvernightFundingRateSell :{
-        type: Number,  
+    OvernightFundingRateSell: {
+        type: Number,
         required: [true, "Overnight funding rate is required"],
     },
-    OvernightFundingRateTime :{
-        type: Number,  
+    OvernightFundingRateTime: {
+        type: Number,
         required: [true, "Overnight funding rate is required"],
     },
 });

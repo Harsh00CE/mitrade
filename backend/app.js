@@ -3,19 +3,17 @@ import cors from "cors";
 import userRoutes from "./router/users.routes.js";
 import session from "cookie-session";
 import cryptoRoutes from "./router/cryptoRoutes.routes.js";
-import signUpRoutes from "./router/signup.routes.js";
-import logInRoutes from "./router/login.routes.js";
 import bodyParser from "body-parser";
-import verifyCodeRoutes from "./router/verify-code.routes.js";
 import "./passport.mjs"
 import passport from "passport";
-import adminRoutes from "./router/admin.routes.js";
-import buyRoutes from "./router/buy.routes.js";
+
+import adminRouter from "./router/admin.routes.js";
+import orderRouter from "./router/order.routes.js";
+import authRouter from "./router/auth.routes.js";
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
-
 
 app.use(
     session({
@@ -26,45 +24,12 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-
-
-app.get(
-    "/auth",
-    passport.authenticate("google", { scope: ["email", "profile"] })
-);
-
-app.get("/auth/callback",
-    passport.authenticate("google", { failureRedirect: "/auth/callback/failure" }),
-    (req, res) => {
-      console.log("User authenticated:", req.user);
-      res.redirect("http://localhost:5173/");
-    }
-  );
   
-app.get("/user", (req, res) => {
-    res.json(req.user || null);
-});
-
-app.get("/logout", (req, res) => {
-    req.logout((err) => {
-        if (err) console.error(err);
-        req.session = null;
-        res.redirect("http://localhost:5173");
-    });
-});
-
-
-
-
-
-app.use("/api/users", userRoutes)
-app.use("/api/buy", buyRoutes)
-app.use("/api/signup", signUpRoutes)
-app.use("/api/login", logInRoutes)
-app.use("/api/varify-code", verifyCodeRoutes)
-app.use("/api/admin", adminRoutes)
-// app.use("/api/auth" ,auth) 
-app.use("/api", cryptoRoutes)
+app.use("/api/auth", authRouter); // login, signup, goole A0uth, etc.
+app.use("/api/users", userRoutes);
+app.use("/api/order", orderRouter); // sell and buy order requests
+app.use("/api/admin", adminRouter);
+app.use("/api/crypto", cryptoRoutes);
 
 export { app };
 
