@@ -39,6 +39,7 @@ router.post("/", async (req, res) => {
         }
 
         demoWallet.available -= marginRequired;
+        demoWallet.margin += marginRequired;
         const orderId = uuidv4();
         const order = new OrderModel({
             orderId,

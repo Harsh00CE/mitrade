@@ -14,7 +14,10 @@ import buyRoutes from "./router/buy.routes.js";
 import getInfo from "./router/getInfo.routes.js";
 import getUserWallet from "./router/getWallet.routes.js";
 import favoriteTokensRouter from "./router/favorite.routes.js"
-
+import getUserOrders from "./router/order.routes.js"
+import sellRoutes from "./router/sell.routes.js"
+import alertRouter from "./router/alert.routes.js"
+import closeOrderRouter from "./router/closeOrder.routes.js"
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
@@ -62,6 +65,7 @@ app.get("/logout", (req, res) => {
 
 app.use("/api/users", userRoutes)
 app.use("/api/buy", buyRoutes)
+app.use("/api/sell", sellRoutes)
 app.use("/api/signup", signUpRoutes)
 app.use("/api/login", logInRoutes)
 app.use("/api/varify-code", verifyCodeRoutes)
@@ -69,6 +73,9 @@ app.use("/api/admin", adminRoutes)
 app.use("/api/pair-info", getInfo)
 app.use("/api/user-wallet",getUserWallet)
 app.use("/api/favorite-tokens", favoriteTokensRouter);
+app.use("/api/user-orders", getUserOrders)
+app.use("/api/alerts", alertRouter);
+app.use("/api/close-order", closeOrderRouter);
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import { useNavigate } from "react-router-dom";
 import BalanceComponent from "../../src/components/BalanceComponent/BalanceComponent";
+import PriceAlert from "../../src/components/PriceAlert";
 
 const Dashboard = () => {
     const [tickers, setTickers] = useState([]);
@@ -31,7 +32,8 @@ const Dashboard = () => {
     return (
         <div>
             <h1>Real-Time Crypto Prices</h1>
-            <BalanceComponent userId={"67cabb0e560d5ce9742ccbef"} />
+            <PriceAlert userId={"67ced33ed132690a73244906"} />
+            <BalanceComponent userId={"67ced33ed132690a73244903"} />
             <table>
                 <thead>
                     <tr>

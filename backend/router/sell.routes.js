@@ -7,7 +7,7 @@ import DemoWalletModel from "../schemas/demoWalletSchema.js";
 
 const router = express.Router();
 
-router.post("/sell", async (req, res) => {
+router.post("/", async (req, res) => {
     await connectDB();
 
     try {
@@ -40,7 +40,7 @@ router.post("/sell", async (req, res) => {
         }
 
         demoWallet.available -= marginRequired;
-        
+        demoWallet.margin += marginRequired;
         const orderId = uuidv4();
 
         const order = new OrderModel({

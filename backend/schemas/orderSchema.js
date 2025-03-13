@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 const orderSchema = new Schema({
     orderId: {
@@ -56,6 +57,7 @@ const orderSchema = new Schema({
     },
     realisedPL: {
         type: Number,
+        default: 0,
     },
     overnightFunding: {
         type: Number,

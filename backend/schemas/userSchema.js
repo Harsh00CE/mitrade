@@ -45,6 +45,10 @@ const UserSchema = new Schema({
     type: [String], 
     default: [], 
   },
+  alerts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Alert",
+  }]
 });
 
 const UserModel = mongoose.models.User || mongoose.model("User", UserSchema);

@@ -4,6 +4,9 @@ import { WebSocketServer } from "ws";
 import WebSocket from "ws";
 import connectDB from "./ConnectDB/ConnectionDB.js";
 import { calculateAvailableBalance } from "./utils/utilityFunctions.js";
+import AlertModel from "./schemas/alertSchema.js";
+import { sendVerificationEmail } from "./helpers/sendAlertEmail.js";
+import checkAlerts from "./checkAlerts.js";
 dotenv.config({ path: ".env" });
 
 
@@ -35,6 +38,12 @@ wss.on("connection", (ws) => {
             ws.userId = data.userId;
             console.log(`Client subscribed to user ${data.userId}`);
         }
+        const { symbol, price } = data;
+        if (!symbol || !price) {
+            console.log("sumbol or price is not defined");   
+        }
+
+        checkAlerts(symbol, price);
     });
 
     ws.on("close", () => {
@@ -74,6 +83,42 @@ binanceWs.on("message", (data) => {
         }
     });
 });
+
+binanceWs.on("message", async (data) => {
+    const tickers = JSON.parse(data);
+    const alerts = await AlertModel.find({ isActive: true }).populate("67ced33ed132690a73244906"); 
+
+    for (let alert of alerts) {
+        const ticker = tickers.find(t => t.s === alert.symbol);
+        if (!ticker) continue;
+
+        const currentPrice = parseFloat(ticker.c);
+        const now = new Date();
+        let shouldNotify = false;
+
+        if ((alert.type === "buy" && currentPrice <= alert.price) ||
+            (alert.type === "sell" && currentPrice >= alert.price)) {
+
+            if (alert.alertOption === "onlyOnce") {
+                shouldNotify = true;
+                alert.isActive = false; 
+            } else if (alert.alertOption === "onceADay") {
+                const lastTriggeredDate = alert.lastTriggered ? new Date(alert.lastTriggered) : null;
+                if (!lastTriggeredDate || lastTriggeredDate.toDateString() !== now.toDateString()) {
+                    shouldNotify = true;
+                    alert.lastTriggered = now;
+                }
+            }
+
+            if (shouldNotify) {
+                const emailText = `Price Alert: ${alert.symbol} has reached ${alert.price}.`;
+                sendVerificationEmail(alert.userId.email, `Crypto Alert for ${alert.symbol}`, emailText);
+                await alert.save(); 
+            }
+        }
+    }
+});
+
 
 wss.on("connection", (ws) => {
     console.log("New client connected");
