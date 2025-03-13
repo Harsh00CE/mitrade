@@ -18,6 +18,9 @@ import getUserOrders from "./router/order.routes.js"
 import sellRoutes from "./router/sell.routes.js"
 import alertRouter from "./router/alert.routes.js"
 import closeOrderRouter from "./router/closeOrder.routes.js"
+import orderHistoryRouter from "./router/orderHistory.routes.js"
+import liquidationRouter from "./router/liquidation.routes.js"
+
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
@@ -43,7 +46,7 @@ app.get("/auth/callback",
     passport.authenticate("google", { failureRedirect: "/auth/callback/failure" }),
     (req, res) => {
       console.log("User authenticated:", req.user);
-      res.redirect("http://localhost:5173/");
+      res.redirect("http://192.168.0.103:5173/");
     }
   );
   
@@ -55,7 +58,7 @@ app.get("/logout", (req, res) => {
     req.logout((err) => {
         if (err) console.error(err);
         req.session = null;
-        res.redirect("http://localhost:5173");
+        res.redirect("http://192.168.0.103:5173");
     });
 });
 
@@ -76,6 +79,8 @@ app.use("/api/favorite-tokens", favoriteTokensRouter);
 app.use("/api/user-orders", getUserOrders)
 app.use("/api/alerts", alertRouter);
 app.use("/api/close-order", closeOrderRouter);
+app.use("/api/order-history", orderHistoryRouter);
+app.use("/api/liquidation", liquidationRouter);
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
 

@@ -48,7 +48,11 @@ const UserSchema = new Schema({
   alerts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Alert",
-  }]
+  }],
+  orderHistory: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "OrderHistory",
+  }],
 });
 
 const UserModel = mongoose.models.User || mongoose.model("User", UserSchema);

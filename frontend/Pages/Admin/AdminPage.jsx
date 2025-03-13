@@ -31,7 +31,7 @@ const AdminPage = () => {
     // Fetch pair info from the backend
     const fetchPairInfo = async () => {
         try {
-            const response = await axios.get(`http://localhost:3000/api/pair-info?symbol=${symbol}`);
+            const response = await axios.get(`http://192.168.0.103:3000/api/pair-info?symbol=${symbol}`);
             if (response.data.success) {
                 setPairInfo(response.data.data);
                 // Pre-fill the form with existing data
@@ -80,7 +80,7 @@ const AdminPage = () => {
             .filter((lev) => !isNaN(lev));
 
         try {
-            const response = await axios.post("http://localhost:3000/api/admin", {
+            const response = await axios.post("http://192.168.0.103:3000/api/admin", {
                 ...formData,
                 leverages: leveragesArray, // Send leverages as an array
             });

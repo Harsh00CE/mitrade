@@ -17,7 +17,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:5173/dashboard",
+      callbackURL: "http://192.168.0.103:5173/dashboard",
       passReqToCallback: true,
     },
     (request, accessToken, refreshToken, profile, done) => {

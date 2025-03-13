@@ -59,7 +59,7 @@ export const updateAvailableBalance = async (userId) => {
     }
 };
 
-console.log("WebSocket server running on ws://localhost:8080");
+console.log("WebSocket server running on ws://192.168.0.103:8080");
 
 const binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!ticker@arr");
 

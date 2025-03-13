@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status } = req.body;
 
         if (!userId || !symbol || !quantity || !price || !leverage || !status) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status",
             });

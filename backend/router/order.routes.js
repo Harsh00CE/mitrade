@@ -10,16 +10,16 @@ router.get("/:userId", async (req, res) => {
         const { userId } = req.params;
 
         if (!userId) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User ID is required",
             });
         }
 
-        const orders = await OrderModel.find({ userId });
+        const orders = await OrderModel.find({ userId , position: "open"});
 
         if (!orders || orders.length === 0) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "No orders found for this user",
             });

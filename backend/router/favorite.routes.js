@@ -10,7 +10,7 @@ router.post("/", async (req, res) => {
         const { userId, token } = req.body;
 
         if (!userId || !token) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User ID and token are required",
             });
@@ -18,7 +18,7 @@ router.post("/", async (req, res) => {
         const user = await UserModel.findById(userId);
 
         if (!user) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User not found",
             });

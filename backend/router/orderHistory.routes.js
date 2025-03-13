@@ -1,6 +1,6 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
-import UserModel from "../schemas/userSchema.js";
+import OrderHistoryModel from "../schemas/orderHistorySchema.js";
 
 const router = express.Router();
 
@@ -9,29 +9,29 @@ router.get("/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
 
-        const user = await UserModel.findById(userId).populate("demoWallet");
-
-        if (!user) {
+        if (!userId) {
             return res.status(200).json({
                 success: false,
-                message: "User not found",
+                message: "User ID is required",
             });
         }
 
-        if (!user.demoWallet) {
+        const orders = await OrderHistoryModel.find({ userId });
+
+        if (!orders || orders.length === 0) {
             return res.status(200).json({
                 success: false,
-                message: "Wallet not found for this user",
+                message: "No closed orders found for this user",
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: "Wallet data fetched successfully",
-            data: user.demoWallet,
+            message: "Closed orders fetched successfully",
+            data: orders,
         });
     } catch (error) {
-        console.error("Error fetching wallet data:", error);
+        console.error("Error fetching closed orders:", error);
         return res.status(500).json({
             success: false,
             message: "Internal server error",

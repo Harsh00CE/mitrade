@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
     try {
         const { symbol } = req.query; 
         if (!symbol) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Symbol is required as a query parameter",
             });
@@ -24,7 +24,7 @@ router.get("/", async (req, res) => {
                 data: pairInfo, 
             });
         } else {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "Pair info not found for the provided symbol",
             });

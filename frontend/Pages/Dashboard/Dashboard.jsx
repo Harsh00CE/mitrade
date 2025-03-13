@@ -32,9 +32,7 @@ const Dashboard = () => {
     return (
         <div>
             <h1>Real-Time Crypto Prices</h1>
-            <PriceAlert userId={"67ced33ed132690a73244906"} />
-            <BalanceComponent userId={"67ced33ed132690a73244903"} />
-            <table>
+           <table>
                 <thead>
                     <tr>
                         <th>Symbol</th>

@@ -6,7 +6,7 @@ const BalanceComponent = ({ userId }) => {
     const [availableBalance, setAvailableBalance] = useState(0);
 
     useEffect(() => {
-        const ws = new WebSocket("ws://localhost:8080");
+        const ws = new WebSocket("ws://192.168.0.103:8080");
 
         ws.onopen = () => {
             console.log("WebSocket connection established");

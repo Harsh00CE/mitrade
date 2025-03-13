@@ -11,13 +11,13 @@ const PriceAlert = ({ userId }) => {
     const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
-        // Fetch existing alerts
-        axios.get(`http://localhost:3000/api/alerts/${userId}`)
+        console.log("User ID:", userId);
+        
+        axios.get(`http://192.168.0.103:3000/api/alerts/${userId}`)
             .then(response => setAlerts(response.data.data))
             .catch(error => console.error("Error fetching alerts:", error));
 
-        // Connect to WebSocket
-        const socket = new WebSocket("ws://localhost:8080");
+        const socket = new WebSocket("ws://192.168.0.103:8080");
 
         socket.onopen = () => {
             console.log("WebSocket connected");
@@ -44,22 +44,18 @@ const PriceAlert = ({ userId }) => {
             return;
         }
 
-        console.log("userId => ", userId);
-        console.log("symbol => ", symbol);
-        console.log("alertPrice => ", alertPrice);
-        console.log("alertType => ", alertType);
-        console.log("alertOption => ", alertOption);
-        
+        const payload = {
+            userId,
+            symbol,
+            alertPrice: parseFloat(alertPrice),
+            alertType,
+            frequency:alertOption,
+        };
+
+        console.log("Payload being sent:", payload);
 
         try {
-            const response = await axios.post("http://localhost:3000/api/alerts", {
-                userId,
-                symbol,
-                alertPrice: parseFloat(alertPrice),
-                alertType,
-                alertOption
-            });
-
+            const response = await axios.post("http://192.168.0.103:3000/api/alerts", payload);
             setAlerts([...alerts, response.data.data]);
             alert("Alert created successfully!");
         } catch (error) {
