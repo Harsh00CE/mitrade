@@ -20,6 +20,7 @@ import alertRouter from "./router/alert.routes.js"
 import closeOrderRouter from "./router/closeOrder.routes.js"
 import orderHistoryRouter from "./router/orderHistory.routes.js"
 import liquidationRouter from "./router/liquidation.routes.js"
+import getFavoriteRouter from "./router/getFavorite.routes.js"
 
 const app = express();
 app.use(bodyParser.json());
@@ -81,6 +82,7 @@ app.use("/api/alerts", alertRouter);
 app.use("/api/close-order", closeOrderRouter);
 app.use("/api/order-history", orderHistoryRouter);
 app.use("/api/liquidation", liquidationRouter);
+app.use("/api/get-favorite", getFavoriteRouter);
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
 

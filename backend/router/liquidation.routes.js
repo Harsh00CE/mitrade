@@ -19,7 +19,7 @@ router.post("/:userId", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId).populate("demoWallet");
+        const user = await UserModel.findById(userId);
         const demoWallet = await DemoWalletModel.findById(user.demoWallet._id);
         if (!user) {
             return res.status(200).json({
@@ -28,7 +28,7 @@ router.post("/:userId", async (req, res) => {
             });
         }
 
-        const openOrders = await OrderModel.find({ userId, status: "open" });
+        const openOrders = await OrderModel.find({ userId, position: "open" });
 
         if (!openOrders || openOrders.length === 0) {
             return res.status(200).json({
@@ -36,10 +36,22 @@ router.post("/:userId", async (req, res) => {
                 message: "No open orders found for this user",
             });
         }
+        const fetchClosingPrice = async (symbol) => {
+            try {
+                const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
+                const data = await response.json();
+                return parseFloat(data.price);
+            } catch (error) {
+                console.error("Error fetching closing price:", error);
+                return null;
+            }
+        };
+
 
         for (const order of openOrders) {
+            const closingPrice = await fetchClosingPrice(order.symbol);
             const openingValue = order.price * order.quantity;
-            const closingValue = order.closingValue; 
+            const closingValue = closingPrice * order.quantity;
             const realisedPL = order.type === "buy" ? closingValue - openingValue : openingValue - closingValue;
 
             order.status = "closed";
@@ -51,9 +63,9 @@ router.post("/:userId", async (req, res) => {
             await order.save();
 
             const orderHistory = new OrderHistoryModel({
-                ...order.toObject(), 
-                _id: undefined, 
-                openingValue: openingValue, 
+                ...order.toObject(),
+                _id: undefined,
+                openingValue: openingValue,
             });
 
             await orderHistory.save();

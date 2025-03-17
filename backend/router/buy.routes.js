@@ -29,7 +29,8 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const marginRequired = (quantity * price) / leverage;
+        const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
+
 
         if (demoWallet.available < marginRequired) {
             return res.status(200).json({
@@ -38,8 +39,9 @@ router.post("/", async (req, res) => {
             });
         }
 
-        demoWallet.available -= marginRequired;
-        demoWallet.margin += marginRequired;
+        demoWallet.available = demoWallet.available - marginRequired;
+        demoWallet.margin = demoWallet.margin + marginRequired;
+        
         const orderId = uuidv4();
         const order = new OrderModel({
             orderId,
