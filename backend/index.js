@@ -3,12 +3,10 @@ import dotenv from "dotenv";
 import { WebSocketServer } from "ws";
 import WebSocket from "ws";
 import connectDB from "./ConnectDB/ConnectionDB.js";
-import { calculateAvailableBalance } from "./utils/utilityFunctions.js";
-import AlertModel from "./schemas/alertSchema.js";
-import { sendVerificationEmail } from "./helpers/sendAlertEmail.js";
-import checkAlerts from "./checkAlerts.js";
-dotenv.config({ path: ".env" });
+import UserModel from "./schemas/userSchema.js";
+import PairInfoModel from "./schemas/pairInfo.js"; 
 
+dotenv.config({ path: ".env" });
 
 await connectDB();
 
@@ -16,101 +14,63 @@ app.listen(process.env.PORT || 3000, () => {
     console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
 
-
 const wss = new WebSocketServer({ port: 8080 });
+console.log("WebSocket server running on ws://192.168.0.103:8080");
 
-const broadcastAvailableBalance = (userId, availableBalance) => {
-    console.log("broadcastAvailableBalance => ", userId, availableBalance);
+const favoriteSubscriptions = new Map();
+const adminTokens = new Set(); 
 
-    wss.clients.forEach((client) => {
-        if (client.userId === userId && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: "availableBalance", data: availableBalance }));
-        }
-    });
+const loadAdminTokens = async () => {
+    try {
+        const pairs = await PairInfoModel.find({}, "symbol");
+        adminTokens.clear();
+        pairs.forEach((pair) => adminTokens.add(pair.symbol));
+        // console.log("Admin tokens loaded:", Array.from(adminTokens));
+    } catch (error) {
+        console.error("Error loading admin tokens:", error);
+    }
 };
-wss.on("connection", (ws) => {
+
+await loadAdminTokens();
+
+wss.on("connection", async (ws) => {
     console.log("New client connected");
 
-    ws.on("message", (message) => {
+    ws.on("message", async (message) => {
         const data = JSON.parse(message);
 
-        if (data.type === "subscribe") {
-            ws.userId = data.userId;
-            console.log(`Client subscribed to user ${data.userId}`);
-        }
-        const { symbol, price } = data;
-        if (!symbol || !price) {
-            console.log("sumbol or price is not defined");
-        }
+        if (data.type == "subscribeFavorites") {
+            const { userId } = data;
+            // console.log("User ID:", userId);
+            
+            if (!userId) return;
 
-        checkAlerts(symbol, price);
+            const user = await UserModel.findById(userId);
+            if (!user) {
+                console.log(`User ${userId} not found`);
+                return;
+            }
+
+            const favoriteTokens = user.favoriteTokens || [];
+            favoriteSubscriptions.set(userId, new Set(favoriteTokens));
+            ws.userId = userId; 
+
+            console.log(`User ${userId} subscribed to favorite tokens:`, favoriteTokens);
+        }
     });
 
     ws.on("close", () => {
         console.log("Client disconnected");
     });
 });
-export const updateAvailableBalance = async (userId) => {
-    try {
-        const availableBalance = await calculateAvailableBalance(userId);
-        broadcastAvailableBalance(userId, availableBalance);
-    } catch (error) {
-        console.error("Error updating available balance:", error);
-    }
-};
-
-console.log("WebSocket server running on ws://192.168.0.103:8080");
 
 const binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!ticker@arr");
-const TWELVEDATA_WS_URL = "wss://ws.twelvedata.com/v1/quotes/price";
-
-const connectToTwelvedata = (ws, symbols) => {
-    const twelvedataWs = new WebSocket(TWELVEDATA_WS_URL);
-
-    twelvedataWs.on("open", () => {
-        console.log("Connected to Twelvedata WebSocket");
-
-        // Subscribe to commodity symbols
-        twelvedataWs.send(
-            JSON.stringify({
-                action: "subscribe",
-                params: {
-                    symbols: symbols.join(","), // e.g., "GOLD/USD,SILVER/USD"
-                    apikey: process.env.TWELVEDATA_API_KEY,
-                },
-            })
-        );
-    });
-
-    twelvedataWs.on("message", (data) => {
-        const message = JSON.parse(data);
-
-        // Forward the real-time data to the client
-        if (ws.readyState === ws.OPEN) {
-            ws.send(JSON.stringify(message));
-        }
-    });
-
-    twelvedataWs.on("close", () => {
-        console.log("Disconnected from Twelvedata WebSocket");
-    });
-
-    twelvedataWs.on("error", (error) => {
-        console.error("Twelvedata WebSocket error:", error);
-    });
-
-    return twelvedataWs;
-};
-
-
 
 binanceWs.on("message", (data) => {
     const tickers = JSON.parse(data);
 
+    const usdPairs = tickers.filter(ticker => ticker.s.endsWith('USDT'));
 
-    const usdPairs = tickers.filter(ticker =>
-        ticker.s.endsWith('USDT')
-    );
     const formattedTickers = usdPairs.map((ticker) => ({
         symbol: ticker.s,
         price: parseFloat(ticker.c).toFixed(4),
@@ -120,69 +80,26 @@ binanceWs.on("message", (data) => {
 
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(formattedTickers));
-        }
-    });
-});
+            client.send(JSON.stringify({ type: "allTokens", data: formattedTickers }));
 
-binanceWs.on("message", async (data) => {
-    const tickers = JSON.parse(data);
-    const alerts = await AlertModel.find({ isActive: true }).populate("67ced33ed132690a73244906");
+            const userId = client.userId;
+            
+            if (userId && favoriteSubscriptions.has(userId)) {
 
-    for (let alert of alerts) {
-        const ticker = tickers.find(t => t.s === alert.symbol);
-        if (!ticker) continue;
-
-        const currentPrice = parseFloat(ticker.c);
-        const now = new Date();
-        let shouldNotify = false;
-
-        if ((alert.type === "buy" && currentPrice <= alert.price) ||
-            (alert.type === "sell" && currentPrice >= alert.price)) {
-
-            if (alert.alertOption === "onlyOnce") {
-                shouldNotify = true;
-                alert.isActive = false;
-            } else if (alert.alertOption === "onceADay") {
-                const lastTriggeredDate = alert.lastTriggered ? new Date(alert.lastTriggered) : null;
-                if (!lastTriggeredDate || lastTriggeredDate.toDateString() !== now.toDateString()) {
-                    shouldNotify = true;
-                    alert.lastTriggered = now;
+                const favoriteTokens = favoriteSubscriptions.get(userId);
+                const filteredData = formattedTickers.filter(t => favoriteTokens.has(t.symbol));
+                
+                if (filteredData.length > 0) {
+                    client.send(JSON.stringify({ type: "favoriteTokens", data: filteredData }));
                 }
             }
 
-            if (shouldNotify) {
-                const emailText = `Price Alert: ${alert.symbol} has reached ${alert.price}.`;
-                sendVerificationEmail(alert.userId.email, `Crypto Alert for ${alert.symbol}`, emailText);
-                await alert.save();
+            const adminFilteredData = formattedTickers.filter(t => adminTokens.has(t.symbol));
+            if (adminFilteredData.length > 0) {
+                client.send(JSON.stringify({ type: "adminTokens", data: adminFilteredData }));
             }
         }
-    }
-});
-
-
-wss.on("connection", (ws) => {
-    console.log("New client connected");
-    let twelvedataWs;
-
-    ws.on("message", (message) => {
-        const data = JSON.parse(message);
-
-        if (data.action === "subscribe" && data.symbols) {
-            twelvedataWs = connectToTwelvedata(ws, data.symbols);
-        }
-    });
-
-    ws.on("close", () => {
-        console.log("Client disconnected");
-
-        if (twelvedataWs) {
-            twelvedataWs.close();
-        }
-    });
-
-    ws.on("close", () => {
-        console.log("Client disconnected");
     });
 });
 
+setInterval(loadAdminTokens, 60000); 

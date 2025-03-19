@@ -4,20 +4,26 @@ import Dashboard from "../Pages/Dashboard/Dashboard";
 import CandlestickChart from "../Pages/Chart/ChartPage";
 import LoginPage from "../Pages/LoginPage";
 import AdminPage from "../Pages/Admin/AdminPage";
+import Comodity from "../Pages/Comodity/Comodity";
+import Sidebar from "./components/Sidebar/Sidebar.jsx";
 
 
 
 function App() {
   return (
     <Router>
+      <div className="flex">
+      <Sidebar />
       <Routes>
         <Route path="/login" element={<Login />} />
         {/* <Route path="/register" element={<Register />} /> */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/list" element={<Dashboard />} />
+        {/* <Route path="/dashboard" element={<Comodity />} /> */}
         <Route path="/candlestick/:symbol" element={<CandlestickChart />} />
         <Route path="/admin/:symbol" element={<AdminPage />} />
         <Route path="/" element={<LoginPage />} />
       </Routes>
+      </div>
     </Router>
   );
 }

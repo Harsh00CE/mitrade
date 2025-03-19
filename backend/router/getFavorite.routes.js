@@ -1,6 +1,7 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import UserModel from "../schemas/userSchema.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -8,6 +9,13 @@ router.get("/:userId", async (req, res) => {
     await connectDB();
     try {
         const { userId } = req.params;
+        let user = await UserModel.findById(userId);
+        
+        if (mongoose.Types.ObjectId.isValid(userId)) {
+            user = await UserModel.findById(userId);
+        } else {
+            user = await UserModel.findOne({ userId: userId }); 
+        }
 
         if (!userId) {
             return res.status(400).json({
@@ -16,7 +24,6 @@ router.get("/:userId", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId);
 
         if (!user) {
             return res.status(404).json({

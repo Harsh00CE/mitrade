@@ -1,6 +1,7 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import PairInfoModel from "../schemas/pairInfo.js";
+
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -9,7 +10,7 @@ router.post("/", async (req, res) => {
         const {
             symbol,
             volumePerTrade,
-            leverages, 
+            leverages,
             ContractSize,
             maxVolumeOfOpenPosition,
             CurrencyOfQuote,
@@ -20,35 +21,57 @@ router.post("/", async (req, res) => {
         } = req.body;
 
         if (!Array.isArray(leverages)) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 message: "Leverages must be provided as an array",
             });
         }
 
-        const pairInfo = await PairInfoModel.create({
-            symbol,
-            volumePerTrade,
-            leverages, 
-            ContractSize,
-            maxVolumeOfOpenPosition,
-            CurrencyOfQuote,
-            floatingSpread,
-            OvernightFundingRateBuy,
-            OvernightFundingRateSell,
-            OvernightFundingRateTime,
-        });
+        // Check if the symbol already exists
+        const existingPair = await PairInfoModel.findOne({ symbol });
 
-        if (pairInfo) {
+        if (existingPair) {
+            // Update existing pair info
+            const updatedPair = await PairInfoModel.findOneAndUpdate(
+                { symbol },
+                {
+                    volumePerTrade,
+                    leverages,
+                    ContractSize,
+                    maxVolumeOfOpenPosition,
+                    CurrencyOfQuote,
+                    floatingSpread,
+                    OvernightFundingRateBuy,
+                    OvernightFundingRateSell,
+                    OvernightFundingRateTime,
+                },
+                { new: true } // Return the updated document
+            );
+
             return res.status(200).json({
                 success: true,
-                message: "Pair info added successfully",
-                data: pairInfo,
+                message: "Pair info updated successfully",
+                data: updatedPair,
             });
         } else {
-            return res.status(500).json({
-                success: false,
-                message: "Error adding pair info",
+            // Create new pair info
+            const newPair = await PairInfoModel.create({
+                symbol,
+                volumePerTrade,
+                leverages,
+                ContractSize,
+                maxVolumeOfOpenPosition,
+                CurrencyOfQuote,
+                floatingSpread,
+                OvernightFundingRateBuy,
+                OvernightFundingRateSell,
+                OvernightFundingRateTime,
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: "Pair info added successfully",
+                data: newPair,
             });
         }
     } catch (error) {
