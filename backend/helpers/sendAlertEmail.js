@@ -1,11 +1,8 @@
 import { resend } from "../lib/resend.js";
 import nodemailer from "nodemailer";
 
-export async function sendVerificationEmail(email, username, verifyCode) {
+export async function sendVerificationEmail(email, symbol, alertPrice) {
   try {
-    console.log("email in sendVerificationEmail => ", email);
-    console.log("username in sendVerificationEmail => ", username);
-    console.log("verifyCode in sendVerificationEmail => ", verifyCode);
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -15,13 +12,11 @@ export async function sendVerificationEmail(email, username, verifyCode) {
       },
     });
 
-    // const emailHtml = await render(VerificationEmail({ username, otp: verifyCode }));
-
     const options = {
       from: "harshradadiya9999@gmail.com",
       to: email,
-      subject: "Verify your email",
-      text : `Your OTP code is ${verifyCode}`
+      subject: "Price Alert",
+      text : `${symbol} price has crossed ${alertPrice}`
     };
 
     await transporter.sendMail(options);
@@ -29,8 +24,8 @@ export async function sendVerificationEmail(email, username, verifyCode) {
     await resend.emails.send({
       from: "harsh@hiteshchoudhary.com",
       to: email,
-      subject: "Verify your email",
-      text : `Your OTP code is ${verifyCode}`
+      subject: "Price Alert",
+      text : `${symbol} price has crossed ${alertPrice}`
     });
 
     return {

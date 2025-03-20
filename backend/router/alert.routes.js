@@ -41,7 +41,6 @@ router.post("/", async (req, res) => {
     }
 });
 
-// GET API to fetch all alerts for a user
 router.get("/:userId", async (req, res) => {
     await connectDB();
     try {
@@ -77,7 +76,6 @@ router.get("/:userId", async (req, res) => {
     }
 });
 
-// DELETE API to remove an alert
 router.delete("/:alertId", async (req, res) => {
     await connectDB();
     try {
@@ -114,7 +112,6 @@ router.delete("/:alertId", async (req, res) => {
     }
 });
 
-// PUT API to update an alert
 router.put("/:alertId", async (req, res) => {
     await connectDB();
     try {

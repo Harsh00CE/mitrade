@@ -24,11 +24,11 @@ const alertSchema = new Schema({
         required: [true, "Frequency is required (onlyOnce/onceADay)"],
         enum: ["onlyOnce", "onceADay"],
     },
-    isTriggered: {
+    triggered: {
         type: Boolean,
         default: false,
     },
-    lastTriggeredDate: {
+    lastTriggered: {
         type: Date,
     },
     createdAt: {

@@ -16,10 +16,6 @@ router.post("/", async (req, res) => {
 
         const parsedUsername = usernameValidation.parse(username);
 
-        log("parsedUsernames => ", parsedUsername);
-        log("username => ", username);
-        log("email => ", email);
-        log("password => ", password);
 
         const existingUserVerifiedByUsername = await UserModel.findOne({
             username: parsedUsername,
@@ -34,7 +30,6 @@ router.post("/", async (req, res) => {
         }
 
         const existingUserByEmail = await UserModel.findOne({ email });
-        log("existingUserByEmail => ", existingUserByEmail);
 
         const verifyCode = Math.floor(Math.random() * 900000 + 100000).toString();
 

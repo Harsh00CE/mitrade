@@ -27,11 +27,9 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Check if the symbol already exists
         const existingPair = await PairInfoModel.findOne({ symbol });
 
         if (existingPair) {
-            // Update existing pair info
             const updatedPair = await PairInfoModel.findOneAndUpdate(
                 { symbol },
                 {
@@ -45,7 +43,7 @@ router.post("/", async (req, res) => {
                     OvernightFundingRateSell,
                     OvernightFundingRateTime,
                 },
-                { new: true } // Return the updated document
+                { new: true }
             );
 
             return res.status(200).json({
@@ -54,7 +52,6 @@ router.post("/", async (req, res) => {
                 data: updatedPair,
             });
         } else {
-            // Create new pair info
             const newPair = await PairInfoModel.create({
                 symbol,
                 volumePerTrade,

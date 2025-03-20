@@ -4,23 +4,29 @@ import {
   LayoutDashboard,
   Users,
   Settings,
-  List,
   Coins,
   History,
   Banknote,
   Wallet,
   FileText,
   ShieldCheck,
+  LineChart,
+  List
 } from "lucide-react";
 
 const Sidebar = () => {
-  const [active, setActive] = useState("Tokens List");
+  const [active, setActive] = useState("List");
 
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard />, path: "/dashboard" },
     { name: "Users", icon: <Users />, path: "/users" },
     { name: "Coin Settings", icon: <Coins />, path: "/coin-settings" },
-    { name: "Tokens List", icon: <List />, path: "/list" },
+    { name: "List", icon: <List />, path: "#", subItems: [
+      { name: "Crypto", path: "/crypto" },
+      { name: "Forex", path: "/forex" },
+      { name: "Commodities", path: "/commodities" },
+      { name: "Shares", path: "/shares" }
+    ]},
     { name: "Commission Settings", icon: <Settings />, path: "/commission-settings" },
     { name: "Trade History", icon: <History />, path: "/trade-history" },
     { name: "Commission History", icon: <History />, path: "/commission-history" },
@@ -41,12 +47,11 @@ const Sidebar = () => {
         <p className="text-sm">superadmin@erax.biz</p>
       </div>
 
-      {/* Scrollable Menu */}
       <ul className="space-y-2 flex-1 overflow-y-auto">
         {menuItems.map((item, index) => (
           <li key={index}>
             <Link
-              to={item.path}
+              to={item.path !== "#" ? item.path : "#"}
               onClick={() => setActive(item.name)}
               className={`flex items-center space-x-3 p-3 rounded-md transition-all duration-300 ${
                 active === item.name ? "bg-white text-yellow-600 font-semibold" : "hover:bg-yellow-500"
@@ -55,6 +60,20 @@ const Sidebar = () => {
               {item.icon}
               <span>{item.name}</span>
             </Link>
+            {item.subItems && active === item.name && (
+              <ul className="ml-6 mt-2 space-y-2">
+                {item.subItems.map((subItem, subIndex) => (
+                  <li key={subIndex}>
+                    <Link
+                      to={subItem.path}
+                      className="block p-2 rounded-md hover:bg-yellow-500"
+                    >
+                      {subItem.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

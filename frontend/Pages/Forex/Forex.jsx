@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
-import { useNavigate } from "react-router-dom";
-import BalanceComponent from "../../src/components/BalanceComponent/BalanceComponent";
-import PriceAlert from "../../src/components/PriceAlert";
 import TradingViewChart from "../Chart/TradingViewChart";
 
 const Dashboard = () => {
-    const [allTickers, setAllTickers] = useState([]);
-    const [favoriteTickers, setFavoriteTickers] = useState([]);
-    const [adminTickers, setAdminTickers] = useState([]);
     const [forexTickers, setForexTickers] = useState([]);
-    const [selectedSymbol, setSelectedSymbol] = useState(null);
+    const [selectedSymbol, setSelectedSymbol] = useState(null); 
 
-    const navigate = useNavigate();
     const userId = "67dbae524f382518d92a2ca6";
 
     const { sendMessage, lastMessage } = useWebSocket("ws://192.168.0.103:8080", {
@@ -27,13 +20,7 @@ const Dashboard = () => {
         if (lastMessage) {
             const data = JSON.parse(lastMessage.data);
 
-            if (data.type === "allTokens") {
-                setAllTickers(data.data);
-            } else if (data.type === "favoriteTokens") {
-                setFavoriteTickers(data.data);
-            } else if (data.type === "adminTokens") {
-                setAdminTickers(data.data);
-            } else if (data.type === "forexTokens") {
+           if (data.type === "forexTokens") {
                 setForexTickers(data.data);
             }
         }
@@ -59,29 +46,13 @@ const Dashboard = () => {
                 </div>
             )}
 
+ 
+
             <TokenTable
                 title="💱 Forex Prices"
                 tickers={forexTickers}
                 handleCoinClick={handleCoinClick}
             />
-            <TokenTable
-                title="⭐ Favorite Tokens"
-                tickers={favoriteTickers}
-                handleCoinClick={handleCoinClick}
-            />
-
-            <TokenTable
-                title="🔐 Admin Configured Tokens"
-                tickers={adminTickers}
-                handleCoinClick={handleCoinClick}
-            />
-
-            <TokenTable
-                title="📊 All Tokens"
-                tickers={allTickers}
-                handleCoinClick={handleCoinClick}
-            />
-
         </div>
     );
 };
