@@ -1,7 +1,7 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import AlertModel from "../schemas/alertSchema.js";
-import UserModel from "../schemas/userSchema.js"; 
+import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
@@ -30,42 +30,49 @@ router.post("/", async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Alert created successfully",
-            data: alert,
         });
     } catch (error) {
         console.error("Error creating alert:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });
     }
 });
 
-router.get("/:userId", async (req, res) => {
+router.get("/:userId/:symbol", async (req, res) => {
     await connectDB();
     try {
-        const { userId } = req.params;
+        const { userId, symbol } = req.params;  
 
         if (!userId) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 message: "User ID is required",
+            });
+        }
+        if (!symbol) {
+            return res.status(400).json({
+                success: false,
+                message: "Symbol is required",
             });
         }
 
         const user = await UserModel.findById(userId).populate("alerts");
 
         if (!user || !user.alerts || user.alerts.length === 0) {
-            return res.status(200).json({
+            return res.status(404).json({
                 success: false,
                 message: "No alerts found for this user",
             });
         }
 
+        const symbolAlerts = user.alerts.filter(alert => alert.symbol === symbol);
+
         return res.status(200).json({
             success: true,
             message: "Alerts fetched successfully",
-            data: user.alerts,
+            data: symbolAlerts,
         });
     } catch (error) {
         console.error("Error fetching user alerts:", error);
@@ -75,6 +82,7 @@ router.get("/:userId", async (req, res) => {
         });
     }
 });
+
 
 router.delete("/:alertId", async (req, res) => {
     await connectDB();

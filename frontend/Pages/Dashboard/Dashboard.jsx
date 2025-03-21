@@ -13,6 +13,7 @@ const Dashboard = () => {
     const [selectedSymbol, setSelectedSymbol] = useState(null);
 
     const navigate = useNavigate();
+
     const userId = "67dbae524f382518d92a2ca6";
 
     const { sendMessage, lastMessage } = useWebSocket("ws://192.168.0.103:8080", {
@@ -40,11 +41,12 @@ const Dashboard = () => {
     }, [lastMessage]);
 
     const handleCoinClick = (symbol) => {
-        setSelectedSymbol(symbol);
+        navigate(`/admin/${symbol}`);
+        // setSelectedSymbol(symbol);
     };
 
     return (
-        <div className="p-6 bg-gray-100 min-h-screen">
+        <div className="p-6 bg-gray-100 min-h-screen w-full">
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Real-Time Crypto & Forex Prices</h1>
 
             {selectedSymbol && (

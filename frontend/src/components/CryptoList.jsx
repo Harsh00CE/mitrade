@@ -8,7 +8,6 @@ function CryptoList() {
   useEffect(() => {
     const fetchCryptos = async () => {
       const response = await api.getCryptos();
-      console.log("cryptos => ", response.data);
       
       setCryptos(response.data);
     };

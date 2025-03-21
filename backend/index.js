@@ -107,63 +107,63 @@ binanceWs.on("message", async (data) => {
     }
 });
 
-// const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
-// const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
+const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
+const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
 
-// const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"]; 
+const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"]; 
 
-// const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
+const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
 
-// twelveDataWs.on("open", () => {
-//     console.log("Connected to TwelveData WebSocket");
+twelveDataWs.on("open", () => {
+    console.log("Connected to TwelveData WebSocket");
 
-//     twelveDataWs.send(
-//         JSON.stringify({
-//             action: "subscribe",
-//             params: {
-//                 symbols: forexSymbols.join(","),
-//             },
-//         })
-//     );
-// });
+    twelveDataWs.send(
+        JSON.stringify({
+            action: "subscribe",
+            params: {
+                symbols: forexSymbols.join(","),
+            },
+        })
+    );
+});
 
-// twelveDataWs.on("message", async (data) => {
-//     const message = JSON.parse(data);
+twelveDataWs.on("message", async (data) => {
+    const message = JSON.parse(data);
+    
+    if (message.event === "price") {
+        const { symbol, price } = message;
 
-//     if (message.event === "price") {
-//         const { symbol, price } = message;
+        // Format the forex price data
+        const formattedTicker = {
+            symbol: symbol,
+            price: parseFloat(price).toFixed(4),
+            volume: "N/A", // Forex doesn't have volume
+            change: "N/A", // Forex doesn't have change percentage
+        };
 
-//         // Format the forex price data
-//         const formattedTicker = {
-//             symbol: symbol,
-//             price: parseFloat(price).toFixed(4),
-//             volume: "N/A", // Forex doesn't have volume
-//             change: "N/A", // Forex doesn't have change percentage
-//         };
+        // Send forex data to all connected clients
+        wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ type: "forexTokens", data: [formattedTicker] }));
+            }
+        });
 
-//         // Send forex data to all connected clients
-//         wss.clients.forEach((client) => {
-//             if (client.readyState === WebSocket.OPEN) {
-//                 client.send(JSON.stringify({ type: "forexTokens", data: [formattedTicker] }));
-//             }
-//         });
+        // Check for forex alerts
+        await checkAndSendAlerts(symbol, parseFloat(price));
+    } else if (message.event === "heartbeat") {
+        console.log("TwelveData heartbeat received");
+    } else if (message.event === "error") {
+        console.error("TwelveData error:", message.message);
+    }
+});
 
-//         // Check for forex alerts
-//         await checkAndSendAlerts(symbol, parseFloat(price));
-//     } else if (message.event === "heartbeat") {
-//         console.log("TwelveData heartbeat received");
-//     } else if (message.event === "error") {
-//         console.error("TwelveData error:", message.message);
-//     }
-// });
+twelveDataWs.on("close", () => {
+    console.log("Disconnected from TwelveData WebSocket");
+});
 
-// twelveDataWs.on("close", () => {
-//     console.log("Disconnected from TwelveData WebSocket");
-// });
-
-// twelveDataWs.on("error", (error) => {
-//     console.error("TwelveData WebSocket error:", error);
-// });
+twelveDataWs.on("error", (error) => {
+    console.error("TwelveData WebSocket error:", error);
+});
 
 setInterval(loadAdminTokens, 60000);
 

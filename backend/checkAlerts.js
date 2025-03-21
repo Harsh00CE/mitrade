@@ -31,7 +31,6 @@ const checkAlerts = async (symbol, price) => {
                 console.error(`Failed to send email for alert ${alert._id}`);
             }
 
-            // Update alert based on frequency
             if (alert.frequency === "onlyOnce") {
                 alert.isTriggered = true;
             } else if (alert.frequency === "onceADay") {
@@ -39,7 +38,7 @@ const checkAlerts = async (symbol, price) => {
                 if (!alert.lastTriggeredDate || alert.lastTriggeredDate.toDateString() !== today.toDateString()) {
                     alert.lastTriggeredDate = today;
                 } else {
-                    continue; // Skip if already triggered today
+                    continue; 
                 }
             }
 
