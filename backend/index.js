@@ -64,7 +64,6 @@ wss.on("connection", async (ws) => {
     });
 });
 
-// Binance WebSocket for crypto prices
 const binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!ticker@arr");
 
 binanceWs.on("message", async (data) => {
@@ -133,22 +132,19 @@ twelveDataWs.on("message", async (data) => {
     if (message.event === "price") {
         const { symbol, price } = message;
 
-        // Format the forex price data
         const formattedTicker = {
             symbol: symbol,
             price: parseFloat(price).toFixed(4),
-            volume: "N/A", // Forex doesn't have volume
-            change: "N/A", // Forex doesn't have change percentage
+            volume: "N/A", 
+            change: "N/A", 
         };
 
-        // Send forex data to all connected clients
         wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({ type: "forexTokens", data: [formattedTicker] }));
             }
         });
 
-        // Check for forex alerts
         await checkAndSendAlerts(symbol, parseFloat(price));
     } else if (message.event === "heartbeat") {
         console.log("TwelveData heartbeat received");
@@ -182,7 +178,7 @@ const checkAndSendAlerts = async (symbol, price) => {
 
             if (frequency === "onlyOnce") {
                 shouldSendEmail = true;
-                alert.triggered = true; // Mark as triggered
+                alert.triggered = true; 
             } else if (frequency === "onceADay") {
                 const lastTriggeredDate = lastTriggered ? new Date(lastTriggered) : null;
 

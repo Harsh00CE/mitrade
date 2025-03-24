@@ -10,55 +10,47 @@ import {
   Wallet,
   FileText,
   ShieldCheck,
-  LineChart,
   List
 } from "lucide-react";
 
 const Sidebar = () => {
-  const [active, setActive] = useState("List");
-
+  const [active, setActive] = useState("Dashboard");
+  
   const menuItems = [
-    { name: "Dashboard", icon: <LayoutDashboard />, path: "/dashboard" },
-    { name: "Users", icon: <Users />, path: "/users" },
-    { name: "Coin Settings", icon: <Coins />, path: "/coin-settings" },
-    { name: "List", icon: <List />, path: "#", subItems: [
+    { name: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/dashboard" },
+    { name: "Users", icon: <Users size={20} />, path: "/users" },
+    { name: "Coin Settings", icon: <Coins size={20} />, path: "/coin-settings" },
+    { name: "List", icon: <List size={20} />, path: "#", subItems: [
       { name: "Crypto", path: "/crypto" },
       { name: "Forex", path: "/forex" },
       { name: "Commodities", path: "/commodities" },
       { name: "Shares", path: "/shares" }
     ]},
-    { name: "Commission Settings", icon: <Settings />, path: "/commission-settings" },
-    { name: "Trade History", icon: <History />, path: "/trade-history" },
-    { name: "Commission History", icon: <History />, path: "/commission-history" },
-    { name: "Fees Collected", icon: <Banknote />, path: "/fees-collected" },
-    { name: "Reports", icon: <FileText />, path: "/reports" },
-    { name: "User Deposit History", icon: <Banknote />, path: "/user-deposit-history" },
-    { name: "User Withdraw History", icon: <Banknote />, path: "/user-withdraw-history" },
-    { name: "Admin Wallet", icon: <Wallet />, path: "/admin-wallet" },
-    { name: "Withdraw Wallet", icon: <Wallet />, path: "/withdraw-wallet" },
-    { name: "KYC Submit", icon: <ShieldCheck />, path: "/kyc-submit" },
-    { name: "Admin Bank", icon: <Banknote />, path: "/admin-bank" },
+    { name: "Trade History", icon: <History size={20} />, path: "/trade-history" },
+    { name: "Reports", icon: <FileText size={20} />, path: "/reports" },
+    { name: "Admin Wallet", icon: <Wallet size={20} />, path: "/admin-wallet" },
+    { name: "Withdraw Wallet", icon: <Wallet size={20} />, path: "/withdraw-wallet" },
+    { name: "KYC Submit", icon: <ShieldCheck size={20} />, path: "/kyc-submit" },
   ];
 
   return (
-    <div className="h-screen w-64 bg-gradient-to-b from-yellow-400 to-yellow-600 text-white p-4 flex flex-col">
-      <div className="mb-6 p-4 text-white">
-        <h2 className="text-lg font-bold">Super Admin</h2>
-        <p className="text-sm">superadmin@erax.biz</p>
+    <div className="h-screen w-72 bg-gray-900 text-gray-300 flex flex-col p-5 shadow-lg">
+      <div className="mb-6 text-white text-center">
+        <h2 className="text-2xl font-bold">Admin Panel</h2>
+        <p className="text-sm text-gray-400">superadmin@erax.biz</p>
       </div>
-
-      <ul className="space-y-2 flex-1 overflow-y-auto">
+      
+      <ul className="space-y-2 overflow-y-auto flex-1">
         {menuItems.map((item, index) => (
           <li key={index}>
             <Link
               to={item.path !== "#" ? item.path : "#"}
               onClick={() => setActive(item.name)}
-              className={`flex items-center space-x-3 p-3 rounded-md transition-all duration-300 ${
-                active === item.name ? "bg-white text-yellow-600 font-semibold" : "hover:bg-yellow-500"
-              }`}
+              className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 cursor-pointer 
+                ${active === item.name ? "bg-blue-600 text-white" : "hover:bg-gray-800"}`}
             >
               {item.icon}
-              <span>{item.name}</span>
+              <span className="text-lg">{item.name}</span>
             </Link>
             {item.subItems && active === item.name && (
               <ul className="ml-6 mt-2 space-y-2">
@@ -66,7 +58,7 @@ const Sidebar = () => {
                   <li key={subIndex}>
                     <Link
                       to={subItem.path}
-                      className="block p-2 rounded-md hover:bg-yellow-500"
+                      className="block p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-md"
                     >
                       {subItem.name}
                     </Link>

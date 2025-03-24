@@ -100,7 +100,9 @@ const AdminPage = () => {
     }, [lastMessage]);
 
     return (
-        <div className="max-w-lg mx-auto p-6 bg-white shadow-lg rounded-lg">
+        <div className="w-full h-screen bg-gray-900 text-white">
+
+        <div className="mx-20 my-15 p-6 bg-gray-800 shadow-md rounded-lg">
             <h1 className="text-2xl font-bold mb-4">Admin Page - Pair Information</h1>
 
             {currentPrice && (
@@ -241,6 +243,7 @@ const AdminPage = () => {
                     {pairInfo ? "Update Pair Info" : "Save Pair Info"}
                 </button>
             </form>
+        </div>
         </div>
     );
 };

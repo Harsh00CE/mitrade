@@ -2,27 +2,9 @@ import express from "express";
 import cors from "cors";
 import userRoutes from "./router/users.routes.js";
 import session from "cookie-session";
-import cryptoRoutes from "./router/cryptoRoutes.routes.js";
-import signUpRoutes from "./router/signup.routes.js";
-import logInRoutes from "./router/login.routes.js";
-import bodyParser from "body-parser";
-import verifyCodeRoutes from "./router/verify-code.routes.js";
 import "./passport.mjs"
 import passport from "passport";
-import adminRoutes from "./router/admin.routes.js";
-import buyRoutes from "./router/buy.routes.js";
-import getInfo from "./router/getInfo.routes.js";
-import getUserWallet from "./router/getWallet.routes.js";
-import favoriteTokensRouter from "./router/favorite.routes.js"
-import getUserOrders from "./router/order.routes.js"
-import sellRoutes from "./router/sell.routes.js"
-import alertRouter from "./router/alert.routes.js"
-import closeOrderRouter from "./router/closeOrder.routes.js"
-import orderHistoryRouter from "./router/orderHistory.routes.js"
-import liquidationRouter from "./router/liquidation.routes.js"
-import getFavoriteRouter from "./router/getFavorite.routes.js"
-import getChartRouter from "./router/getChart.routes.js"
-import sendAlertsRouter from "./router/sendEmailAlert.routes.js"
+import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter } from "./router/index.routes.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -69,7 +51,7 @@ app.get("/logout", (req, res) => {
 
 
 
-app.use("/api/users", userRoutes)
+// app.use("/api/users", userRoutes)
 app.use("/api/buy", buyRoutes)
 app.use("/api/sell", sellRoutes)
 app.use("/api/signup", signUpRoutes)
@@ -86,6 +68,7 @@ app.use("/api/order-history", orderHistoryRouter);
 app.use("/api/liquidation", liquidationRouter);
 app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
+app.use("/api/users" , getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
 
 // app.use("/api/auth" ,auth) 
