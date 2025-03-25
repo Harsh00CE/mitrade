@@ -8,7 +8,7 @@ const WalletConfigPage = () => {
     const [userWallet, setUserWallet] = useState({});
 
     const getchUserWallet = async () => {
-        const response = await fetch(`http://localhost:3000/api/user-wallet?userId=${userId}`);
+        const response = await fetch(`http://157.173.219.118:3000/api/user-wallet?userId=${userId}`);
 
         const data = await response.json();
         setUserWallet(data.data);
