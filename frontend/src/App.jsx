@@ -20,6 +20,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         {/* <Route path="/register" element={<Register />} /> */}
         <Route path="/" element={<Dashboard />} />
+        <Route path="/crypto" element={<Dashboard />} />
         <Route path="/forex" element={<Forex />} />
         <Route path="/users" element={<User/>} />
         {/* <Route path="/dashboard" element={<Comodity />} /> */}

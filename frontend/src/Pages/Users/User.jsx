@@ -13,7 +13,7 @@ const User = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:3000/api/users", {
+      const response = await axios.get("http://157.173.219.118:3000/api/users", {
         params: { page, limit },
       });
 

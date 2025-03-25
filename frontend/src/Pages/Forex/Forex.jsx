@@ -9,7 +9,7 @@ const Forex = () => {
 
     const userId = "67dbae524f382518d92a2ca6";
 
-    const { sendMessage, lastMessage } = useWebSocket("ws://192.168.0.103:8080", {
+    const { sendMessage, lastMessage } = useWebSocket("ws://157.173.219.118:8080", {
         onOpen: () => {
             console.log("✅ Connected to WebSocket");
             sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));

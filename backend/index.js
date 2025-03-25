@@ -17,7 +17,7 @@ app.listen(process.env.PORT || 3000, () => {
 });
 
 const wss = new WebSocketServer({ port: 8080 });
-console.log("WebSocket server running on ws://192.168.0.103:8080");
+console.log("WebSocket server running on ws://157.173.219.118:8080");
 
 const favoriteSubscriptions = new Map();
 const adminTokens = new Set();

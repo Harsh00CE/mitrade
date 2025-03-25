@@ -7,7 +7,7 @@ const Comodity = () => {
 
     useEffect(() => {
         // Connect to the WebSocket server
-        const ws = new WebSocket("ws://192.168.0.103:8080");
+        const ws = new WebSocket("ws://157.173.219.118:8080");
 
         ws.onopen = () => {
             console.log("Connected to WebSocket server");

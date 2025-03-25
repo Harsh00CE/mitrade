@@ -13,11 +13,11 @@ const PriceAlert = ({ userId }) => {
     useEffect(() => {
         console.log("User ID:", userId);
         
-        axios.get(`http://192.168.0.103:3000/api/alerts/${userId}`)
+        axios.get(`http://157.173.219.118:3000/api/alerts/${userId}`)
             .then(response => setAlerts(response.data.data))
             .catch(error => console.error("Error fetching alerts:", error));
 
-        const socket = new WebSocket("ws://192.168.0.103:8080");
+        const socket = new WebSocket("ws://157.173.219.118:8080");
 
         socket.onopen = () => {
             console.log("WebSocket connected");
@@ -55,7 +55,7 @@ const PriceAlert = ({ userId }) => {
         console.log("Payload being sent:", payload);
 
         try {
-            const response = await axios.post("http://192.168.0.103:3000/api/alerts", payload);
+            const response = await axios.post("http://157.173.219.118:3000/api/alerts", payload);
             setAlerts([...alerts, response.data.data]);
             alert("Alert created successfully!");
         } catch (error) {
