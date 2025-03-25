@@ -18,6 +18,7 @@ import getFavoriteRouter from "./getFavorite.routes.js"
 import getChartRouter from "./getChart.routes.js"
 import sendAlertsRouter from "./sendEmailAlert.routes.js"
 import getUsersRouter from "./getUsers.routes.js"
+import configWallet from "./configWallet.routes.js"
 
 
 export {
@@ -40,5 +41,6 @@ export {
     getFavoriteRouter,
     getChartRouter,
     sendAlertsRouter,    
-    getUsersRouter
+    getUsersRouter,
+    configWallet
 }

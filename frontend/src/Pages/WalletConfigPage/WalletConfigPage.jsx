@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom';
 
+
 const WalletConfigPage = () => {
 
     const { userId } = useParams();
     const [userWallet, setUserWallet] = useState({});
 
     const getchUserWallet = async () => {
-        const response = await fetch(`http://192.168.0.103:3000/api/user-wallet/${userId}`);
+        const response = await fetch(`http://localhost:3000/api/user-wallet?userId=${userId}`);
 
         const data = await response.json();
         setUserWallet(data.data);
-        console.log(data);
+        console.log("data ==> " , data);
     }
 
     useEffect(() => {

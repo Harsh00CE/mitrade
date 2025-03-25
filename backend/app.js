@@ -4,7 +4,7 @@ import userRoutes from "./router/users.routes.js";
 import session from "cookie-session";
 import "./passport.mjs"
 import passport from "passport";
-import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter } from "./router/index.routes.js";
+import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter , configWallet } from "./router/index.routes.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -59,7 +59,6 @@ app.use("/api/login", logInRoutes)
 app.use("/api/varify-code", verifyCodeRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/pair-info", getInfo)
-app.use("/api/user-wallet",getUserWallet)
 app.use("/api/favorite-tokens", favoriteTokensRouter);
 app.use("/api/user-orders", getUserOrders)
 app.use("/api/alerts", alertRouter);
@@ -70,6 +69,8 @@ app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
 app.use("/api/users" , getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
+app.use("/api/user-wallet",getUserWallet)
+app.use("/api/config-wallet", configWallet);
 
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
