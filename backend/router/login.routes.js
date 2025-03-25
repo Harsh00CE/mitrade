@@ -44,6 +44,14 @@ router.post("/", async (req, res) => {
 
 
         const demoWallet = await DemoWalletModel.findById(user.demoWallet._id);
+
+        if (!demoWallet) {
+            return res.status(200).json({
+                success:true,
+                message:"wallet not found."
+            })
+        }
+
         demoWallet.balance = balance;
         demoWallet.equity = equity;
         demoWallet.available = availableBalance;

@@ -8,7 +8,8 @@ router.get("/:userId", async (req, res) => {
     await connectDB();
     try {
         const { userId } = req.params;
-
+        console.log("userId => " , userId);
+        
         const user = await UserModel.findById(userId).populate("demoWallet");
 
         if (!user) {

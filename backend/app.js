@@ -69,8 +69,8 @@ app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
 app.use("/api/users" , getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
-app.use("/api/user-wallet",getUserWallet)
-app.use("/api/config-wallet", configWallet);
+app.use("/api/userwallet",getUserWallet)
+app.use("/api/configwallet", configWallet);
 
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
