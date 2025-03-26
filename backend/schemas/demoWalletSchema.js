@@ -11,13 +11,13 @@ const demoWalletSchema = new Schema({
     equity: {
         type: Number,
         required: [true, "Equity is required"],
-        default: 0,
+        default: 50000,
         set: (value) => Number(value.toFixed(3)),
     },
     available: {
         type: Number,
         required: [true, "Available is required"],
-        default: 0,
+        default: 50000,
         set: (value) => Number(value.toFixed(3)),
     },
     margin: {

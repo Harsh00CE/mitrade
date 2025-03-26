@@ -15,10 +15,11 @@ router.post("/", async (req, res) => {
 
         const parsedUsername = usernameValidation.parse(username);
 
-        const [existingUserVerifiedByUsername, existingUserByEmail] = await Promise.all([
-            UserModel.findOne({ username: parsedUsername, isVerified: true }),
-            UserModel.findOne({ email })
-        ]);
+
+        const existingUserVerifiedByUsername = await UserModel.findOne({
+            username: parsedUsername,
+            isVerified: true,
+        });
 
         if (existingUserVerifiedByUsername) {
             return res.status(200).json({
@@ -26,6 +27,8 @@ router.post("/", async (req, res) => {
                 message: "Username already exists",
             });
         }
+
+        const existingUserByEmail = await UserModel.findOne({ email });
 
         const verifyCode = Math.floor(Math.random() * 900000 + 100000).toString();
 
@@ -45,10 +48,12 @@ router.post("/", async (req, res) => {
             }
         } else {
             const hashedPassword = await bcryptjs.hash(password, 10);
-            const expiryDate = new Date(Date.now() + 3600000); // 1 hour from now
+            const expiryDate = new Date();
+            expiryDate.setHours(expiryDate.getHours() + 1);
             const demoWallet = await DemoWalletModel.create({});
+            await demoWallet.save();
 
-            const newUser = new UserModel({
+            const newUser = await UserModel.create({
                 username: parsedUsername,
                 email,
                 password: hashedPassword,

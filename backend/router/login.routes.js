@@ -38,26 +38,26 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const [balance, equity, availableBalance] = await Promise.all([
-            calculateBalance(user._id),
-            calculateEquity(user._id),
-            calculateAvailableBalance(user._id)
-        ]);
+        // const [balance, equity, availableBalance] = await Promise.all([
+        //     calculateBalance(user._id),
+        //     calculateEquity(user._id),
+        //     calculateAvailableBalance(user._id)
+        // ]);
 
-        const demoWallet = user.demoWallet;
+        // const demoWallet = user.demoWallet;
 
-        if (!demoWallet) {
-            return res.status(200).json({
-                success: false,
-                message: "Wallet not found",
-            });
-        }
+        // if (!demoWallet) {
+        //     return res.status(200).json({
+        //         success: false,
+        //         message: "Wallet not found",
+        //     });
+        // }
 
-        demoWallet.balance = balance;
-        demoWallet.equity = equity;
-        demoWallet.available = availableBalance;
+        // demoWallet.balance = balance;
+        // demoWallet.equity = equity;
+        // demoWallet.available = availableBalance;
 
-        await demoWallet.save();
+        // await demoWallet.save();
 
         return res.status(200).json({
             success: true,
