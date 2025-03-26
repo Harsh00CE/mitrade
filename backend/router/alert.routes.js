@@ -11,7 +11,7 @@ router.post("/", async (req, res) => {
         const { userId, symbol, alertPrice, alertType, frequency } = req.body;
 
         if (!userId || !symbol || !alertPrice || !alertType || !frequency) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 message: "All fields are required: userId, symbol, alertPrice, alertType, frequency",
             });
@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating alert:", error);
-        return res.status(200).json({
+        return res.status(500).json({
             success: false,
             message: "Internal server error",
         });
@@ -43,22 +43,19 @@ router.post("/", async (req, res) => {
 router.get("/:userId/:symbol", async (req, res) => {
     await connectDB();
     try {
-        const { userId, symbol } = req.params;  
+        const { userId, symbol } = req.params;
 
-        if (!userId) {
+        if (!userId || !symbol) {
             return res.status(400).json({
                 success: false,
-                message: "User ID is required",
-            });
-        }
-        if (!symbol) {
-            return res.status(400).json({
-                success: false,
-                message: "Symbol is required",
+                message: "User ID and Symbol are required",
             });
         }
 
-        const user = await UserModel.findById(userId).populate("alerts");
+        const user = await UserModel.findById(userId).populate({
+            path: "alerts",
+            match: { symbol },
+        });
 
         if (!user || !user.alerts || user.alerts.length === 0) {
             return res.status(404).json({
@@ -67,12 +64,10 @@ router.get("/:userId/:symbol", async (req, res) => {
             });
         }
 
-        const symbolAlerts = user.alerts.filter(alert => alert.symbol === symbol);
-
         return res.status(200).json({
             success: true,
             message: "Alerts fetched successfully",
-            data: symbolAlerts,
+            data: user.alerts,
         });
     } catch (error) {
         console.error("Error fetching user alerts:", error);
@@ -83,14 +78,13 @@ router.get("/:userId/:symbol", async (req, res) => {
     }
 });
 
-
 router.delete("/:alertId", async (req, res) => {
     await connectDB();
     try {
         const { alertId } = req.params;
 
         if (!alertId) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 message: "Alert ID is required",
             });
@@ -99,7 +93,7 @@ router.delete("/:alertId", async (req, res) => {
         const alert = await AlertModel.findByIdAndDelete(alertId);
 
         if (!alert) {
-            return res.status(200).json({
+            return res.status(404).json({
                 success: false,
                 message: "Alert not found",
             });
@@ -127,7 +121,7 @@ router.put("/:alertId", async (req, res) => {
         const { alertPrice, frequency } = req.body;
 
         if (!alertPrice && !frequency) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 message: "At least one field (alertPrice or frequency) is required for update",
             });
@@ -140,7 +134,7 @@ router.put("/:alertId", async (req, res) => {
         );
 
         if (!updatedAlert) {
-            return res.status(200).json({
+            return res.status(404).json({
                 success: false,
                 message: "Alert not found",
             });

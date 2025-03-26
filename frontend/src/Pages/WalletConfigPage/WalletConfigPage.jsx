@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { BASE_URL } from '../../utils/constant';
 
 const WalletConfigPage = () => {
     const { userId } = useParams();
@@ -13,7 +14,7 @@ const WalletConfigPage = () => {
     const fetchUserWallet = async () => {
         try {
             setIsLoading(true);
-            const response = await axios.get(`http://localhost:3000/api/userwallet/${userId}`);
+            const response = await axios.get(`http://${BASE_URL}:3000/api/userwallet/${userId}`);
             setUserWallet(response.data.data);
             setEditedWallet(response.data.data);
         } catch (error) {
@@ -48,7 +49,7 @@ const WalletConfigPage = () => {
         try {
             setIsLoading(true);
             const response = await axios.put(
-                `http://localhost:3000/api/configwallet/${userId}`,
+                `http://${BASE_URL}:3000/api/configwallet/${userId}`,
                 editedWallet
             );
             setUserWallet(response.data.data);

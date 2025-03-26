@@ -23,7 +23,7 @@ router.get("/:userId", async (req, res) => {
                 message: "User ID is required",
             });
         }
-
+  
         if (!user) {
             return res.status(404).json({
                 success: false,

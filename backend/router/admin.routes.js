@@ -27,50 +27,29 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const existingPair = await PairInfoModel.findOne({ symbol });
+        const pairData = {
+            volumePerTrade,
+            leverages,
+            ContractSize,
+            maxVolumeOfOpenPosition,
+            CurrencyOfQuote,
+            floatingSpread,
+            OvernightFundingRateBuy,
+            OvernightFundingRateSell,
+            OvernightFundingRateTime,
+        };
 
-        if (existingPair) {
-            const updatedPair = await PairInfoModel.findOneAndUpdate(
-                { symbol },
-                {
-                    volumePerTrade,
-                    leverages,
-                    ContractSize,
-                    maxVolumeOfOpenPosition,
-                    CurrencyOfQuote,
-                    floatingSpread,
-                    OvernightFundingRateBuy,
-                    OvernightFundingRateSell,
-                    OvernightFundingRateTime,
-                },
-                { new: true }
-            );
+        const existingPair = await PairInfoModel.findOneAndUpdate(
+            { symbol },
+            pairData,
+            { new: true, upsert: true }
+        );
 
-            return res.status(200).json({
-                success: true,
-                message: "Pair info updated successfully",
-                data: updatedPair,
-            });
-        } else {
-            const newPair = await PairInfoModel.create({
-                symbol,
-                volumePerTrade,
-                leverages,
-                ContractSize,
-                maxVolumeOfOpenPosition,
-                CurrencyOfQuote,
-                floatingSpread,
-                OvernightFundingRateBuy,
-                OvernightFundingRateSell,
-                OvernightFundingRateTime,
-            });
-
-            return res.status(201).json({
-                success: true,
-                message: "Pair info added successfully",
-                data: newPair,
-            });
-        }
+        return res.status(200).json({
+            success: true,
+            message: existingPair ? "Pair info updated successfully" : "Pair info added successfully",
+            data: existingPair,
+        });
     } catch (error) {
         console.error("Error:", error);
         return res.status(500).json({

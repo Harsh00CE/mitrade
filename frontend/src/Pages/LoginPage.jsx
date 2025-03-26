@@ -1,14 +1,15 @@
 import React from 'react'
+import { BASE_URL } from '../utils/constant';
 
 
 
 const LoginPage = () => {
   const login = () => {
-    window.location.href = "http://157.173.219.118:3000/auth";
+    window.location.href = `http://${BASE_URL}:3000/auth`;
   };
 
   const logout = () => {
-    window.location.href = "http://157.173.219.118:3000/logout";
+    window.location.href = `http://${BASE_URL}:3000/logout`;
   };
   return (
     <div>

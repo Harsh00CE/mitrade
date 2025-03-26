@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { BASE_URL } from "../utils/constant";
 
 const PriceAlert = ({ userId }) => {
     const [symbol, setSymbol] = useState("BTCUSDT");
@@ -13,11 +14,11 @@ const PriceAlert = ({ userId }) => {
     useEffect(() => {
         console.log("User ID:", userId);
         
-        axios.get(`http://157.173.219.118:3000/api/alerts/${userId}`)
+        axios.get(`http://${BASE_URL}:3000/api/alerts/${userId}`)
             .then(response => setAlerts(response.data.data))
             .catch(error => console.error("Error fetching alerts:", error));
 
-        const socket = new WebSocket("ws://157.173.219.118:8080");
+        const socket = new WebSocket(`ws://${BASE_URL}:8080`);
 
         socket.onopen = () => {
             console.log("WebSocket connected");
@@ -55,7 +56,7 @@ const PriceAlert = ({ userId }) => {
         console.log("Payload being sent:", payload);
 
         try {
-            const response = await axios.post("http://157.173.219.118:3000/api/alerts", payload);
+            const response = await axios.post(`http://${BASE_URL}:3000/api/alerts`, payload);
             setAlerts([...alerts, response.data.data]);
             alert("Alert created successfully!");
         } catch (error) {

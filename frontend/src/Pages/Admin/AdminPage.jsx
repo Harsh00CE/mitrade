@@ -3,6 +3,7 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import useWebSocket from "react-use-websocket";
 import Select from "react-select";
+import { BASE_URL } from "../../utils/constant";
 
 const leverageOptions = [
     { value: 5, label: "5x" },
@@ -41,7 +42,7 @@ const AdminPage = () => {
 
     const fetchPairInfo = async () => {
         try {
-            const response = await axios.get(`http://157.173.219.118:3000/api/pair-info?symbol=${symbol}`);
+            const response = await axios.get(`http://${BASE_URL}:3000/api/pair-info?symbol=${symbol}`);
             if (response.data.success) {
                 setPairInfo(response.data.data);
                 setFormData({
@@ -77,7 +78,7 @@ const AdminPage = () => {
         e.preventDefault();
 
         try {
-            const response = await axios.post("http://157.173.219.118:3000/api/admin", formData);
+            const response = await axios.post(`http://${BASE_URL}:3000/api/admin`, formData);
             if (response.data.success) {
                 alert("Pair info added/updated successfully!");
                 fetchPairInfo();

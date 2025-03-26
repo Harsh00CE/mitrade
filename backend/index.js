@@ -17,7 +17,7 @@ app.listen(process.env.PORT || 3000, () => {
 });
 
 const wss = new WebSocketServer({ port: 8080 });
-console.log("WebSocket server running on ws://157.173.219.118:8080");
+console.log(`WebSocket server running on ws://${process.env.SERVER_URL}:8080`);
 
 const favoriteSubscriptions = new Map();
 const adminTokens = new Set();
@@ -64,6 +64,7 @@ wss.on("connection", async (ws) => {
     });
 });
 
+// Binance WebSocket for crypto data
 const binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!ticker@arr");
 
 binanceWs.on("message", async (data) => {
@@ -76,6 +77,7 @@ binanceWs.on("message", async (data) => {
         price: parseFloat(ticker.c).toFixed(4),
         volume: parseFloat(ticker.v).toFixed(2),
         change: parseFloat(ticker.P).toFixed(2),
+        type: "crypto" // Add type identifier
     }));
 
     wss.clients.forEach((client) => {
@@ -83,11 +85,9 @@ binanceWs.on("message", async (data) => {
             client.send(JSON.stringify({ type: "allTokens", data: formattedTickers }));
 
             const userId = client.userId;
-
             if (userId && favoriteSubscriptions.has(userId)) {
                 const favoriteTokens = favoriteSubscriptions.get(userId);
                 const filteredData = formattedTickers.filter(t => favoriteTokens.has(t.symbol));
-
                 if (filteredData.length > 0) {
                     client.send(JSON.stringify({ type: "favoriteTokens", data: filteredData }));
                 }
@@ -106,60 +106,79 @@ binanceWs.on("message", async (data) => {
     }
 });
 
+// Forex WebSocket connection
 const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
-const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
+const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD"];
+const forexDataStore = {};
+if (TWELVEDATA_API_KEY) {
+    const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
+    const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
 
-const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"]; 
-
-const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
-
-twelveDataWs.on("open", () => {
-    console.log("Connected to TwelveData WebSocket");
-
-    twelveDataWs.send(
-        JSON.stringify({
+    twelveDataWs.on("open", () => {
+        console.log("Connected to TwelveData Forex WebSocket");
+        twelveDataWs.send(JSON.stringify({
             action: "subscribe",
-            params: {
-                symbols: forexSymbols.join(","),
-            },
-        })
-    );
-});
+            params: { symbols: forexSymbols.join(",") }
+        }));
+    });
 
-twelveDataWs.on("message", async (data) => {
-    const message = JSON.parse(data);
-    
-    if (message.event === "price") {
-        const { symbol, price } = message;
+    twelveDataWs.on("message", async (data) => {
+        try {
+            const message = JSON.parse(data);
 
-        const formattedTicker = {
-            symbol: symbol,
-            price: parseFloat(price).toFixed(4),
-            volume: "N/A", 
-            change: "N/A", 
-        };
+            if (message.event === "price") {
+                const { symbol, price } = message;
 
-        wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: "forexTokens", data: [formattedTicker] }));
+                // Update stored forex prices
+                forexDataStore[symbol] = {
+                    symbol: symbol,
+                    price: parseFloat(price).toFixed(4),
+                    volume: "N/A",
+                    change: "N/A",
+                    type: "forex"
+                };
+
+                // Broadcast all forex data at once
+                const allForexData = Object.values(forexDataStore);
+
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            type: "forexData",
+                            data: allForexData
+                        }));
+                    }
+                });
+
+                await checkAndSendAlerts(symbol, parseFloat(price));
             }
-        });
+        } catch (error) {
+            console.error("Error processing forex data:", error);
+        }
+    });
 
-        await checkAndSendAlerts(symbol, parseFloat(price));
-    } else if (message.event === "heartbeat") {
-        console.log("TwelveData heartbeat received");
-    } else if (message.event === "error") {
-        console.error("TwelveData error:", message.message);
-    }
-});
+    twelveDataWs.on("close", () => {
+        console.log("Disconnected from TwelveData Forex WebSocket");
+        // Implement reconnection logic here
+    });
 
-twelveDataWs.on("close", () => {
-    console.log("Disconnected from TwelveData WebSocket");
-});
+    twelveDataWs.on("error", (error) => {
+        console.error("Forex WebSocket error:", error);
+    });
+} else {
+    console.warn("TWELVEDATA_API_KEY not set - Forex data will not be available");
+}
 
-twelveDataWs.on("error", (error) => {
-    console.error("TwelveData WebSocket error:", error);
-});
+
+
+
+
+
+
+
+
+
+
 
 setInterval(loadAdminTokens, 60000);
 
@@ -178,25 +197,24 @@ const checkAndSendAlerts = async (symbol, price) => {
 
             if (frequency === "onlyOnce") {
                 shouldSendEmail = true;
-                alert.triggered = true; 
+                alert.triggered = true;
             } else if (frequency === "onceADay") {
                 const lastTriggeredDate = lastTriggered ? new Date(lastTriggered) : null;
-
                 if (!lastTriggeredDate || lastTriggeredDate.toDateString() !== now.toDateString()) {
                     shouldSendEmail = true;
-                    alert.lastTriggered = now; 
+                    alert.lastTriggered = now;
                 }
             }
 
             if (shouldSendEmail) {
                 const user = await UserModel.findById(userId);
                 if (user && user.email) {
-                    console.log("Sending email alert price: ", alertPrice);
+                    console.log("Sending email alert for:", symbol, "at price:", alertPrice);
                     await sendVerificationEmail(user.email, symbol, alertPrice, alertType);
                 }
             }
 
-            await alert.save(); 
+            await alert.save();
         }
     }
 };

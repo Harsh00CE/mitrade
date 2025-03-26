@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import "./Comodity.module.css"
+import { BASE_URL } from '../../utils/constant';
 
 const Comodity = () => {
     const [commodityData, setCommodityData] = useState({});
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Connect to the WebSocket server
-        const ws = new WebSocket("ws://157.173.219.118:8080");
+        const ws = new WebSocket(`ws://${BASE_URL}:8080`); 
 
         ws.onopen = () => {
             console.log("Connected to WebSocket server");
             setIsConnected(true);
 
-            // Subscribe to commodity symbols (e.g., GOLD/USD, SILVER/USD)
             ws.send(
                 JSON.stringify({
                     action: "subscribe",
@@ -25,7 +24,6 @@ const Comodity = () => {
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            // Update the commodity data state
             setCommodityData((prevData) => ({
                 ...prevData,
                 [data.symbol]: data,
@@ -41,7 +39,6 @@ const Comodity = () => {
             console.error("WebSocket error:", error);
         };
 
-        // Cleanup on component unmount
         return () => {
             ws.close();
         };

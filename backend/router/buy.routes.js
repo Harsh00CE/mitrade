@@ -20,8 +20,8 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId);
-        const demoWallet = await DemoWalletModel.findById(user.demoWallet._id);
+        const user = await UserModel.findById(userId).populate("demoWallet");
+
         if (!user) {
             return res.status(200).json({
                 success: false,
@@ -29,8 +29,8 @@ router.post("/", async (req, res) => {
             });
         }
 
+        const demoWallet = user.demoWallet;
         const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
-
 
         if (demoWallet.available < marginRequired) {
             return res.status(200).json({
@@ -39,9 +39,9 @@ router.post("/", async (req, res) => {
             });
         }
 
-        demoWallet.available = demoWallet.available - marginRequired;
-        demoWallet.margin = demoWallet.margin + marginRequired;
-        
+        demoWallet.available -= marginRequired;
+        demoWallet.margin += marginRequired;
+
         const orderId = uuidv4();
         const order = new OrderModel({
             orderId,
@@ -54,25 +54,21 @@ router.post("/", async (req, res) => {
             takeProfit,
             stopLoss,
             margin: marginRequired,
-            status: status,
+            status,
             position: "open",
             openingTime: new Date(),
             tradingAccount: "demo",
         });
 
-        await order.save();
+        await Promise.all([order.save(), demoWallet.save(), user.save()]);
 
-        user.orderList.push(order._id);
-
-        await user.save();
-        await demoWallet.save();
         return res.status(200).json({
             success: true,
             message: "Buy order placed successfully",
         });
     } catch (error) {
         console.error("Error placing buy order:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Error placing buy order",
         });

@@ -38,18 +38,19 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const balance = await calculateBalance(user._id);
-        const equity = await calculateEquity(user._id);
-        const availableBalance = await calculateAvailableBalance(user._id);
+        const [balance, equity, availableBalance] = await Promise.all([
+            calculateBalance(user._id),
+            calculateEquity(user._id),
+            calculateAvailableBalance(user._id)
+        ]);
 
-
-        const demoWallet = await DemoWalletModel.findById(user.demoWallet._id);
+        const demoWallet = user.demoWallet;
 
         if (!demoWallet) {
             return res.status(200).json({
-                success:true,
-                message:"wallet not found."
-            })
+                success: false,
+                message: "Wallet not found",
+            });
         }
 
         demoWallet.balance = balance;
@@ -61,12 +62,6 @@ router.post("/", async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "User logged in successfully",
-            user: {
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                demoWallet: demoWallet._id,
-            },
         });
     } catch (error) {
         console.error("Error in login route => ", error);

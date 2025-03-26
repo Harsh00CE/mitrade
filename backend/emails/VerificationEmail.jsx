@@ -48,7 +48,7 @@ import {
           </Row>
           {/* <Row>
             <Button
-              href={`http://157.173.219.118:3000/verify/${username}`}
+              href={`http://${process.env.SERVER_URL}:3000/verify/${username}`}
               style={{ color: '#61dafb' }}
             >
               Verify here

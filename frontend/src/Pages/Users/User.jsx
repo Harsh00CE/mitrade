@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { BASE_URL } from "../../utils/constant";
 
 const User = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +14,7 @@ const User = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://157.173.219.118:3000/api/users", {
+      const response = await axios.get(`http://${BASE_URL}:3000/api/users`, {
         params: { page, limit },
       });
 

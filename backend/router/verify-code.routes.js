@@ -9,13 +9,7 @@ router.post("/", async (req, res) => {
     try {
         const { username, code } = req.body;
 
-        const decodedUsername = decodeURIComponent(username);
-        const decodedCode = decodeURIComponent(code);
-
-
-        const user = await UserModel.findOne({
-            username: decodedUsername,
-        });
+        const user = await UserModel.findOne({ username });
 
         if (!user) {
             return res.status(200).json({
@@ -23,15 +17,9 @@ router.post("/", async (req, res) => {
                 message: "User not found",
             });
         }
-        console.log("decodedUsername => ", decodedUsername);
-        console.log("decodedCode => ", decodedCode);
-        console.log("user code => ", user.verifyCode);
 
-        const isCodeValid = user.verifyCode == decodedCode;
+        const isCodeValid = user.verifyCode === code;
         const isCodeExpired = new Date(user.verifyCodeExpires) < new Date();
-
-        console.log("isCodeValid => ", isCodeValid);
-        console.log("isCodeExpired => ", isCodeExpired);
 
         if (isCodeValid && !isCodeExpired) {
             user.isVerified = true;

@@ -1,12 +1,13 @@
 
 
 import React, { useState, useEffect } from "react";
+import { BASE_URL } from "../../utils/constant";
 
 const BalanceComponent = ({ userId }) => {
     const [availableBalance, setAvailableBalance] = useState(0);
 
     useEffect(() => {
-        const ws = new WebSocket("ws://157.173.219.118:8080");
+        const ws = new WebSocket(`ws://${BASE_URL}:8080`); 
 
         ws.onopen = () => {
             console.log("WebSocket connection established");

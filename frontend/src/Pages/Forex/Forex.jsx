@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import TradingViewChart from "../Chart/TradingViewChart";
+import { BASE_URL } from "../../utils/constant";
 
 const Forex = () => {
     const [forexTickers, setForexTickers] = useState([]);
@@ -9,7 +10,7 @@ const Forex = () => {
 
     const userId = "67dbae524f382518d92a2ca6";
 
-    const { sendMessage, lastMessage } = useWebSocket("ws://157.173.219.118:8080", {
+    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, { 
         onOpen: () => {
             console.log("✅ Connected to WebSocket");
             sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));
@@ -21,7 +22,7 @@ const Forex = () => {
     useEffect(() => {
         if (lastMessage) {
             const data = JSON.parse(lastMessage.data);
-            if (data.type === "forexTokens") {
+            if (data.type === "forexData") {
                 setForexTickers(data.data);
             }
         }

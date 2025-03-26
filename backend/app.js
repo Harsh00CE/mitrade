@@ -31,7 +31,7 @@ app.get("/auth/callback",
     passport.authenticate("google", { failureRedirect: "/auth/callback/failure" }),
     (req, res) => {
       console.log("User authenticated:", req.user);
-      res.redirect("http://157.173.219.118:5173/");
+      res.redirect(`http://${process.env.SERVER_URL}:5173/`);
     }
   );
   
@@ -43,7 +43,7 @@ app.get("/logout", (req, res) => {
     req.logout((err) => {
         if (err) console.error(err);
         req.session = null;
-        res.redirect("http://157.173.219.118:5173");
+        res.redirect(`http://${process.env.SERVER_URL}:5173/`);
     });
 });
 

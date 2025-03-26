@@ -1,5 +1,4 @@
 import bcryptjs from "bcryptjs";
-import { log } from "console";
 import { usernameValidation } from "../schemas/signUpScheme.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import UserModel from "../schemas/userSchema.js";
@@ -16,11 +15,10 @@ router.post("/", async (req, res) => {
 
         const parsedUsername = usernameValidation.parse(username);
 
-
-        const existingUserVerifiedByUsername = await UserModel.findOne({
-            username: parsedUsername,
-            isVerified: true,
-        });
+        const [existingUserVerifiedByUsername, existingUserByEmail] = await Promise.all([
+            UserModel.findOne({ username: parsedUsername, isVerified: true }),
+            UserModel.findOne({ email })
+        ]);
 
         if (existingUserVerifiedByUsername) {
             return res.status(200).json({
@@ -28,8 +26,6 @@ router.post("/", async (req, res) => {
                 message: "Username already exists",
             });
         }
-
-        const existingUserByEmail = await UserModel.findOne({ email });
 
         const verifyCode = Math.floor(Math.random() * 900000 + 100000).toString();
 
@@ -49,12 +45,10 @@ router.post("/", async (req, res) => {
             }
         } else {
             const hashedPassword = await bcryptjs.hash(password, 10);
-            const expiryDate = new Date();
-            expiryDate.setHours(expiryDate.getHours() + 1);
+            const expiryDate = new Date(Date.now() + 3600000); // 1 hour from now
             const demoWallet = await DemoWalletModel.create({});
-            await demoWallet.save();
 
-            const newUser = await UserModel.create({
+            const newUser = new UserModel({
                 username: parsedUsername,
                 email,
                 password: hashedPassword,
