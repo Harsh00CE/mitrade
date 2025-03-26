@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import TradingViewChart from "../Chart/TradingViewChart";
 import { BASE_URL } from "../../utils/constant";
+import { fullLoading, logo } from "../../assets/imgs";
 
 const Forex = () => {
     const [forexTickers, setForexTickers] = useState([]);
@@ -10,7 +11,7 @@ const Forex = () => {
 
     const userId = "67dbae524f382518d92a2ca6";
 
-    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, { 
+    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, {
         onOpen: () => {
             console.log("✅ Connected to WebSocket");
             sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));
@@ -72,7 +73,9 @@ const TokenTable = ({ title, tickers, handleSymbolClick, isLoading }) => {
                     <tbody className="bg-gray-900 text-white">
                         {isLoading ? (
                             <tr>
-                                <td colSpan="3" className="text-center py-4 text-gray-400">Loading...</td>
+                                <td colSpan="3" className="text-center py-4 text-gray-400">
+                                    <img className="opacity-00" src={fullLoading} alt="" />
+                                </td>
                             </tr>
                         ) : tickers.length > 0 ? (
                             tickers.map((ticker, index) => (

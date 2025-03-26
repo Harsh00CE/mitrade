@@ -1,7 +1,11 @@
 import React, { useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 
-const TradingViewChart = ({ symbol }) => {
+const TradingViewChart = () => {
+
     const chartRef = useRef(null);
+    const { symbol } = useParams();
+    console.log("symbol => ", symbol);
 
     useEffect(() => {
         if (chartRef.current) {
@@ -9,15 +13,24 @@ const TradingViewChart = ({ symbol }) => {
                 width: "100%",
                 height: 250,
                 symbol: symbol,
-                interval: "D", // Daily interval
+                interval: "1", 
                 timezone: "Etc/UTC",
-                theme: "dark", // Dark mode
+                theme: "dark", 
                 style: "1",
                 locale: "en",
-                toolbar_bg: "#1e1e1e", // Dark toolbar background
-                enable_publishing: false,
-                allow_symbol_change: true,
+                toolbar_bg: "#1e1e1e",
                 container_id: chartRef.current.id,
+
+                enable_publishing: false,
+                hide_top_toolbar: false, 
+                hide_side_toolbar: true,
+                hide_legend: true, 
+                allow_symbol_change: false,
+                details: false, 
+                withdateranges: false,
+                hide_volume: true,
+                hideideas: true, 
+                hide_topleft_logo: true,
                 // studies: [
                 //     "MACD@tv-basicstudies",
                 //     "RSI@tv-basicstudies",
@@ -37,7 +50,7 @@ const TradingViewChart = ({ symbol }) => {
             style={{
                 width: "100%",
 
-                backgroundColor: "#1e1e1e", 
+                backgroundColor: "#1e1e1e",
             }}
         ></div>
     );

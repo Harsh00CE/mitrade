@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BASE_URL } from "../../utils/constant";
+import { fullLoading, logo } from "../../assets/imgs";
 
 const User = () => {
   const [users, setUsers] = useState([]);
@@ -32,7 +33,7 @@ const User = () => {
   }, [page, limit]);
 
   return (
-    <div className="w-full p-6 font-sans mx-auto bg-gray-900 text-white shadow-lg">
+    <div className="w-full h-full p-6 font-sans mx-auto bg-gray-900 text-white shadow-lg">
       <h2 className="text-xl font-semibold text-blue-500 mb-4">Users 🙍‍♂️</h2>
       <table className="w-full border border-gray-700 shadow-md rounded-lg overflow-hidden">
         <thead>
@@ -69,7 +70,9 @@ const User = () => {
           ))}
         </tbody>
       </table>
-      {loading && <p className="text-center text-blue-400">Loading...</p>}
+      {loading && <p className="text-center text-blue-400">
+         <img className="opacity-00" src={fullLoading} alt="" />
+         </p>}
 
       <div className="flex justify-between items-center mt-6">
         <div>
