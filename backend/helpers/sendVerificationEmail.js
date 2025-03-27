@@ -4,12 +4,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Create transporter once to avoid re-instantiating it on each request
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: process.env.EMAIL_USER, // Secure email from .env
-        pass: process.env.EMAIL_PASS, // App password or SMTP key
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS, 
     },
 });
 
@@ -24,7 +23,6 @@ export async function sendVerificationEmail(email, username, verifyCode) {
     try {
         const emailBody = `Your OTP code is ${verifyCode}`;
 
-        // Try sending with Nodemailer first
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
@@ -35,12 +33,12 @@ export async function sendVerificationEmail(email, username, verifyCode) {
         await transporter.sendMail(mailOptions);
 
         // Alternative: Try Resend API only if Nodemailer fails
-        // await resend.emails.send({
-        //     from: "harsh@hiteshchoudhary.com",
-        //     to: email,
-        //     subject: "Verify your email",
-        //     text: emailBody,
-        // });
+        await resend.emails.send({
+            from: "harsh@hiteshchoudhary.com",
+            to: email,
+            subject: "Verify your email",
+            text: emailBody,
+        });
 
         return { success: true, message: "Email sent successfully" };
     } catch (error) {

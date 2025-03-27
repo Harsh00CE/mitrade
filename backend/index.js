@@ -108,97 +108,166 @@ binanceWs.on("message", async (data) => {
 });
 
 
+// const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+// const SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY'];
 
+// const forexPriceCache = new Map();
 
-const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
-const SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY'];
+// async function getForexPrices() {
+//     const prices = {};
+//     const requests = SYMBOLS.map(async (symbol) => {
+//         try {
+//             const [from_currency, to_currency] = symbol.split('/');
+//             const response = await axios.get(
+//                 `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${from_currency}&to_currency=${to_currency}&apikey=${API_KEY}`
+//             );
 
-// Cache to store the last successful prices
-const forexPriceCache = new Map();
+//             // Check if the response contains the expected data
+//             if (!response.data || !response.data['Realtime Currency Exchange Rate']) {
+//                 console.error(`Invalid API response for ${symbol}:`, response.data);
 
-async function getForexPrices() {
-    const prices = {};
-    const requests = SYMBOLS.map(async (symbol) => {
+//                 // Return cached value if available
+//                 if (forexPriceCache.has(symbol)) {
+//                     prices[symbol] = forexPriceCache.get(symbol);
+//                     return;
+//                 }
+
+//                 throw new Error('Invalid API response structure');
+//             }
+
+//             const exchangeData = response.data['Realtime Currency Exchange Rate'];
+//             const priceData = {
+//                 symbol,
+//                 price: parseFloat(exchangeData['5. Exchange Rate']).toFixed(4),
+//                 bid: parseFloat(exchangeData['8. Bid Price']).toFixed(4),
+//                 ask: parseFloat(exchangeData['9. Ask Price']).toFixed(4),
+//                 lastRefreshed: exchangeData['6. Last Refreshed'],
+//                 timezone: exchangeData['7. Time Zone']
+//             };
+
+//             prices[symbol] = priceData;
+//             forexPriceCache.set(symbol, priceData);
+//         } catch (error) {
+//             console.error(`Error fetching forex price for ${symbol}:`, error.message);
+
+//             // Fallback to cached value if available
+//             if (forexPriceCache.has(symbol)) {
+//                 prices[symbol] = forexPriceCache.get(symbol);
+//             } else {
+//                 prices[symbol] = {
+//                     symbol,
+//                     price: 'N/A',
+//                     bid: 'N/A',
+//                     ask: 'N/A',
+//                     lastRefreshed: new Date().toISOString(),
+//                     timezone: 'UTC'
+//                 };
+//             }
+//         }
+//     });
+
+//     await Promise.all(requests);
+//     return prices;
+// }
+
+// wss.on('connection', ws => {
+//     console.log('Client connected');
+
+//     // Send initial prices immediately
+//     getForexPrices().then(prices => {
+//         ws.send(JSON.stringify({
+//             type: 'forexData',
+//             data: prices
+//         }));
+//     });
+
+//     // Set up periodic updates (every 60 seconds to avoid rate limiting)
+//     const interval = setInterval(async () => {
+//         const prices = await getForexPrices();
+//         ws.send(JSON.stringify({
+//             type: 'forexData',
+//             data: prices
+//         }));
+//     }, 2000); // 60 seconds
+
+//     ws.on('close', () => {
+//         console.log('Client disconnected');
+//         clearInterval(interval);
+//     });
+// });
+   
+
+const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
+const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD"];
+const forexDataStore = {};
+
+if (TWELVEDATA_API_KEY) {
+    const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
+    const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
+
+    twelveDataWs.on("open", () => {
+        console.log("Connected to TwelveData Forex WebSocket");
+        twelveDataWs.send(JSON.stringify({
+            action: "subscribe",
+            params: { symbols: forexSymbols.join(",") }
+        }));
+    });
+
+    twelveDataWs.on("message", async (data) => {
         try {
-            const [from_currency, to_currency] = symbol.split('/');
-            const response = await axios.get(
-                `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${from_currency}&to_currency=${to_currency}&apikey=${API_KEY}`
-            );
+            const message = JSON.parse(data);
 
-            // Check if the response contains the expected data
-            if (!response.data || !response.data['Realtime Currency Exchange Rate']) {
-                console.error(`Invalid API response for ${symbol}:`, response.data);
+            if (message.event === "price") {
+                const { symbol, price } = message;
 
-                // Return cached value if available
-                if (forexPriceCache.has(symbol)) {
-                    prices[symbol] = forexPriceCache.get(symbol);
-                    return;
-                }
-
-                throw new Error('Invalid API response structure');
-            }
-
-            const exchangeData = response.data['Realtime Currency Exchange Rate'];
-            const priceData = {
-                symbol,
-                price: parseFloat(exchangeData['5. Exchange Rate']).toFixed(4),
-                bid: parseFloat(exchangeData['8. Bid Price']).toFixed(4),
-                ask: parseFloat(exchangeData['9. Ask Price']).toFixed(4),
-                lastRefreshed: exchangeData['6. Last Refreshed'],
-                timezone: exchangeData['7. Time Zone']
-            };
-
-            prices[symbol] = priceData;
-            forexPriceCache.set(symbol, priceData);
-        } catch (error) {
-            console.error(`Error fetching forex price for ${symbol}:`, error.message);
-
-            // Fallback to cached value if available
-            if (forexPriceCache.has(symbol)) {
-                prices[symbol] = forexPriceCache.get(symbol);
-            } else {
-                prices[symbol] = {
-                    symbol,
-                    price: 'N/A',
-                    bid: 'N/A',
-                    ask: 'N/A',
-                    lastRefreshed: new Date().toISOString(),
-                    timezone: 'UTC'
+                // Update stored forex prices
+                forexDataStore[symbol] = {
+                    symbol: symbol,
+                    price: parseFloat(price).toFixed(4),
+                    volume: "N/A",
+                    change: "N/A",
+                    type: "forex"
                 };
+
+                // Broadcast all forex data at once
+                const allForexData = Object.values(forexDataStore);
+
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            type: "forexData",
+                            data: allForexData
+                        }));
+                    }
+                });
+
+                await checkAndSendAlerts(symbol, parseFloat(price));
             }
+        } catch (error) {
+            console.error("Error processing forex data:", error);
         }
     });
 
-    await Promise.all(requests);
-    return prices;
+    twelveDataWs.on("close", () => {
+        console.log("Disconnected from TwelveData Forex WebSocket");
+        // Implement reconnection logic here
+    });
+
+    twelveDataWs.on("error", (error) => {
+        console.error("Forex WebSocket error:", error);
+    });
+} else {
+    console.warn("TWELVEDATA_API_KEY not set - Forex data will not be available");
 }
 
-// Update the WebSocket connection handler
-wss.on('connection', ws => {
-    console.log('Client connected');
 
-    // Send initial prices immediately
-    getForexPrices().then(prices => {
-        ws.send(JSON.stringify({
-            type: 'forexData',
-            data: prices
-        }));
-    });
 
-    // Set up periodic updates (every 60 seconds to avoid rate limiting)
-    const interval = setInterval(async () => {
-        const prices = await getForexPrices();
-        ws.send(JSON.stringify({
-            type: 'forexData',
-            data: prices
-        }));
-    }, 2000); // 60 seconds
 
-    ws.on('close', () => {
-        console.log('Client disconnected');
-        clearInterval(interval);
-    });
-});
+
+
+
+
+
 
 
 

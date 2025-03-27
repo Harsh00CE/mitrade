@@ -13,38 +13,26 @@ router.post("/", async (req, res) => {
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage || !status) {
-            return res.status(200).json({
-                success: false,
-                message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status",
-            });
+        if (!(userId && symbol && quantity && price && leverage && status)) {
+            return res.status(400).json({ success: false, message: "Missing required fields" });
         }
 
-        const user = await UserModel.findById(userId).populate("demoWallet");
+        const user = await UserModel.findById(userId).select("demoWallet").lean();
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-        if (!user) {
-            return res.status(200).json({
-                success: false,
-                message: "User not found",
-            });
-        }
+        const demoWallet = await DemoWalletModel.findById(user.demoWallet).select("available margin");
+        if (!demoWallet) return res.status(404).json({ success: false, message: "Demo wallet not found" });
 
-        const demoWallet = user.demoWallet;
-        const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
-
+        const marginRequired = Math.round((quantity * price) / leverage * 100) / 100;
         if (demoWallet.available < marginRequired) {
-            return res.status(200).json({
-                success: false,
-                message: "Insufficient available balance",
-            });
+            return res.status(400).json({ success: false, message: "Insufficient balance" });
         }
 
         demoWallet.available -= marginRequired;
         demoWallet.margin += marginRequired;
 
-        const orderId = uuidv4();
         const order = new OrderModel({
-            orderId,
+            orderId: uuidv4(),
             userId,
             symbol,
             type: "buy",
@@ -60,18 +48,13 @@ router.post("/", async (req, res) => {
             tradingAccount: "demo",
         });
 
-        await Promise.all([order.save(), demoWallet.save(), user.save()]);
+        await Promise.all([order.save(), demoWallet.save()]);
 
-        return res.status(200).json({
-            success: true,
-            message: "Buy order placed successfully",
-        });
+        return res.status(201).json({ success: true, message: "Buy order placed successfully" });
+
     } catch (error) {
         console.error("Error placing buy order:", error);
-        return res.status(200).json({
-            success: false,
-            message: "Error placing buy order",
-        });
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 

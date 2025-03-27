@@ -3,13 +3,20 @@ import cors from "cors";
 import userRoutes from "./router/users.routes.js";
 import session from "cookie-session";
 import "./passport.mjs"
+import rateLimit from "express-rate-limit";
 import passport from "passport";
 import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter , configWallet } from "./router/index.routes.js";
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
+const limiter = rateLimit({
+    max: 200,
+    windowMs: 60 * 60 * 1000,
+    message: "Too many request from this IP"
+});
 
+app.use(limiter);
 
 app.use(
     session({
