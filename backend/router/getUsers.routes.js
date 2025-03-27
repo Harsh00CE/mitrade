@@ -36,7 +36,7 @@ router.get("/", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching users:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
             error: error.message,
@@ -49,7 +49,7 @@ router.get("/:userId", async (req, res) => {
         const { userId } = req.params;
 
         if (!userId) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User ID is required",
             });
@@ -58,7 +58,7 @@ router.get("/:userId", async (req, res) => {
         const user = await UserModel.findById(userId).populate("demoWallet");
 
         if (!user) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User not found",
             });
@@ -76,7 +76,7 @@ router.get("/:userId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching user:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
             error: error.message,

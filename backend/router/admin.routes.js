@@ -21,7 +21,7 @@ router.post("/", async (req, res) => {
         } = req.body;
 
         if (!Array.isArray(leverages)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Leverages must be provided as an array",
             });
@@ -52,7 +52,7 @@ router.post("/", async (req, res) => {
         });
     } catch (error) {
         console.error("Error:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });

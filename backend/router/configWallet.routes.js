@@ -12,7 +12,7 @@ router.put("/:userId", async (req, res) => {
         const { balance, equity, available, margin, marginLevel, pl } = req.body;
 
         if (!userId) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User ID is required",
             });
@@ -20,7 +20,7 @@ router.put("/:userId", async (req, res) => {
 
         const user = await UserModel.findById(userId).populate('demoWallet');
         if (!user) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User not found",
             });
@@ -46,7 +46,7 @@ router.put("/:userId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error updating wallet:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });

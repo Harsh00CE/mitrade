@@ -32,7 +32,7 @@ router.get("/:userId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching user orders:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });

@@ -1,46 +1,50 @@
 import { resend } from "../lib/resend.js";
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
+dotenv.config();
+
+// Create a reusable transporter instance (initialized once)
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER, // Use environment variables
+        pass: process.env.EMAIL_PASS, // App password or SMTP key
+    },
+});
+
+/**
+ * Sends a price alert email using Nodemailer or Resend API
+ * @param {string} email - Recipient's email address
+ * @param {string} symbol - Crypto or stock symbol
+ * @param {number} alertPrice - Alert price triggered
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
 export async function sendVerificationEmail(email, symbol, alertPrice) {
-  try {
+    try {
+        const emailBody = `${symbol} price has crossed ${alertPrice}`;
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: "harshradadiya9999@gmail.com",
-        pass: "oolaedzyrvepevsn",
-      },
-    });
+        // First, try sending with Nodemailer
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Price Alert",
+            text: emailBody,
+        };
 
-    const options = {
-      from: "harshradadiya9999@gmail.com",
-      to: email,
-      subject: "Price Alert",
-      text : `${symbol} price has crossed ${alertPrice}`
-    };
+        await transporter.sendMail(mailOptions);
 
-    await transporter.sendMail(options);
+        // Optional: Try Resend API only if needed
+        // await resend.emails.send({
+        //     from: "harsh@hiteshchoudhary.com",
+        //     to: email,
+        //     subject: "Price Alert",
+        //     text: emailBody,
+        // });
 
-    await resend.emails.send({
-      from: "harsh@hiteshchoudhary.com",
-      to: email,
-      subject: "Price Alert",
-      text : `${symbol} price has crossed ${alertPrice}`
-    });
-
-    return {
-      success: true,
-      message: "Email sent successfully",
-      isAcceptingMessages: false,
-      messages: undefined,
-    };
-  } catch (error) {
-    console.log("Error in sendVerificationEmail => ", error);
-    return {
-      success: false,
-      message: "Error in sendVerificationEmail",
-      isAcceptingMessages: false,
-      messages: undefined,
-    };
-  }
+        return { success: true, message: "Price alert email sent successfully" };
+    } catch (error) {
+        console.error("Error in sendVerificationEmail =>", error);
+        return { success: false, message: "Failed to send price alert email" };
+    }
 }

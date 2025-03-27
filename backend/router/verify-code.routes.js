@@ -1,51 +1,38 @@
 import express from "express";
-import connectDB from "../ConnectDB/ConnectionDB.js";
 import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-    await connectDB();
     try {
         const { username, code } = req.body;
 
-        const user = await UserModel.findOne({ username });
+        // Fetch only required fields and use `.lean()` for performance boost
+        const user = await UserModel.findOne({ username })
+            .select("+verifyCode +verifyCodeExpires")
+            .lean();
 
         if (!user) {
-            return res.status(200).json({
-                success: false,
-                message: "User not found",
-            });
+            return res.status(200).json({ success: false, message: "User not found" });
         }
 
-        const isCodeValid = user.verifyCode === code;
-        const isCodeExpired = new Date(user.verifyCodeExpires) < new Date();
-
-        if (isCodeValid && !isCodeExpired) {
-            user.isVerified = true;
-            await user.save();
-            return res.status(200).json({
-                success: true,
-                message: "User verified successfully",
-            });
-        } else if (isCodeValid && isCodeExpired) {
-            return res.status(200).json({
-                success: false,
-                message: "Code is valid but has expired",
-            });
-        } else {
-            return res.status(200).json({
-                success: false,
-                message: "Code is invalid",
-            });
+        const now = new Date();
+        if (user.verifyCode !== code) {
+            return res.status(200).json({ success: false, message: "Invalid code" });
         }
+
+        if (new Date(user.verifyCodeExpires) < now) {
+            return res.status(200).json({ success: false, message: "Code has expired" });
+        }
+
+        // Mark user as verified
+        await UserModel.updateOne({ username }, { $set: { isVerified: true } });
+
+        return res.status(200).json({ success: true, message: "User verified successfully" });
 
     } catch (error) {
-        console.log("Error in verify-code route => ", error);
-        return res.status(500).json({
-            success: false,
-            message: "Error in verify-code route",
-        });
+        console.error("Error in verify-code route =>", error);
+        return res.status(200).json({ success: false, message: "Internal server error" });
     }
 });
 

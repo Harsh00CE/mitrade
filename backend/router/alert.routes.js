@@ -11,7 +11,7 @@ router.post("/", async (req, res) => {
         const { userId, symbol, alertPrice, alertType, frequency } = req.body;
 
         if (!userId || !symbol || !alertPrice || !alertType || !frequency) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "All fields are required: userId, symbol, alertPrice, alertType, frequency",
             });
@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating alert:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });
@@ -46,7 +46,7 @@ router.get("/:userId/:symbol", async (req, res) => {
         const { userId, symbol } = req.params;
 
         if (!userId || !symbol) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User ID and Symbol are required",
             });
@@ -58,7 +58,7 @@ router.get("/:userId/:symbol", async (req, res) => {
         });
 
         if (!user || !user.alerts || user.alerts.length === 0) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "No alerts found for this user",
             });
@@ -71,7 +71,7 @@ router.get("/:userId/:symbol", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching user alerts:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });
@@ -84,7 +84,7 @@ router.delete("/:alertId", async (req, res) => {
         const { alertId } = req.params;
 
         if (!alertId) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Alert ID is required",
             });
@@ -93,7 +93,7 @@ router.delete("/:alertId", async (req, res) => {
         const alert = await AlertModel.findByIdAndDelete(alertId);
 
         if (!alert) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "Alert not found",
             });
@@ -107,7 +107,7 @@ router.delete("/:alertId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error deleting alert:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });
@@ -121,7 +121,7 @@ router.put("/:alertId", async (req, res) => {
         const { alertPrice, frequency } = req.body;
 
         if (!alertPrice && !frequency) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "At least one field (alertPrice or frequency) is required for update",
             });
@@ -134,7 +134,7 @@ router.put("/:alertId", async (req, res) => {
         );
 
         if (!updatedAlert) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "Alert not found",
             });
@@ -147,7 +147,7 @@ router.put("/:alertId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error updating alert:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });

@@ -18,14 +18,14 @@ router.get("/:userId", async (req, res) => {
         }
 
         if (!userId) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User ID is required",
             });
         }
   
         if (!user) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User not found",
             });
@@ -38,7 +38,7 @@ router.get("/:userId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching favorite tokens:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });
