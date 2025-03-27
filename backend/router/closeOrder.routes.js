@@ -1,9 +1,9 @@
 import express from "express";
-import mongoose from "mongoose";
 import OrderModel from "../schemas/orderSchema.js";
 import OrderHistoryModel from "../schemas/orderHistorySchema.js";
 import UserModel from "../schemas/userSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -13,82 +13,68 @@ router.post("/", async (req, res) => {
 
     try {
         const { orderId, closingPrice } = req.body;
-
         if (!orderId || !closingPrice) {
-            return res.status(400).json({ success: false, message: "Order ID and closing price are required" });
+            return res.status(400).json({
+                success: false,
+                message: "Order ID and closing price are required",
+            });
         }
 
-        // Fetch order, user, and wallet in parallel to reduce response time
-        const [order, user] = await Promise.all([
-            OrderModel.findById(orderId).lean(),
-            UserModel.findOne({ "orders": orderId }).select("demoWallet orderHistory").lean()
-        ]);
-
+        // Fetch order and user details
+        const order = await OrderModel.findById(orderId).session(session).lean();
         if (!order) return res.status(404).json({ success: false, message: "Order not found" });
         if (order.status === "closed") return res.status(400).json({ success: false, message: "Order is already closed" });
-
-        const demoWallet = await DemoWalletModel.findById(user?.demoWallet).session(session);
-        if (!demoWallet) return res.status(404).json({ success: false, message: "Demo wallet not found" });
 
         // Calculate profit/loss
         const openingValue = order.price * order.quantity;
         const closingValue = closingPrice * order.quantity;
         const realisedPL = order.type === "buy" ? closingValue - openingValue : openingValue - closingValue;
 
-        const bulkOps = [
+        // Update order details
+        const updatedOrder = await OrderModel.findByIdAndUpdate(
+            orderId,
             {
-                updateOne: {
-                    filter: { _id: orderId },
-                    update: {
-                        $set: {
-                            status: "closed",
-                            position: "close",
-                            closingTime: new Date(),
-                            closingValue,
-                            realisedPL
-                        }
-                    }
-                }
+                status: "closed",
+                position: "close",
+                closingTime: new Date(),
+                closingValue,
+                realisedPL,
             },
-            {
-                insertOne: {
-                    document: {
-                        ...order,
-                        _id: new mongoose.Types.ObjectId(),
-                        openingValue,
-                        closingTime: new Date(),
-                        realisedPL
-                    }
-                }
-            },
-            {
-                updateOne: {
-                    filter: { _id: demoWallet._id },
-                    update: {
-                        $inc: {
-                            balance: realisedPL,
-                            available: realisedPL + order.margin,
-                            equity: realisedPL,
-                            margin: -order.margin
-                        }
-                    }
-                }
-            },
-            {
-                updateOne: {
-                    filter: { _id: user._id },
-                    update: { $push: { orderHistory: orderId } }
-                }
-            }
-        ];
+            { new: true, session }
+        );
 
+        // Fetch user and demo wallet
+        const user = await UserModel.findById(order.userId).populate("demoWallet").session(session).lean();
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+        const demoWallet = await DemoWalletModel.findById(user.demoWallet._id).session(session);
+        if (!demoWallet) return res.status(404).json({ success: false, message: "Demo wallet not found" });
+
+        // Move order to history with correct values
+        const orderHistory = new OrderHistoryModel({
+            ...updatedOrder.toObject(),
+            _id: undefined, // Prevent duplicate _id
+            status: "closed", // ✅ Fix status
+            position: "close", // ✅ Fix position
+            closingTime: new Date(), // ✅ Ensure closingTime is set
+            closingValue, // ✅ Ensure closingValue is set
+            openingValue,
+        });
+
+        // Update wallet balances
+        demoWallet.balance += realisedPL;
+        demoWallet.available += realisedPL + order.margin;
+        demoWallet.equity += realisedPL;
+        demoWallet.margin -= order.margin;
+
+        // Perform DB writes
         await Promise.all([
-            OrderModel.bulkWrite([bulkOps[0]], { session }),
-            OrderHistoryModel.bulkWrite([bulkOps[1]], { session }),
-            DemoWalletModel.bulkWrite([bulkOps[2]], { session }),
-            UserModel.bulkWrite([bulkOps[3]], { session })
+            orderHistory.save({ session }),
+            demoWallet.save({ session }),
+            UserModel.findByIdAndUpdate(user._id, { $push: { orderHistory: orderHistory._id } }).session(session),
         ]);
 
+        // Commit transaction
         await session.commitTransaction();
         session.endSession();
 
@@ -96,17 +82,23 @@ router.post("/", async (req, res) => {
             success: true,
             message: "Order closed successfully",
             data: {
-                updatedBalance: demoWallet.balance + realisedPL,
-                updatedAvailable: demoWallet.available + realisedPL + order.margin,
+                order: updatedOrder,
+                updatedBalance: demoWallet.balance,
+                updatedAvailable: demoWallet.available,
             },
         });
 
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
-        console.error("Error closing order:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+
+        console.error("❌ Error closing order:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
     }
 });
+
 
 export default router;

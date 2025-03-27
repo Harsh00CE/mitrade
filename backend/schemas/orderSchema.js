@@ -1,89 +1,99 @@
 import mongoose, { Schema } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
-const orderSchema = new Schema({
-    orderId: {
-        type: String,
-        default: () => uuidv4(),
-        unique: true,
+const orderSchema = new Schema(
+    {
+        orderId: {
+            type: String,
+            default: uuidv4,
+            unique: true,
+            index: true, // ✅ Speeds up searches using orderId
+        },
+        symbol: {
+            type: String,
+            required: true,
+            index: true, // ✅ Common filter, so indexing helps
+        },
+        type: {
+            type: String,
+            required: true,
+            enum: ["buy", "sell"],
+        },
+        quantity: {
+            type: Number,
+            required: true,
+            min: 0.0001, // ✅ Prevents invalid values
+        },
+        price: {
+            type: Number,
+            required: true,
+            min: 0.01, // ✅ Avoids zero-price errors
+        },
+        leverage: {
+            type: Number,
+            required: true,
+            min: 1, // ✅ Ensures valid leverage
+        },
+        status: {
+            type: String,
+            required: true,
+            enum: ["active", "pending", "closed"],
+            index: true, // ✅ Frequently filtered field
+        },
+        position: {
+            type: String,
+            required: true,
+            enum: ["open", "close"],
+            index: true, // ✅ Optimizes queries by position
+        },
+        openingTime: {
+            type: Date,
+            required: true,
+        },
+        closingTime: {
+            type: Date,
+            default: null,
+        },
+        takeProfit: Number,
+        stopLoss: Number,
+        trailingStop: {
+            type: String,
+            default: "Unset",
+        },
+        realisedPL: {
+            type: Number,
+            default: 0,
+        },
+        overnightFunding: {
+            type: Number,
+            default: 0,
+        },
+        margin: {
+            type: Number,
+            required: true,
+        },
+        openingValue: Number,
+        closingValue: Number,
+        tradingAccount: {
+            type: String,
+            required: true,
+            enum: ["demo", "live"],
+            index: true, // ✅ Speeds up queries by account type
+        },
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+            index: true, // ✅ Boosts user-specific queries
+        },
     },
-    symbol: {
-        type: String,
-        required: [true, "Symbol is required"],
-    },
-    type: {
-        type: String,
-        required: [true, "Type is required (buy/sell)"],
-        enum: ["buy", "sell"],
-    },
-    quantity: {
-        type: Number,
-        required: [true, "Quantity is required"],
-    },
-    price: {
-        type: Number,
-        required: [true, "Price is required"],
-    },
-    leverage: {
-        type: Number,
-        required: [true, "Leverage is required"],
-    },
-    status: {
-        type: String,
-        required: [true, "Status is required (active/pending/closed)"],
-        enum: ["active", "pending", "closed"],
-    },
-    position: {
-        type: String,
-        required: [true, "Position is required (open/close)"],
-        enum: ["open", "close"],
-    },
-    openingTime: {
-        type: Date,
-        required: [true, "Opening time is required"],
-    },
-    closingTime: {
-        type: Date,
-    },
-    takeProfit: {
-        type: Number,
-    },
-    stopLoss: {
-        type: Number,
-    },
-    trailingStop: {
-        type: String,
-        default: "Unset",
-    },
-    realisedPL: {
-        type: Number,
-        default: 0,
-    },
-    overnightFunding: {
-        type: Number,
-        default: 0,
-    },
-    margin: {
-        type: Number,
-        required: [true, "Margin is required"],
-    },
-    openingValue: {
-        type: Number,
-    },
-    closingValue: {
-        type: Number,
-    },
-    tradingAccount: {
-        type: String,
-        required: [true, "Trading account is required (demo/live)"],
-        enum: ["demo", "live"],
-    },
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: [true, "User ID is required"],
-    },
-});
+    {
+        timestamps: true, // ✅ Automatically adds createdAt & updatedAt
+    }
+);
+
+// ✅ Compound index for faster order lookups (user + status + position)
+orderSchema.index({ userId: 1, status: 1, position: 1 });
 
 const OrderModel = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
