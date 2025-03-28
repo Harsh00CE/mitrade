@@ -5,11 +5,20 @@ import session from "cookie-session";
 import "./passport.mjs"
 import rateLimit from "express-rate-limit";
 import passport from "passport";
-import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter , configWallet } from "./router/index.routes.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes } from "./router/index.routes.js";
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
+
 app.use(bodyParser.json());
 app.use(cors());
+
 const limiter = rateLimit({
     max: 200,
     windowMs: 60 * 60 * 1000,
@@ -28,6 +37,11 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use(express.urlencoded({ extended: true }));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 
 app.get(
     "/auth",
@@ -37,11 +51,11 @@ app.get(
 app.get("/auth/callback",
     passport.authenticate("google", { failureRedirect: "/auth/callback/failure" }),
     (req, res) => {
-      console.log("User authenticated:", req.user);
-      res.redirect(`http://${process.env.SERVER_URL}:5173/`);
+        console.log("User authenticated:", req.user);
+        res.redirect(`http://${process.env.SERVER_URL}:5173/`);
     }
-  );
-  
+);
+
 app.get("/user", (req, res) => {
     res.json(req.user || null);
 });
@@ -74,10 +88,11 @@ app.use("/api/order-history", orderHistoryRouter);
 app.use("/api/liquidation", liquidationRouter);
 app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
-app.use("/api/users" , getUsersRouter);
+app.use("/api/users", getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
-app.use("/api/userwallet",getUserWallet)
+app.use("/api/userwallet", getUserWallet)
 app.use("/api/configwallet", configWallet);
+app.use("/api/KYC", kycRoutes);
 
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)

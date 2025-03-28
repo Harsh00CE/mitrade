@@ -19,6 +19,7 @@ import getChartRouter from "./getChart.routes.js"
 import sendAlertsRouter from "./sendEmailAlert.routes.js"
 import getUsersRouter from "./getUsers.routes.js"
 import configWallet from "./configWallet.routes.js"
+import kycRoutes from "./KYC.routes.js";
 
 
 export {
@@ -42,5 +43,6 @@ export {
     getChartRouter,
     sendAlertsRouter,    
     getUsersRouter,
-    configWallet
+    configWallet,
+    kycRoutes,
 }

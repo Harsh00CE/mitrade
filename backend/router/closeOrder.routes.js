@@ -20,17 +20,14 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Fetch order and user details
         const order = await OrderModel.findById(orderId).session(session).lean();
         if (!order) return res.status(404).json({ success: false, message: "Order not found" });
         if (order.status === "closed") return res.status(400).json({ success: false, message: "Order is already closed" });
 
-        // Calculate profit/loss
         const openingValue = order.price * order.quantity;
         const closingValue = closingPrice * order.quantity;
         const realisedPL = order.type === "buy" ? closingValue - openingValue : openingValue - closingValue;
 
-        // Update order details
         const updatedOrder = await OrderModel.findByIdAndUpdate(
             orderId,
             {
@@ -43,49 +40,39 @@ router.post("/", async (req, res) => {
             { new: true, session }
         );
 
-        // Fetch user and demo wallet
         const user = await UserModel.findById(order.userId).populate("demoWallet").session(session).lean();
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
         const demoWallet = await DemoWalletModel.findById(user.demoWallet._id).session(session);
         if (!demoWallet) return res.status(404).json({ success: false, message: "Demo wallet not found" });
 
-        // Move order to history with correct values
         const orderHistory = new OrderHistoryModel({
             ...updatedOrder.toObject(),
-            _id: undefined, // Prevent duplicate _id
-            status: "closed", // ✅ Fix status
-            position: "close", // ✅ Fix position
-            closingTime: new Date(), // ✅ Ensure closingTime is set
-            closingValue, // ✅ Ensure closingValue is set
+            _id: undefined, 
+            status: "closed", 
+            position: "close", 
+            closingTime: new Date(),
+            closingValue, 
             openingValue,
         });
 
-        // Update wallet balances
         demoWallet.balance += realisedPL;
         demoWallet.available += realisedPL + order.margin;
         demoWallet.equity += realisedPL;
         demoWallet.margin -= order.margin;
 
-        // Perform DB writes
         await Promise.all([
             orderHistory.save({ session }),
             demoWallet.save({ session }),
             UserModel.findByIdAndUpdate(user._id, { $push: { orderHistory: orderHistory._id } }).session(session),
         ]);
 
-        // Commit transaction
         await session.commitTransaction();
         session.endSession();
 
         return res.status(200).json({
             success: true,
             message: "Order closed successfully",
-            data: {
-                order: updatedOrder,
-                updatedBalance: demoWallet.balance,
-                updatedAvailable: demoWallet.available,
-            },
         });
 
     } catch (error) {

@@ -1,7 +1,7 @@
 import express from "express";
 import UserModel from "../schemas/userSchema.js";
 import OrderModel from "../schemas/orderSchema.js";
-import DemoWalletModel from "../schemas/demoWalletSchema.js"; // Import DemoWallet schema
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,31 +20,32 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId);
+        const user = await UserModel.findById(userId).populate("demoWallet");
+
         if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
+            return res.status(404).json({ 
+                success: false, 
+                message: "User not found" 
+            });
         }
 
-        // Fetch demoWallet separately
         const demoWallet = await DemoWalletModel.findById(user.demoWallet);
         if (!demoWallet) {
             return res.status(404).json({ success: false, message: "Demo wallet not found" });
         }
 
-        // Calculate margin required
         const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
 
         if (demoWallet.available < marginRequired) {
             return res.status(400).json({ success: false, message: "Insufficient available balance" });
         }
 
-        // Update demo wallet balance
         demoWallet.available -= marginRequired;
         demoWallet.margin += marginRequired;
 
-        // Create order
+        const orderId = uuidv4();
         const order = new OrderModel({
-            orderId: uuidv4(),
+            orderId,
             userId,
             symbol,
             type: "sell",
@@ -60,7 +61,6 @@ router.post("/", async (req, res) => {
             tradingAccount: "demo",
         });
 
-        // Save all in parallel
         await Promise.all([order.save(), demoWallet.save(), user.save()]);
 
         return res.status(200).json({

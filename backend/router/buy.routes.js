@@ -4,6 +4,7 @@ import OrderModel from "../schemas/orderSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import { v4 as uuidv4 } from 'uuid';
 
+
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -29,7 +30,6 @@ router.post("/", async (req, res) => {
         }
         
         const demoWallet = user.demoWallet;
-        console.log(demoWallet);
         
         const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
 
