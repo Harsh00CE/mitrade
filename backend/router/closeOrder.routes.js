@@ -35,13 +35,15 @@ router.post("/", async (req, res) => {
         }
 
         // First respond to the client
-        res.status(200).json({
+        const resp = res.status(200).json({
             success: true,
             message: "Order closing request received. Processing in background.",
         });
 
-        // Then process the database operations
-        processOrderClosure(orderId, closingPrice);
+        if (resp) {
+            processOrderClosure(orderId, closingPrice);
+            return;
+        }
 
     } catch (error) {
         console.error("❌ Error in order closing request:", error);

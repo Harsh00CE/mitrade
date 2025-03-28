@@ -39,10 +39,6 @@ router.post("/", async (req, res) => {
         if (demoWallet.available < marginRequired) {
             return res.status(400).json({ success: false, message: "Insufficient available balance" });
         }
-        res.status(200).json({
-            success: true,
-            message: "Sell order placed successfully",
-        });
 
         demoWallet.available -= marginRequired;
         demoWallet.margin += marginRequired;
@@ -67,7 +63,10 @@ router.post("/", async (req, res) => {
 
         await Promise.all([order.save(), demoWallet.save(), user.save()]);
 
-    
+        return res.status(200).json({
+            success: true,
+            message: "Sell order placed successfully",
+        });
 
     } catch (error) {
         console.error("Error placing sell order:", error);
