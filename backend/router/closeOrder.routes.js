@@ -21,12 +21,19 @@ router.post("/", async (req, res) => {
         }
 
         const order = await OrderModel.findById(orderId).session(session).lean();
+
         if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
         if (order.status === "closed") return res.status(400).json({ success: false, message: "Order is already closed" });
 
         const openingValue = order.price * order.quantity;
         const closingValue = closingPrice * order.quantity;
         const realisedPL = order.type === "buy" ? closingValue - openingValue : openingValue - closingValue;
+
+        res.status(200).json({
+            success: true,
+            message: "Order closed successfully",
+        });
 
         const updatedOrder = await OrderModel.findByIdAndUpdate(
             orderId,
@@ -46,6 +53,7 @@ router.post("/", async (req, res) => {
         const demoWallet = await DemoWalletModel.findById(user.demoWallet._id).session(session);
         if (!demoWallet) return res.status(404).json({ success: false, message: "Demo wallet not found" });
 
+   
         const orderHistory = new OrderHistoryModel({
             ...updatedOrder.toObject(),
             _id: undefined, 
@@ -70,10 +78,7 @@ router.post("/", async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
-        return res.status(200).json({
-            success: true,
-            message: "Order closed successfully",
-        });
+      
 
     } catch (error) {
         await session.abortTransaction();
