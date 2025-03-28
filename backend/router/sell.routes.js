@@ -12,7 +12,7 @@ router.post("/", async (req, res) => {
 
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status } = req.body;
-
+        
         if (!userId || !symbol || !quantity || !price || !leverage || !status) {
             return res.status(400).json({
                 success: false,
@@ -60,14 +60,14 @@ router.post("/", async (req, res) => {
             openingTime: new Date(),
             tradingAccount: "demo",
         });
-
-        await Promise.all([order.save(), demoWallet.save(), user.save()]);
-
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
             message: "Sell order placed successfully",
         });
 
+        await Promise.all([order.save(), demoWallet.save(), user.save()]);
+
+        return;
     } catch (error) {
         console.error("Error placing sell order:", error);
         return res.status(500).json({
