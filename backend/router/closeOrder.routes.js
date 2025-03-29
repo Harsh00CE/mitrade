@@ -1,92 +1,119 @@
 import express from "express";
-import OrderModel from "../schemas/orderSchema.js";
-import OrderHistoryModel from "../schemas/orderHistorySchema.js";
-import UserModel from "../schemas/userSchema.js";
-import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import mongoose from "mongoose";
+import ClosedOrdersModel from "../schemas/closeOrderSchema.js";
+import OpenOrdersModel from "../schemas/openOrderSchema.js";
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
+import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+// Optimized projections
+const ORDER_PROJECTION = {
+    userId: 1, type: 1, price: 1, quantity: 1, margin: 1,
+    symbol: 1, leverage: 1, takeProfit: 1, stopLoss: 1,
+    openingTime: 1, tradingAccount: 1
+};
 
+router.post("/", async (req, res) => {
     try {
         const { orderId, closingPrice } = req.body;
-        if (!orderId || !closingPrice) {
-            return res.status(400).json({
+        
+        // Input Validation
+        if (!mongoose.Types.ObjectId.isValid(orderId) || typeof closingPrice !== 'number') {
+            return res.status(400).json({ success: false, message: "Invalid input" });
+        }
+
+        // Find and remove open order
+        const openOrder = await OpenOrdersModel.findOneAndDelete({ 
+            _id: orderId, 
+            status: "active" 
+        }).select(ORDER_PROJECTION).lean();
+
+        if (!openOrder) {
+            const isClosed = await ClosedOrdersModel.exists({ originalOrderId: orderId }).lean();
+            return res.status(isClosed ? 200 : 404).json({
                 success: false,
-                message: "Order ID and closing price are required",
+                message: isClosed ? "Order already closed" : "Active order not found"
             });
         }
 
-        const order = await OrderModel.findById(orderId).session(session).lean();
-        if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-        if (order.status === "closed") return res.status(400).json({ success: false, message: "Order is already closed" });
+        // Calculate values
+        const openingValue = openOrder.price * openOrder.quantity;
+        const closingValue = closingPrice * openOrder.quantity;
+        const realisedPL = openOrder.type === "buy" 
+            ? closingValue - openingValue 
+            : openingValue - closingValue;
 
-        const openingValue = order.price * order.quantity;
-        const closingValue = closingPrice * order.quantity;
-        const realisedPL = order.type === "buy" ? closingValue - openingValue : openingValue - closingValue;
-
-        const updatedOrder = await OrderModel.findByIdAndUpdate(
-            orderId,
-            {
-                status: "closed",
-                position: "close",
-                closingTime: new Date(),
-                closingValue,
-                realisedPL,
-            },
-            { new: true, session }
-        );
-
-        const user = await UserModel.findById(order.userId).populate("demoWallet").session(session).lean();
-        if (!user) return res.status(404).json({ success: false, message: "User not found" });
-
-        const demoWallet = await DemoWalletModel.findById(user.demoWallet._id).session(session);
-        if (!demoWallet) return res.status(404).json({ success: false, message: "Demo wallet not found" });
-
-        const orderHistory = new OrderHistoryModel({
-            ...updatedOrder.toObject(),
-            _id: undefined, 
-            status: "closed", 
-            position: "close", 
+        // Create closed order
+        const closedOrder = new ClosedOrdersModel({
+            originalOrderId: orderId,
+            orderId: new mongoose.Types.ObjectId().toString(),
+            userId: openOrder.userId,
+            symbol: openOrder.symbol,
+            type: openOrder.type,
+            quantity: openOrder.quantity,
+            openingPrice: openOrder.price,
+            closingPrice,
+            leverage: openOrder.leverage,
+            status: "closed",
+            position: "close",
+            openingTime: openOrder.openingTime,
             closingTime: new Date(),
-            closingValue, 
+            takeProfit: openOrder.takeProfit,
+            stopLoss: openOrder.stopLoss,
+            realisedPL,
+            margin: openOrder.margin,
             openingValue,
+            closingValue,
+            tradingAccount: openOrder.tradingAccount || "demo",
+            closeReason: "manual"
         });
 
-        demoWallet.balance += realisedPL;
-        demoWallet.available += realisedPL + order.margin;
-        demoWallet.equity += realisedPL;
-        demoWallet.margin -= order.margin;
+        // Get user and wallet
+        const user = await UserModel.findById(openOrder.userId).lean();
+        const wallet = await DemoWalletModel.findById(user.demoWallet);
+        
+        if (!wallet) {
+            return res.status(404).json({ success: false, message: "Wallet not found" });
+        }
 
-        res.status(200).json({
-            success: true,
-            message: "Order closed successfully",
-        });
+        // Update wallet using .save()
+        wallet.balance = parseFloat((wallet.balance + realisedPL).toFixed(2));
+        wallet.available = parseFloat((wallet.available + realisedPL + openOrder.margin).toFixed(2));
+        wallet.margin = parseFloat((wallet.margin - openOrder.margin).toFixed(2));
+        wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
 
+        // Execute all operations
         await Promise.all([
-            orderHistory.save({ session }),
-            demoWallet.save({ session }),
-            UserModel.findByIdAndUpdate(user._id, { $push: { orderHistory: orderHistory._id } }).session(session),
+            closedOrder.save(),
+            wallet.save(),
+            UserModel.updateOne(
+                { _id: openOrder.userId },
+                { 
+                    $push: { closedOrders: closedOrder.orderId },
+                    $pull: { openOrders: orderId } 
+                }
+            )
         ]);
 
-        await session.commitTransaction();
-        session.endSession();
-
-        return;
+        return res.status(200).json({
+            success: true,
+            message: "Order closed successfully",
+            data: {
+                orderId,
+                realisedPL: parseFloat(realisedPL.toFixed(2)),
+                newBalance: wallet.balance
+            }
+        });
+        
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-
-        console.error("❌ Error closing order:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
+        console.error("Order close error:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Processing error",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
-
 
 export default router;

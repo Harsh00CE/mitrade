@@ -1,79 +1,136 @@
 import express from "express";
+import mongoose from "mongoose";
 import UserModel from "../schemas/userSchema.js";
-import OrderModel from "../schemas/orderSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
-import connectDB from "../ConnectDB/ConnectionDB.js";
 import { v4 as uuidv4 } from 'uuid';
+import OpenOrdersModel from "../schemas/openOrderSchema.js";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-    await connectDB();
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
         
-        if (!userId || !symbol || !quantity || !price || !leverage || !status) {
+        // Validate required fields
+        if (!userId || !symbol || !quantity || !price || !leverage) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 success: false,
-                message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status",
+                message: "Required fields: userId, symbol, quantity, price, leverage",
             });
         }
 
-        const user = await UserModel.findById(userId).populate("demoWallet");
+        // Validate numeric fields
+        if (quantity <= 0 || price <= 0 || leverage < 1) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
+                success: false,
+                message: "Quantity and price must be positive, leverage must be ≥1"
+            });
+        }
 
-        if (!user) {
+        // Get user with only necessary fields
+        const user = await UserModel.findById(userId)
+            .select('demoWallet')
+            .populate({
+                path: 'demoWallet',
+                select: 'available margin'
+            })
+            .session(session)
+            .lean();
+
+        if (!user || !user.demoWallet) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ 
                 success: false, 
-                message: "User not found" 
+                message: "User or wallet not found" 
             });
         }
 
-        const demoWallet = await DemoWalletModel.findById(user.demoWallet);
-        if (!demoWallet) {
-            return res.status(404).json({ success: false, message: "Demo wallet not found" });
-        }
-
+        // Calculate margin requirements
         const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
 
-        if (demoWallet.available < marginRequired) {
-            return res.status(400).json({ success: false, message: "Insufficient available balance" });
+        // Check available balance
+        if (user.demoWallet.available < marginRequired) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ 
+                success: false, 
+                message: `Insufficient balance. Required: ${marginRequired}, Available: ${user.demoWallet.available}` 
+            });
         }
 
-        demoWallet.available -= marginRequired;
-        demoWallet.margin += marginRequired;
-
+        // Create order in OpenOrders collection
         const orderId = uuidv4();
-        const order = new OrderModel({
+        const openingValue = quantity * price;
+
+        const order = new OpenOrdersModel({
             orderId,
-            userId,
             symbol,
-            type: "sell",
+            type: "sell", // Changed to sell
             quantity,
             price,
             leverage,
-            takeProfit,
-            stopLoss,
-            margin: marginRequired,
-            status,
+            takeProfit: takeProfit || null,
+            stopLoss: stopLoss || null,
+            trailingStop: "Unset",
+            status: "active", // Default status for new orders
             position: "open",
             openingTime: new Date(),
+            margin: marginRequired,
+            openingValue,
             tradingAccount: "demo",
+            userId
         });
+
+        // Atomic wallet update operation
+        const walletUpdate = {
+            $inc: {
+                available: -marginRequired,
+                margin: marginRequired
+            },
+            $set: {
+                lastUpdated: new Date()
+            }
+        };
+
+        // Send response before committing transaction
         res.status(200).json({
             success: true,
             message: "Sell order placed successfully",
+            data: {
+                orderId,
+                symbol,
+                quantity,
+                price,
+                marginRequired
+            }
         });
 
-        await Promise.all([order.save(), demoWallet.save(), user.save()]);
+        // Execute all operations in transaction
+        await Promise.all([
+            order.save({ session }),
+            DemoWalletModel.findByIdAndUpdate(
+                user.demoWallet._id,
+                walletUpdate,
+                { session, new: true }
+            )
+        ]);
 
-        return;
+        await session.commitTransaction();
+        session.endSession();
+
     } catch (error) {
-        console.error("Error placing sell order:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Error placing sell order",
-        });
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Sell order error:", error.message);
+        // Response already sent in happy path
     }
 });
 

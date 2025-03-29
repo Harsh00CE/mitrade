@@ -1,18 +1,18 @@
 import mongoose, { Schema } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
-const orderSchema = new Schema(
+const openOrdersSchema = new Schema(
     {
         orderId: {
             type: String,
             default: uuidv4,
             unique: true,
-            index: true, // ✅ Speeds up searches using orderId
+            index: true,
         },
         symbol: {
             type: String,
             required: true,
-            index: true, // ✅ Common filter, so indexing helps
+            index: true,
         },
         type: {
             type: String,
@@ -22,78 +22,84 @@ const orderSchema = new Schema(
         quantity: {
             type: Number,
             required: true,
-            min: 0.0001, // ✅ Prevents invalid values
+            min: 0.0001,
         },
         price: {
             type: Number,
             required: true,
-            min: 0.01, // ✅ Avoids zero-price errors
+            min: 0.01,
         },
         leverage: {
             type: Number,
             required: true,
-            min: 1, // ✅ Ensures valid leverage
+            min: 1,
         },
         status: {
             type: String,
             required: true,
-            enum: ["active", "pending", "closed"],
-            index: true, // ✅ Frequently filtered field
+            enum: ["active", "pending"],
+            default: "pending",
+            index: true,
         },
         position: {
             type: String,
             required: true,
-            enum: ["open", "close"],
-            index: true, // ✅ Optimizes queries by position
+            enum: ["open"],
+            default: "open",
         },
         openingTime: {
             type: Date,
             required: true,
+            default: Date.now,
         },
-        closingTime: {
-            type: Date,
+        takeProfit: {
+            type: Number,
             default: null,
         },
-        takeProfit: Number,
-        stopLoss: Number,
+        stopLoss: {
+            type: Number,
+            default: null,
+        },
         trailingStop: {
             type: String,
             default: "Unset",
-        },
-        realisedPL: {
-            type: Number,
-            default: 0,
-        },
-        overnightFunding: {
-            type: Number,
-            default: 0,
         },
         margin: {
             type: Number,
             required: true,
         },
-        openingValue: Number,
-        closingValue: Number,
+        openingValue: {
+            type: Number,
+            required: true,
+        },
         tradingAccount: {
             type: String,
             required: true,
             enum: ["demo", "live"],
-            index: true, 
+            index: true,
+        },
+        overnightFunding: {
+            type: Number,
+            default: 0,
         },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
-            index: true, 
+            index: true,
         },
     },
     {
-        timestamps: true, 
+        timestamps: true,
     }
 );
 
-orderSchema.index({ userId: 1, status: 1, position: 1 });
+// Compound indexes for common query patterns
+openOrdersSchema.index({ userId: 1, status: 1 }, { partialFilterExpression: { status: 'active' } });
+openOrdersSchema.index({ userId: 1, status: 1 });
+openOrdersSchema.index({ userId: 1, symbol: 1 });
+openOrdersSchema.index({ symbol: 1, status: 1 });
 
-const OrderModel = mongoose.models.Order || mongoose.model("Order", orderSchema);
+const OpenOrdersModel = mongoose.models.OpenOrders || mongoose.model("OpenOrders", openOrdersSchema);
 
-export default OrderModel;
+export default OpenOrdersModel;

@@ -1,81 +1,134 @@
 import express from "express";
 import UserModel from "../schemas/userSchema.js";
-import OrderModel from "../schemas/orderSchema.js";
+
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import { v4 as uuidv4 } from 'uuid';
-
+import OpenOrdersModel from "../schemas/openOrderSchema.js";
 
 const router = express.Router();
 
+// Pre-connect to DB when app starts (remove from route handler)
+connectDB().catch(console.error);
+
 router.post("/", async (req, res) => {
-    await connectDB();
+    const session = await OpenOrdersModel.startSession();
+    session.startTransaction();
 
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status } = req.body;
-        console.log("Price => " , price);
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage || !status) {
-            return res.status(200).json({
+        // Input validation
+        if (!userId || !symbol || !quantity || !price || !leverage) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
                 success: false,
-                message: "All fields are required: userId, symbol, quantity, price, leverage, takeProfit, stopLoss, status",
+                message: "Required fields: userId, symbol, quantity, price, leverage",
             });
         }
 
-        const user = await UserModel.findById(userId).populate("demoWallet");
+        // Get user with only necessary fields
+        const user = await UserModel.findById(userId)
+            .select('demoWallet')
+            .populate('demoWallet', 'available margin')
+            .session(session)
+            .lean();
 
         if (!user) {
-            return res.status(200).json({
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({
                 success: false,
                 message: "User not found",
             });
         }
-        
-        const demoWallet = user.demoWallet;
-        
-        const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
 
-        if (demoWallet.available < marginRequired) {
-            return res.status(200).json({
+        // Calculate margin requirements
+        const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
+        
+        // Check available balance
+        if (user.demoWallet.available < marginRequired) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
                 success: false,
-                message: "Insufficient available balance",
+                message: `Insufficient available balance. Required: ${marginRequired}, Available: ${user.demoWallet.available}`,
             });
         }
 
-        demoWallet.available -= marginRequired;
-        demoWallet.margin += marginRequired;
-
+        // Create order ID
         const orderId = uuidv4();
-        const order = new OrderModel({
+        const openingValue = quantity * price;
+
+        // Create order in OpenOrders collection
+        const order = new OpenOrdersModel({
             orderId,
-            userId,
             symbol,
             type: "buy",
             quantity,
             price,
             leverage,
-            takeProfit,
-            stopLoss,
-            margin: marginRequired,
-            status,
+            takeProfit: takeProfit || null,
+            stopLoss: stopLoss || null,
+            trailingStop: "Unset",
+            status: "active", // Default status for new orders
             position: "open",
             openingTime: new Date(),
+            margin: marginRequired,
+            openingValue,
             tradingAccount: "demo",
+            userId
         });
+
+
+        // orderId,
+        // userId,
+        // symbol,
+        // type: "buy",
+        // quantity,
+        // price,
+        // leverage,
+        // takeProfit,
+        // stopLoss,
+        // margin: marginRequired,
+        // status,
+        // position: "open",
+        // openingTime: new Date(),
+        // tradingAccount: "demo",
+
+        // Update wallet balances atomically
+        const walletUpdate = {
+            $inc: {
+                available: -marginRequired,
+                margin: marginRequired
+            }
+        };
+
+        // Send response before committing transaction
         res.status(200).json({
             success: true,
             message: "Buy order placed successfully",
+            orderId
         });
 
-        await Promise.all([order.save(), demoWallet.save(), user.save()]);
+        // Execute all operations in transaction
+        await Promise.all([
+            order.save({ session }),
+            OpenOrdersModel.updateOne(
+                { _id: user.demoWallet._id },
+                walletUpdate,
+                { session }
+            )
+        ]);
 
-        return;
+        await session.commitTransaction();
+        session.endSession();
 
     } catch (error) {
-        console.error("Error placing buy order:", error);
-        return res.status(200).json({
-            success: false,
-            message: "Error placing buy order",
-        });
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Order placement error:", error.message);
+        // Response already sent, can't send another
     }
 });
 

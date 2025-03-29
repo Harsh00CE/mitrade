@@ -8,6 +8,7 @@ import passport from "passport";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { createClient } from 'redis';
 import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes } from "./router/index.routes.js";
 
 

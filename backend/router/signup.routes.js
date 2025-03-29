@@ -7,14 +7,13 @@ import express from "express";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
 
 const router = express.Router();
-connectDB(); // Establish DB connection once
+connectDB(); 
 
 router.post("/", async (req, res) => {
     try {
         const { username, email, password } = req.body;
         const parsedUsername = usernameValidation.parse(username);
 
-        // Parallel execution of DB queries
         const [existingUserVerifiedByUsername, existingUserByEmail] = await Promise.all([
             UserModel.findOne({ username: parsedUsername, isVerified: true }).lean(),
             UserModel.findOne({ email }).lean(),
@@ -29,22 +28,19 @@ router.post("/", async (req, res) => {
         }
 
         const verifyCode = Math.floor(Math.random() * 900000 + 100000).toString();
-        const expiryDate = new Date(Date.now() + 3600000); // 1-hour expiry
+        const expiryDate = new Date(Date.now() + 3600000); 
 
         if (existingUserByEmail) {
-            // Update unverified user details
             await UserModel.updateOne(
                 { email },
                 { $set: { password: await bcryptjs.hash(password, 10), verifyCode, verifyCodeExpires: expiryDate } }
             );
         } else {
-            // Hash password and create wallet in parallel
             const [hashedPassword, demoWallet] = await Promise.all([
                 bcryptjs.hash(password, 10),
                 DemoWalletModel.create({}),
             ]);
 
-            // Create new user
             await UserModel.create({
                 username: parsedUsername,
                 email,
@@ -58,14 +54,12 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Send verification email in background (async, doesn't block response)
-        sendVerificationEmail(email, username, verifyCode).catch(console.error);
-
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
             message: "User registered successfully. Please check your email for the verification code.",
         });
-
+        sendVerificationEmail(email, username, verifyCode).catch(console.error);
+        
     } catch (error) {
         console.error("Error in sign-up route =>", error);
         return res.status(200).json({ success: false, message: "Error in sign-up route" });
