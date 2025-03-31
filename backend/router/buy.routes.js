@@ -4,6 +4,7 @@ import UserModel from "../schemas/userSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import { v4 as uuidv4 } from 'uuid';
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 
 const router = express.Router();
 
@@ -43,6 +44,15 @@ router.post("/", async (req, res) => {
             });
         }
 
+        const wallet = await DemoWalletModel.findById(user.demoWallet);
+
+        if (!wallet) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Wallet not found" 
+            });
+        }
+
         // Calculate margin requirements
         const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
         
@@ -71,7 +81,7 @@ router.post("/", async (req, res) => {
             takeProfit: takeProfit || null,
             stopLoss: stopLoss || null,
             trailingStop: "Unset",
-            status: "active", // Default status for new orders
+            status: "active", 
             position: "open",
             openingTime: new Date(),
             margin: marginRequired,
@@ -96,14 +106,10 @@ router.post("/", async (req, res) => {
         // openingTime: new Date(),
         // tradingAccount: "demo",
 
-        // Update wallet balances atomically
-        const walletUpdate = {
-            $inc: {
-                available: -marginRequired,
-                margin: marginRequired
-            }
-        };
-
+      
+        wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
+        wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+        
         // Send response before committing transaction
         res.status(200).json({
             success: true,
@@ -114,9 +120,9 @@ router.post("/", async (req, res) => {
         // Execute all operations in transaction
         await Promise.all([
             order.save({ session }),
+            wallet.save(),
             OpenOrdersModel.updateOne(
                 { _id: user.demoWallet._id },
-                walletUpdate,
                 { session }
             )
         ]);

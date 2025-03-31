@@ -20,13 +20,13 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const limiter = rateLimit({
-    max: 200,
-    windowMs: 60 * 60 * 1000,
-    message: "Too many request from this IP"
-});
+// const limiter = rateLimit({
+//     max: 200,
+//     windowMs: 60 * 60 * 1000,
+//     message: "Too many request from this IP"
+// });
 
-app.use(limiter);
+// app.use(limiter);
 
 app.use(
     session({

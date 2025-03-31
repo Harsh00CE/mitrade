@@ -43,6 +43,15 @@ router.post("/", async (req, res) => {
             })
             .session(session)
             .lean();
+        
+        const wallet = await DemoWalletModel.findById(user.demoWallet);
+
+        if (!wallet) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Wallet not found" 
+            });
+        }
 
         if (!user || !user.demoWallet) {
             await session.abortTransaction();
@@ -89,16 +98,10 @@ router.post("/", async (req, res) => {
             userId
         });
 
-        // Atomic wallet update operation
-        const walletUpdate = {
-            $inc: {
-                available: -marginRequired,
-                margin: marginRequired
-            },
-            $set: {
-                lastUpdated: new Date()
-            }
-        };
+      
+        wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
+        wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+        
 
         // Send response before committing transaction
         res.status(200).json({
@@ -116,9 +119,9 @@ router.post("/", async (req, res) => {
         // Execute all operations in transaction
         await Promise.all([
             order.save({ session }),
+            wallet.save(),
             DemoWalletModel.findByIdAndUpdate(
                 user.demoWallet._id,
-                walletUpdate,
                 { session, new: true }
             )
         ]);
