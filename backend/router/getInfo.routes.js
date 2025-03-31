@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
             });
         }
 
-        const pairInfo = await PairInfoModel.findOne({ symbol }).lean(); // .lean() improves speed by ~20-30%
+        const pairInfo = await PairInfoModel.findOne({ symbol }).lean();
 
         if (!pairInfo) {
             return res.status(404).json({

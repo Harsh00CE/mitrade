@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Optimized projections
 const ORDER_PROJECTION = {
-    userId: 1, type: 1, price: 1, quantity: 1, margin: 1,
+    userId: 1, type: 1, openingPrice: 1, quantity: 1, margin: 1,
     symbol: 1, leverage: 1, takeProfit: 1, stopLoss: 1,
     openingTime: 1, tradingAccount: 1
 };
@@ -29,6 +29,7 @@ router.post("/", async (req, res) => {
             status: "active" 
         }).select(ORDER_PROJECTION).lean();
 
+
         if (!openOrder) {
             const isClosed = await ClosedOrdersModel.exists({ originalOrderId: orderId }).lean();
             return res.status(isClosed ? 200 : 404).json({
@@ -38,12 +39,14 @@ router.post("/", async (req, res) => {
         }
 
         // Calculate values
-        const openingValue = openOrder.price * openOrder.quantity;
+        const openingValue = openOrder.openingPrice * openOrder.quantity;
         const closingValue = closingPrice * openOrder.quantity;
         const realisedPL = openOrder.type === "buy" 
             ? closingValue - openingValue 
             : openingValue - closingValue;
 
+
+        
         // Create closed order
         const closedOrder = new ClosedOrdersModel({
             originalOrderId: orderId,
@@ -52,7 +55,7 @@ router.post("/", async (req, res) => {
             symbol: openOrder.symbol,
             type: openOrder.type,
             quantity: openOrder.quantity,
-            openingPrice: openOrder.price,
+            openingPrice: openOrder.openingPrice,
             closingPrice,
             leverage: openOrder.leverage,
             status: "closed",
@@ -63,8 +66,6 @@ router.post("/", async (req, res) => {
             stopLoss: openOrder.stopLoss,
             realisedPL,
             margin: openOrder.margin,
-            openingValue,
-            closingValue,
             tradingAccount: openOrder.tradingAccount || "demo",
             closeReason: "manual"
         });

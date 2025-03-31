@@ -89,14 +89,6 @@ const closedOrdersSchema = new Schema(
             type: Number,
             required: true,
         },
-        openingValue: {
-            type: Number,
-            required: true,
-        },
-        closingValue: {
-            type: Number,
-            required: true,
-        },
         tradingAccount: {
             type: String,
             required: true,

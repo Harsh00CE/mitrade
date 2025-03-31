@@ -18,7 +18,6 @@ router.get("/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
         
-        // Ultra-fast validation
         if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ 
                 success: false, 
@@ -26,15 +25,12 @@ router.get("/:userId", async (req, res) => {
             });
         }
 
-        // Single optimized query with population
         const user = await UserModel.findById(userId)
             .populate({
                 path: "demoWallet",
                 select: WALLET_PROJECTION
             })
             .lean()
-            .exec();
-
         if (!user) {
             return res.status(404).json({ 
                 success: false, 

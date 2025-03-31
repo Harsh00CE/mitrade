@@ -8,7 +8,6 @@ import connectDB from "../ConnectDB/ConnectionDB.js";
 
 const router = express.Router();
 
-// Pre-connect to DB when app starts
 connectDB().catch(console.error);
 
 router.post("/", async (req, res) => {
@@ -74,7 +73,7 @@ router.post("/", async (req, res) => {
             symbol,
             type: "buy",
             quantity: parseFloat(quantity),
-            price: parseFloat(price),
+            openingPrice: parseFloat(price),
             leverage: parseInt(leverage),
             takeProfit: takeProfit ? parseFloat(takeProfit) : null,
             stopLoss: stopLoss ? parseFloat(stopLoss) : null,
@@ -83,7 +82,6 @@ router.post("/", async (req, res) => {
             position: "open",
             openingTime: new Date(),
             margin: marginRequired,
-            openingValue,
             tradingAccount: "demo",
             userId
         });

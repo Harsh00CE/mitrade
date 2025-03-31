@@ -44,10 +44,7 @@ router.get("/:userId", async (req, res) => {
             { userId },
             // ORDER_PROJECTION
         )
-        .lean() // Faster response
-        .sort({ closingTime: -1 }) // Newest first
-        .limit(100); // Limit to 100 most recent orders
-
+        .lean()
         return res.status(200).json({
             success: true,
             message: orders.length ? "Closed orders fetched successfully" : "No closed orders found",

@@ -24,7 +24,7 @@ const openOrdersSchema = new Schema(
             required: true,
             min: 0.0001,
         },
-        price: {
+        openingPrice: {
             type: Number,
             required: true,
             min: 0.01,
@@ -65,10 +65,6 @@ const openOrdersSchema = new Schema(
             default: "Unset",
         },
         margin: {
-            type: Number,
-            required: true,
-        },
-        openingValue: {
             type: Number,
             required: true,
         },

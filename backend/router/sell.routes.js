@@ -74,7 +74,7 @@ router.post("/", async (req, res) => {
             symbol,
             type: "sell",
             quantity: parseFloat(quantity),
-            price: parseFloat(price),
+            openingPrice: parseFloat(price),
             leverage: parseInt(leverage),
             takeProfit: takeProfit ? parseFloat(takeProfit) : null,
             stopLoss: stopLoss ? parseFloat(stopLoss) : null,
@@ -83,7 +83,6 @@ router.post("/", async (req, res) => {
             position: "open",
             openingTime: new Date(),
             margin: marginRequired,
-            openingValue,
             tradingAccount: "demo",
             userId
         });
