@@ -1,18 +1,18 @@
 import express from "express";
+import mongoose from "mongoose";
 import UserModel from "../schemas/userSchema.js";
-
-import connectDB from "../ConnectDB/ConnectionDB.js";
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import { v4 as uuidv4 } from 'uuid';
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
-import DemoWalletModel from "../schemas/demoWalletSchema.js";
+import connectDB from "../ConnectDB/ConnectionDB.js";
 
 const router = express.Router();
 
-// Pre-connect to DB when app starts (remove from route handler)
+// Pre-connect to DB when app starts
 connectDB().catch(console.error);
 
 router.post("/", async (req, res) => {
-    const session = await OpenOrdersModel.startSession();
+    const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
@@ -21,67 +21,65 @@ router.post("/", async (req, res) => {
         // Input validation
         if (!userId || !symbol || !quantity || !price || !leverage) {
             await session.abortTransaction();
-            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: "Required fields: userId, symbol, quantity, price, leverage",
             });
         }
 
-        // Get user with only necessary fields
-        const user = await UserModel.findById(userId)
-            .select('demoWallet')
-            .populate('demoWallet', 'available margin')
-            .session(session)
-            .lean();
-
-        if (!user) {
+        // Numeric validation
+        if (isNaN(quantity) || isNaN(price) || isNaN(leverage) || 
+            quantity <= 0 || price <= 0 || leverage < 1) {
             await session.abortTransaction();
-            session.endSession();
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
-        }
-
-        const wallet = await DemoWalletModel.findById(user.demoWallet);
-
-        if (!wallet) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Wallet not found" 
-            });
-        }
-
-        // Calculate margin requirements
-        const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
-        
-        // Check available balance
-        if (user.demoWallet.available < marginRequired) {
-            await session.abortTransaction();
-            session.endSession();
             return res.status(400).json({
                 success: false,
-                message: `Insufficient available balance. Required: ${marginRequired}, Available: ${user.demoWallet.available}`,
+                message: "Quantity and price must be positive numbers, leverage must be ≥1",
             });
         }
 
-        // Create order ID
+        // Get user with wallet
+        const user = await UserModel.findById(userId)
+            .select('demoWallet')
+            .populate('demoWallet')
+            .session(session);
+
+        if (!user || !user.demoWallet) {
+            await session.abortTransaction();
+            return res.status(404).json({
+                success: false,
+                message: "User or wallet not found",
+            });
+        }
+
+        const wallet = user.demoWallet;
+
+        // Calculate margin requirements
+        const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
+        
+        // Check available balance
+        if (wallet.available < marginRequired) {
+            await session.abortTransaction();
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient available balance. Required: ${marginRequired}, Available: ${wallet.available}`,
+            });
+        }
+
+        // Create order
         const orderId = uuidv4();
         const openingValue = quantity * price;
 
-        // Create order in OpenOrders collection
         const order = new OpenOrdersModel({
             orderId,
             symbol,
             type: "buy",
-            quantity,
-            price,
-            leverage,
-            takeProfit: takeProfit || null,
-            stopLoss: stopLoss || null,
+            quantity: parseFloat(quantity),
+            price: parseFloat(price),
+            leverage: parseInt(leverage),
+            takeProfit: takeProfit ? parseFloat(takeProfit) : null,
+            stopLoss: stopLoss ? parseFloat(stopLoss) : null,
             trailingStop: "Unset",
-            status: "active", 
+            status: "active",
             position: "open",
             openingTime: new Date(),
             margin: marginRequired,
@@ -90,51 +88,43 @@ router.post("/", async (req, res) => {
             userId
         });
 
-
-        // orderId,
-        // userId,
-        // symbol,
-        // type: "buy",
-        // quantity,
-        // price,
-        // leverage,
-        // takeProfit,
-        // stopLoss,
-        // margin: marginRequired,
-        // status,
-        // position: "open",
-        // openingTime: new Date(),
-        // tradingAccount: "demo",
-
-      
+        // Update wallet
         wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
         wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
-        
-        // Send response before committing transaction
-        res.status(200).json({
-            success: true,
-            message: "Buy order placed successfully",
-            orderId
-        });
 
-        // Execute all operations in transaction
+        // Execute operations
         await Promise.all([
             order.save({ session }),
-            wallet.save(),
-            OpenOrdersModel.updateOne(
-                { _id: user.demoWallet._id },
-                { session }
-            )
+            wallet.save({ session })
         ]);
 
         await session.commitTransaction();
-        session.endSession();
+
+        res.status(200).json({
+            success: true,
+            message: "Buy order placed successfully",
+            data: {
+                orderId,
+                symbol,
+                quantity,
+                price,
+                marginRequired
+            }
+        });
 
     } catch (error) {
         await session.abortTransaction();
-        session.endSession();
         console.error("Order placement error:", error.message);
-        // Response already sent, can't send another
+        
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to place buy order",
+                error: error.message
+            });
+        }
+    } finally {
+        session.endSession();
     }
 });
 

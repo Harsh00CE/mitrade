@@ -25,33 +25,21 @@ router.post("/", async (req, res) => {
         }
 
         // Validate numeric fields
-        if (quantity <= 0 || price <= 0 || leverage < 1) {
+        if (isNaN(quantity) || isNaN(price) || isNaN(leverage) || 
+            quantity <= 0 || price <= 0 || leverage < 1) {
             await session.abortTransaction();
             session.endSession();
             return res.status(400).json({
                 success: false,
-                message: "Quantity and price must be positive, leverage must be ≥1"
+                message: "Quantity and price must be positive numbers, leverage must be ≥1"
             });
         }
 
-        // Get user with only necessary fields
+        // Get user with wallet
         const user = await UserModel.findById(userId)
             .select('demoWallet')
-            .populate({
-                path: 'demoWallet',
-                select: 'available margin'
-            })
-            .session(session)
-            .lean();
-        
-        const wallet = await DemoWalletModel.findById(user.demoWallet);
-
-        if (!wallet) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Wallet not found" 
-            });
-        }
+            .populate('demoWallet')
+            .session(session);
 
         if (!user || !user.demoWallet) {
             await session.abortTransaction();
@@ -62,34 +50,36 @@ router.post("/", async (req, res) => {
             });
         }
 
+        const wallet = user.demoWallet;
+
         // Calculate margin requirements
-        const marginRequired = Number(((quantity * price) / leverage).toFixed(2));
+        const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
 
         // Check available balance
-        if (user.demoWallet.available < marginRequired) {
+        if (wallet.available < marginRequired) {
             await session.abortTransaction();
             session.endSession();
             return res.status(400).json({ 
                 success: false, 
-                message: `Insufficient balance. Required: ${marginRequired}, Available: ${user.demoWallet.available}` 
+                message: `Insufficient balance. Required: ${marginRequired}, Available: ${wallet.available}` 
             });
         }
 
-        // Create order in OpenOrders collection
+        // Create order
         const orderId = uuidv4();
         const openingValue = quantity * price;
 
         const order = new OpenOrdersModel({
             orderId,
             symbol,
-            type: "sell", // Changed to sell
-            quantity,
-            price,
-            leverage,
-            takeProfit: takeProfit || null,
-            stopLoss: stopLoss || null,
+            type: "sell",
+            quantity: parseFloat(quantity),
+            price: parseFloat(price),
+            leverage: parseInt(leverage),
+            takeProfit: takeProfit ? parseFloat(takeProfit) : null,
+            stopLoss: stopLoss ? parseFloat(stopLoss) : null,
             trailingStop: "Unset",
-            status: "active", // Default status for new orders
+            status: "active",
             position: "open",
             openingTime: new Date(),
             margin: marginRequired,
@@ -98,12 +88,16 @@ router.post("/", async (req, res) => {
             userId
         });
 
-      
+        // Update wallet
         wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
         wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
-        
 
-        // Send response before committing transaction
+        // Execute operations
+        await order.save({ session });
+        await wallet.save({ session });
+
+        await session.commitTransaction();
+        
         res.status(200).json({
             success: true,
             message: "Sell order placed successfully",
@@ -116,24 +110,20 @@ router.post("/", async (req, res) => {
             }
         });
 
-        // Execute all operations in transaction
-        await Promise.all([
-            order.save({ session }),
-            wallet.save(),
-            DemoWalletModel.findByIdAndUpdate(
-                user.demoWallet._id,
-                { session, new: true }
-            )
-        ]);
-
-        await session.commitTransaction();
-        session.endSession();
-
     } catch (error) {
         await session.abortTransaction();
-        session.endSession();
         console.error("Sell order error:", error.message);
-        // Response already sent in happy path
+        
+        // Only send response if not already sent
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to place sell order",
+                error: error.message
+            });
+        }
+    } finally {
+        session.endSession();
     }
 });
 
