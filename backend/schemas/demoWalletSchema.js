@@ -2,6 +2,12 @@ import mongoose, { Schema } from "mongoose";
 
 
 const demoWalletSchema = new Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        unique: true, // Ensures one wallet per user
+        required: true,
+    },
     balance: {
         type: Number,
         required: [true, "Balance is required"],
@@ -40,6 +46,6 @@ const demoWalletSchema = new Schema({
     },
 });
 
-const DemoWalletModel = (mongoose.models.demoWallet) || mongoose.model("demoWallet", demoWalletSchema);
+const DemoWalletModel = mongoose.models.DemoWallet || mongoose.model("DemoWallet", demoWalletSchema);
 
 export default DemoWalletModel;

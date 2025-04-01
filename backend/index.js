@@ -7,7 +7,6 @@ import UserModel from "./schemas/userSchema.js";
 import PairInfoModel from "./schemas/pairInfo.js";
 import AlertModel from "./schemas/alertSchema.js";
 import { sendVerificationEmail } from "./helpers/sendAlertEmail.js";
-import axios from "axios";
 
 dotenv.config({ path: ".env" });
 

@@ -10,6 +10,8 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createClient } from 'redis';
 import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes } from "./router/index.routes.js";
+import { authenticate } from "./middleware/authMiddleware.js";
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,17 +59,17 @@ app.get("/auth/callback",
     }
 );
 
-app.get("/user", (req, res) => {
-    res.json(req.user || null);
-});
+// app.get("/user", (req, res) => {
+//     res.json(req.user || null);
+// });
 
-app.get("/logout", (req, res) => {
-    req.logout((err) => {
-        if (err) console.error(err);
-        req.session = null;
-        res.redirect(`http://${process.env.SERVER_URL}:5173/`);
-    });
-});
+// app.get("/logout", (req, res) => {
+//     req.logout((err) => {
+//         if (err) console.error(err);
+//         req.session = null;
+//         res.redirect(`http://${process.env.SERVER_URL}:5173/`);
+//     });
+// });
 
 
 
