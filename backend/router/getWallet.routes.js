@@ -31,6 +31,7 @@ router.get("/:userId", async (req, res) => {
                 select: WALLET_PROJECTION
             })
             .lean()
+
         if (!user) {
             return res.status(404).json({ 
                 success: false, 
@@ -49,7 +50,6 @@ router.get("/:userId", async (req, res) => {
         return res.status(500).json({ 
             success: false, 
             message: "Error fetching data",
-            error: process.env.NODE_ENV === 'development' ? error.message : null
         });
     }
 });

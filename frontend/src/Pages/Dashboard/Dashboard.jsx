@@ -11,7 +11,7 @@ const Dashboard = () => {
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const navigate = useNavigate();
-    const userId = "67ea233c6ac7b99e41955cf7";
+    const userId = "67ea83a1df43302963e04095";
 
     const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, {
         onOpen: () => {

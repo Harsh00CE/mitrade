@@ -8,7 +8,7 @@ router.post("/", async (req, res) => {
     await connectDB();
     try {
         const { userId, token } = req.body;
-
+        let favBool = false;
         if (!userId || !token) {
             return res.status(200).json({
                 success: false,

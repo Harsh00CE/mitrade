@@ -1,28 +1,26 @@
 import express from "express";
-import connectDB from "../ConnectDB/ConnectionDB.js";
 import BasicKYC from "../schemas/KYCSchema.js";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-
 
 const router = express.Router();
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/')
+        cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, 'kyc-doc-' + uniqueSuffix + '.' + file.originalname.split('.').pop())
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'kyc-doc-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
     }
-})
+});
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }
-}).single('documentImage');
-
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB per file
+}).fields([
+    { name: 'documentFront', maxCount: 1 },
+    { name: 'documentBack', maxCount: 1 }
+]);
 
 router.post('/register', (req, res) => {
     upload(req, res, async (err) => {
@@ -33,18 +31,36 @@ router.post('/register', (req, res) => {
         }
 
         try {
-            const { fullName, email, mobile, address, nationality, documentType, documentNumber } = req.body;
+            const {userId , fullName, email, mobile, address, nationality, documentType, documentNumber } = req.body;
 
-            // Basic validation
-            if (!fullName || !email || !mobile || !nationality || !documentType || !documentNumber) {
+            // Validate required fields
+            if (!fullName || !email || !mobile || !nationality || !documentType || !documentNumber || !userId) {
                 return res.status(400).json({ error: 'Missing required fields' });
             }
 
-            if (!req.file) {
-                return res.status(400).json({ error: 'Document image is required' });
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({ error: "Invalid email format" });
+            }
+            // Validate mobile format
+            if (!/^[0-9]{10,15}$/.test(mobile)) {
+                return res.status(400).json({ error: "Invalid mobile number format" });
+            }
+
+            // Ensure correct number of images is uploaded
+            if (documentType === 'national_id') {
+                if (!req.files || !req.files.documentFront || !req.files.documentBack) {
+                    return res.status(400).json({ error: "Both front and back images are required for national ID" });
+                }
+            } else {
+                if (!req.files || !req.files.documentFront) {
+                    return res.status(400).json({ error: "Document image is required" });
+                }
             }
 
             const newKYC = new BasicKYC({
+                userId,
                 fullName,
                 email,
                 mobile,
@@ -52,7 +68,10 @@ router.post('/register', (req, res) => {
                 nationality,
                 documentType,
                 documentNumber,
-                documentImage: req.file.path,
+                documentImage: {
+                    front: req.files.documentFront ? req.files.documentFront[0].path : null,
+                    back: req.files.documentBack ? req.files.documentBack[0].path : null
+                },
                 status: 'pending'
             });
 
@@ -60,14 +79,13 @@ router.post('/register', (req, res) => {
 
             res.status(201).json({
                 message: 'KYC registration submitted successfully',
-                data: {
-                    id: savedKYC._id,
-                    status: savedKYC.status
-                }
+                data: { id: savedKYC._id, status: savedKYC.status }
             });
+
+            return;
+
         } catch (error) {
             if (error.code === 11000) {
-                // Duplicate key error (email or document number already exists)
                 const field = error.message.includes('email') ? 'email' : 'document number';
                 res.status(409).json({ error: `${field} already registered` });
             } else {
@@ -77,6 +95,8 @@ router.post('/register', (req, res) => {
         }
     });
 });
+
+
 
 // Get KYC status
 router.get('/status/:id', async (req, res) => {

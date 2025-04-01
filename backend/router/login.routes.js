@@ -1,7 +1,7 @@
 import express from "express";
-import UserModel from "../schemas/userSchema.js";
 import bcryptjs from "bcryptjs";
-import { generateToken } from "../middleware/authUtils.js";
+import jwt from "jsonwebtoken";
+import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
@@ -9,54 +9,45 @@ router.post("/", async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // Fetch user with password and verification status
         const user = await UserModel.findOne({ username })
             .select("+password +isVerified")
             .lean();
 
         if (!user) {
-            return res.status(200).json({ 
-                success: false, 
-                message: "Invalid credentials" // Don't reveal if user exists
-            });
+            return res.status(400).json({ success: false, message: "User not found" });
         }
 
         if (!user.isVerified) {
-            return res.status(200).json({ 
-                success: false, 
-                message: "Please verify your email first" 
-            });
+            return res.status(400).json({ success: false, message: "User not verified" });
         }
 
         const isPasswordValid = await bcryptjs.compare(password, user.password);
 
         if (!isPasswordValid) {
-            return res.status(200).json({ 
-                success: false, 
-                message: "Invalid credentials" // Generic message for security
-            });
+            return res.status(400).json({ success: false, message: "Invalid password" });
         }
 
-        // Generate token using the method we added to the schema
-        const token = generateToken(user._id);
+        // Generate JWT Token
+        const token = jwt.sign(
+            { id: user._id, username: user.username, email: user.email },
+            process.env.JWT_SECRET, 
+            { expiresIn: "7d" }
+        );
 
         return res.status(200).json({
             success: true,
             message: "User logged in successfully",
+            token,
             data: {
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                token // Send the token to the client
             },
         });
 
     } catch (error) {
         console.error("Error in login route =>", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Internal server error" 
-        });
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 

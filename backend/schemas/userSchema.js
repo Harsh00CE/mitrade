@@ -34,7 +34,7 @@ const UserSchema = new Schema({
   },
   demoWallet: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "demoWallet",
+    ref: "DemoWallet",
     // required: [true, "Demo wallet is required"],
   },
   orderList: [{

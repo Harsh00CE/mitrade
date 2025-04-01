@@ -1,6 +1,12 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const basicKYCSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
   fullName: { 
     type: String, 
     required: true, 
@@ -9,7 +15,7 @@ const basicKYCSchema = new mongoose.Schema({
   email: { 
     type: String, 
     required: true, 
-    unique: true,  // This creates an index automatically
+    unique: true, 
     trim: true, 
     lowercase: true 
   },
@@ -37,26 +43,29 @@ const basicKYCSchema = new mongoose.Schema({
   documentNumber: { 
     type: String, 
     required: true, 
-    unique: true  // This creates an index automatically
+    unique: true  
   },
-  documentImage: { type: String, required: true },
+  documentImage: { 
+    front: { type: String, required: true },
+    back: { type: String, required: function() { return this.documentType === 'national_id'; } } 
+  },
   status: {
     type: String,
     enum: ['pending', 'verified', 'rejected'],
     default: 'pending'
   }
 }, { 
-  timestamps: true,  // This adds createdAt and updatedAt automatically
-  autoIndex: true    // Enable automatic index creation
+  timestamps: true,
+  autoIndex: true
 });
 
-// Only define indexes that aren't already created by 'unique: true'
 basicKYCSchema.index({ mobile: 1 });
 basicKYCSchema.index({ status: 1 });
 
 const BasicKYC = mongoose.model('BasicKYC', basicKYCSchema);
 
 export default BasicKYC;
+
 
 
 

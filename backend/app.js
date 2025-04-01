@@ -10,8 +10,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createClient } from 'redis';
 import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes } from "./router/index.routes.js";
-import { authenticate } from "./middleware/authMiddleware.js";
-
+import authMiddleware from "./middleware/auth.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -83,7 +82,7 @@ app.use("/api/login", logInRoutes)
 app.use("/api/varify-code", verifyCodeRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/pair-info", getInfo)
-app.use("/api/favorite-tokens", favoriteTokensRouter);
+app.use("/api/favoriteTokens", favoriteTokensRouter);
 app.use("/api/user-orders", getUserOrders)
 app.use("/api/alerts", alertRouter);
 app.use("/api/close-order", closeOrderRouter);
@@ -93,7 +92,7 @@ app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
 app.use("/api/users", getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
-app.use("/api/userwallet", getUserWallet)
+app.use("/api/userwallet", authMiddleware ,getUserWallet)
 app.use("/api/configwallet", configWallet);
 app.use("/api/KYC", kycRoutes);
 

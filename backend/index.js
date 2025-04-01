@@ -39,9 +39,9 @@ wss.on("connection", async (ws) => {
 
     ws.on("message", async (message) => {
         const data = JSON.parse(message);
-
         if (data.type == "subscribeFavorites") {
             const { userId } = data;
+            console.log("User ID:", userId);
 
             if (!userId) return;
 
@@ -51,13 +51,20 @@ wss.on("connection", async (ws) => {
                 return;
             }
 
-            const favoriteTokens = user.favoriteTokens || [];
+            // Make sure that the user's favorite tokens are valid
+            const favoriteTokens = Array.isArray(user.favoriteTokens) ? user.favoriteTokens : [];
+            if (favoriteTokens.length === 0) {
+                console.log(`User ${userId} has no favorite tokens.`);
+            } else {
+                console.log(`User ${userId} subscribed to favorite tokens:`, favoriteTokens);
+            }
+
+            // Store the tokens in the map
             favoriteSubscriptions.set(userId, new Set(favoriteTokens));
             ws.userId = userId;
-
-            console.log(`User ${userId} subscribed to favorite tokens:`, favoriteTokens);
         }
     });
+
 
     ws.on("close", () => {
         console.log("Client disconnected");
@@ -85,12 +92,18 @@ binanceWs.on("message", async (data) => {
             client.send(JSON.stringify({ type: "allTokens", data: formattedTickers }));
 
             const userId = client.userId;
+            console.log("User ID ==> :", userId);
+
             if (userId && favoriteSubscriptions.has(userId)) {
                 const favoriteTokens = favoriteSubscriptions.get(userId);
                 const filteredData = formattedTickers.filter(t => favoriteTokens.has(t.symbol));
                 if (filteredData.length > 0) {
+                    console.log(`Sending favorite tokens to ${userId}:`, filteredData);
                     client.send(JSON.stringify({ type: "favoriteTokens", data: filteredData }));
+                } else {
+                    console.log(`No favorite tokens found for ${userId}`);
                 }
+
             }
 
             const adminFilteredData = formattedTickers.filter(t => adminTokens.has(t.symbol));
@@ -194,7 +207,7 @@ binanceWs.on("message", async (data) => {
 //         clearInterval(interval);
 //     });
 // });
-   
+
 
 const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
 const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD"];
