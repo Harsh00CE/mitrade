@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
         const { symbol } = req.query;
 
         if (!symbol) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Symbol is required as a query parameter",
             });
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
         const pairInfo = await PairInfoModel.findOne({ symbol }).lean();
 
         if (!pairInfo) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "Pair info not found for the provided symbol",
             });
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching pair info:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });

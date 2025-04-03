@@ -12,7 +12,7 @@ router.get("/:userId", async (req, res) => {
 
         // Validate userId first
         if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid or missing user ID",
             });
@@ -25,7 +25,7 @@ router.get("/:userId", async (req, res) => {
 
         // If user is not found
         if (!user) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User not found",
             });
@@ -39,7 +39,7 @@ router.get("/:userId", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching favorite tokens:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Internal server error",
         });

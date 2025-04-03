@@ -16,7 +16,7 @@ router.post("/", async (req, res) => {
         console.time("Validation Time");
         const existingUser = await UserModel.findOne({ $or: [{ username }, { email }] });
         if (existingUser) {
-            return res.status(400).json({ success: false, message: "Username or Email already exists" });
+            return res.status(200).json({ success: false, message: "Username or Email already exists" });
         }
         console.timeEnd("Validation Time");
 
@@ -63,7 +63,7 @@ router.post("/", async (req, res) => {
         );
         console.timeEnd("Token Generation Time");
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             message: "User registered successfully. Please check your email for the verification code.",
             token, // Return the token
@@ -73,7 +73,7 @@ router.post("/", async (req, res) => {
         return;
     } catch (error) {
         console.error("Error in sign-up route =>", error);
-        return res.status(500).json({ success: false, message: "Error in sign-up route" });
+        return res.status(200).json({ success: false, message: "Error in sign-up route" });
     }
 });
 

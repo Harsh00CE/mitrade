@@ -8,7 +8,7 @@ router.post("/", async (req, res) => {
         const { identifier, code } = req.body; 
 
         if (!identifier || !code) {
-            return res.status(400).json({ success: false, message: "Username or Email and Code are required" });
+            return res.status(200).json({ success: false, message: "Username or Email and Code are required" });
         }
 
         // Search by either username or email
@@ -38,7 +38,7 @@ router.post("/", async (req, res) => {
 
     } catch (error) {
         console.error("Error in verify-code route:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return res.status(200).json({ success: false, message: "Internal server error" });
     }
 });
 

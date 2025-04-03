@@ -25,9 +25,9 @@ const upload = multer({
 router.post('/register', (req, res) => {
     upload(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
-            return res.status(400).json({ error: 'File upload error', details: err.message });
+            return res.status(200).json({ error: 'File upload error', details: err.message });
         } else if (err) {
-            return res.status(500).json({ error: 'Server error', details: err.message });
+            return res.status(200).json({ error: 'Server error', details: err.message });
         }
 
         try {
@@ -35,27 +35,27 @@ router.post('/register', (req, res) => {
 
             // Validate required fields
             if (!fullName || !email || !mobile || !nationality || !documentType || !documentNumber || !userId) {
-                return res.status(400).json({ error: 'Missing required fields' });
+                return res.status(200).json({ error: 'Missing required fields' });
             }
 
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                return res.status(400).json({ error: "Invalid email format" });
+                return res.status(200).json({ error: "Invalid email format" });
             }
             // Validate mobile format
             if (!/^[0-9]{10,15}$/.test(mobile)) {
-                return res.status(400).json({ error: "Invalid mobile number format" });
+                return res.status(200).json({ error: "Invalid mobile number format" });
             }
 
             // Ensure correct number of images is uploaded
             if (documentType === 'national_id') {
                 if (!req.files || !req.files.documentFront || !req.files.documentBack) {
-                    return res.status(400).json({ error: "Both front and back images are required for national ID" });
+                    return res.status(200).json({ error: "Both front and back images are required for national ID" });
                 }
             } else {
                 if (!req.files || !req.files.documentFront) {
-                    return res.status(400).json({ error: "Document image is required" });
+                    return res.status(200).json({ error: "Document image is required" });
                 }
             }
 
@@ -77,7 +77,7 @@ router.post('/register', (req, res) => {
 
             const savedKYC = await newKYC.save();
 
-            res.status(201).json({
+            res.status(200).json({
                 message: 'KYC registration submitted successfully',
                 data: { id: savedKYC._id, status: savedKYC.status }
             });
@@ -87,10 +87,10 @@ router.post('/register', (req, res) => {
         } catch (error) {
             if (error.code === 11000) {
                 const field = error.message.includes('email') ? 'email' : 'document number';
-                res.status(409).json({ error: `${field} already registered` });
+                res.status(200).json({ error: `${field} already registered` });
             } else {
                 console.error('KYC registration error:', error);
-                res.status(500).json({ error: 'Failed to process KYC registration' });
+                res.status(200).json({ error: 'Failed to process KYC registration' });
             }
         }
     });
@@ -104,7 +104,7 @@ router.get('/status/:id', async (req, res) => {
         const kycRecord = await BasicKYC.findById(req.params.id).select('status updatedAt');
 
         if (!kycRecord) {
-            return res.status(404).json({ error: 'KYC record not found' });
+            return res.status(200).json({ error: 'KYC record not found' });
         }
 
         res.json({
@@ -113,7 +113,7 @@ router.get('/status/:id', async (req, res) => {
         });
     } catch (error) {
         console.error('KYC status check error:', error);
-        res.status(500).json({ error: 'Failed to retrieve KYC status' });
+        res.status(200).json({ error: 'Failed to retrieve KYC status' });
     }
 });
 
@@ -130,7 +130,7 @@ router.get('/submissions', async (req, res) => {
         res.json(submissions);
     } catch (error) {
         console.error('Failed to fetch KYC submissions:', error);
-        res.status(500).json({ error: 'Failed to fetch submissions' });
+        res.status(200).json({ error: 'Failed to fetch submissions' });
     }
 });
 

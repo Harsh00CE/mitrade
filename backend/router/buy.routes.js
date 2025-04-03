@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
         // Input validation
         if (!userId || !symbol || !quantity || !price || !leverage) {
             await session.abortTransaction();
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Required fields: userId, symbol, quantity, price, leverage",
             });
@@ -30,7 +30,7 @@ router.post("/", async (req, res) => {
         if (isNaN(quantity) || isNaN(price) || isNaN(leverage) || 
             quantity <= 0 || price <= 0 || leverage < 1) {
             await session.abortTransaction();
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Quantity and price must be positive numbers, leverage must be ≥1",
             });
@@ -44,7 +44,7 @@ router.post("/", async (req, res) => {
 
         if (!user || !user.demoWallet) {
             await session.abortTransaction();
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "User or wallet not found",
             });
@@ -58,7 +58,7 @@ router.post("/", async (req, res) => {
         // Check available balance
         if (wallet.available < marginRequired) {
             await session.abortTransaction();
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: `Insufficient available balance. Required: ${marginRequired}, Available: ${wallet.available}`,
             });
@@ -115,7 +115,7 @@ router.post("/", async (req, res) => {
         console.error("Order placement error:", error.message);
         
         if (!res.headersSent) {
-            res.status(500).json({
+            res.status(200).json({
                 success: false,
                 message: "Failed to place buy order",
                 error: error.message

@@ -33,7 +33,7 @@ router.get("/:userId", async (req, res) => {
 
         // Fast validation
         if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid user ID format"
             });
@@ -53,7 +53,7 @@ router.get("/:userId", async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching closed orders:", error);
-        return res.status(500).json({
+        return res.status(200).json({
             success: false,
             message: "Error fetching closed orders"
         });
