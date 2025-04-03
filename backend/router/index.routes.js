@@ -20,7 +20,8 @@ import sendAlertsRouter from "./sendEmailAlert.routes.js"
 import getUsersRouter from "./getUsers.routes.js"
 import configWallet from "./configWallet.routes.js"
 import kycRoutes from "./KYC.routes.js";
-
+import forgorPasswordRoutes from "./forgotPassword.routes.js"
+import updartePasswordRoutes from "./updatePassword.routes.js"
 
 export {
     cryptoRoutes,
@@ -45,4 +46,6 @@ export {
     getUsersRouter,
     configWallet,
     kycRoutes,
+    forgorPasswordRoutes,
+    updartePasswordRoutes
 }

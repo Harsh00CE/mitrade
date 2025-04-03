@@ -17,16 +17,16 @@ const ORDER_PROJECTION = {
 router.post("/", async (req, res) => {
     try {
         const { orderId, closingPrice } = req.body;
-        
+
         // Input Validation
         if (!mongoose.Types.ObjectId.isValid(orderId) || typeof closingPrice !== 'number') {
-            return res.status(400).json({ success: false, message: "Invalid input" });
+            return res.status(200).json({ success: false, message: "Invalid input" });
         }
 
         // Find and remove open order
-        const openOrder = await OpenOrdersModel.findOneAndDelete({ 
-            _id: orderId, 
-            status: "active" 
+        const openOrder = await OpenOrdersModel.findOneAndDelete({
+            _id: orderId,
+            status: "active"
         }).select(ORDER_PROJECTION).lean();
 
 
@@ -41,12 +41,12 @@ router.post("/", async (req, res) => {
         // Calculate values
         const openingValue = openOrder.openingPrice * openOrder.quantity;
         const closingValue = closingPrice * openOrder.quantity;
-        const realisedPL = openOrder.type === "buy" 
-            ? closingValue - openingValue 
+        const realisedPL = openOrder.type === "buy"
+            ? closingValue - openingValue
             : openingValue - closingValue;
 
 
-        
+
         // Create closed order
         const closedOrder = new ClosedOrdersModel({
             originalOrderId: orderId,
@@ -73,9 +73,9 @@ router.post("/", async (req, res) => {
         // Get user and wallet
         const user = await UserModel.findById(openOrder.userId).lean();
         const wallet = await DemoWalletModel.findById(user.demoWallet);
-        
+
         if (!wallet) {
-            return res.status(404).json({ success: false, message: "Wallet not found" });
+            return res.status(200).json({ success: false, message: "Wallet not found" });
         }
 
         // Update wallet using .save()
@@ -90,9 +90,9 @@ router.post("/", async (req, res) => {
             wallet.save(),
             UserModel.updateOne(
                 { _id: openOrder.userId },
-                { 
+                {
                     $push: { closedOrders: closedOrder.orderId },
-                    $pull: { openOrders: orderId } 
+                    $pull: { openOrders: orderId }
                 }
             )
         ]);
@@ -106,13 +106,13 @@ router.post("/", async (req, res) => {
                 newBalance: wallet.balance
             }
         });
-        
+
     } catch (error) {
         console.error("Order close error:", error);
-        return res.status(500).json({ 
-            success: false, 
+        return res.status(500).json({
+            success: false,
             message: "Processing error",
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: error.message
         });
     }
 });

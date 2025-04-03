@@ -1,6 +1,5 @@
 import mongoose, { Schema } from "mongoose";
 
-
 const UserSchema = new Schema({
   username: {
     type: String,
@@ -17,6 +16,7 @@ const UserSchema = new Schema({
   password: {
     type: String,
     required: [true, "Password is required"],
+    select: false,
   },
   verifyCode: {
     type: String,
@@ -27,34 +27,42 @@ const UserSchema = new Schema({
   verifyCodeExpires: {
     type: Date,
     required: [true, "Verify code expires is required"],
+    index: true,
   },
   isVerified: {
     type: Boolean,
     default: false,
+    index: true,
   },
   demoWallet: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "DemoWallet",
-    // required: [true, "Demo wallet is required"],
   },
-  orderList: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Order", 
-  }],
+  orderList: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+    },
+  ],
   favoriteTokens: {
-    type: [String], 
-    default: [], 
+    type: [String],
+    default: [],
   },
-  alerts: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Alert",
-  }],
-  orderHistory: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "OrderHistory",
-  }],
+  alerts: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Alert",
+    },
+  ],
+  orderHistory: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "OrderHistory",
+    },
+  ],
 });
+
 
 const UserModel = mongoose.models.User || mongoose.model("User", UserSchema);
 
-export default UserModel 
+export default UserModel;

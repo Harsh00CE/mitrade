@@ -5,10 +5,16 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { username, code } = req.body;
+        const { identifier, code } = req.body; 
 
-        // Fetch only required fields and use `.lean()` for performance boost
-        const user = await UserModel.findOne({ username })
+        if (!identifier || !code) {
+            return res.status(400).json({ success: false, message: "Username or Email and Code are required" });
+        }
+
+        // Search by either username or email
+        const user = await UserModel.findOne({
+            $or: [{ username: identifier }, { email: identifier }]
+        })
             .select("+verifyCode +verifyCodeExpires")
             .lean();
 
@@ -18,21 +24,21 @@ router.post("/", async (req, res) => {
 
         const now = new Date();
         if (user.verifyCode !== code) {
-            return res.status(200).json({ success: false, message: "Invalid code" });
+            return res.status(200).json({ success: false, message: "Invalid verification code" });
         }
 
         if (new Date(user.verifyCodeExpires) < now) {
-            return res.status(200).json({ success: false, message: "Code has expired" });
+            return res.status(200).json({ success: false, message: "Verification code has expired" });
         }
 
         // Mark user as verified
-        await UserModel.updateOne({ username }, { $set: { isVerified: true } });
+        await UserModel.updateOne({ _id: user._id }, { $set: { isVerified: true } });
 
         return res.status(200).json({ success: true, message: "User verified successfully" });
 
     } catch (error) {
-        console.error("Error in verify-code route =>", error);
-        return res.status(200).json({ success: false, message: "Internal server error" });
+        console.error("Error in verify-code route:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 

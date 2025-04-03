@@ -14,17 +14,17 @@ router.post("/", async (req, res) => {
             .lean();
 
         if (!user) {
-            return res.status(400).json({ success: false, message: "User not found" });
+            return res.status(200).json({ success: false, message: "User not found" });
         }
 
         if (!user.isVerified) {
-            return res.status(400).json({ success: false, message: "User not verified" });
+            return res.status(200).json({ success: false, message: "User not verified" });
         }
 
         const isPasswordValid = await bcryptjs.compare(password, user.password);
 
         if (!isPasswordValid) {
-            return res.status(400).json({ success: false, message: "Invalid password" });
+            return res.status(200).json({ success: false, message: "Invalid password" });
         }
 
         // Generate JWT Token
