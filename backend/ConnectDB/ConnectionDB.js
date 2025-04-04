@@ -14,7 +14,7 @@ const connectDB = async () => {
         const db = await mongoose.connect(process.env.MONGODB_URI || "", {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            readPreference:"secondary"
+            // readPreference:"secondary"
         });
         connection.isConnected = db.connections[0].readyState;
 

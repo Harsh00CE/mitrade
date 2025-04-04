@@ -13,7 +13,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const userId = "67ea83a1df43302963e04095";
 
-    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, {
+    const { sendMessage, lastMessage } = useWebSocket(`ws://157.173.219.118:8080`, {
         onOpen: () => {
             console.log("Connected to WebSocket ✅");
             sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));

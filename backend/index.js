@@ -39,10 +39,9 @@ wss.on("connection", async (ws) => {
 
     ws.on("message", async (message) => {
         const data = JSON.parse(message);
-
         console.log("Received message:", data);
         
-        if (data.type == "subscribeFavorites") {
+        if (data.type === "subscribeFavorites") {
             const { userId } = data;
             console.log("User ID:", userId);
 
@@ -54,7 +53,6 @@ wss.on("connection", async (ws) => {
                 return;
             }
 
-            // Make sure that the user's favorite tokens are valid
             const favoriteTokens = Array.isArray(user.favoriteTokens) ? user.favoriteTokens : [];
             if (favoriteTokens.length === 0) {
                 console.log(`User ${userId} has no favorite tokens.`);
@@ -62,12 +60,10 @@ wss.on("connection", async (ws) => {
                 console.log(`User ${userId} subscribed to favorite tokens:`, favoriteTokens);
             }
 
-            // Store the tokens in the map
             favoriteSubscriptions.set(userId, new Set(favoriteTokens));
             ws.userId = userId;
         }
     });
-
 
     ws.on("close", () => {
         console.log("Client disconnected");
@@ -79,7 +75,6 @@ const binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!ticker@arr");
 
 binanceWs.on("message", async (data) => {
     const tickers = JSON.parse(data);
-
     const usdPairs = tickers.filter(ticker => ticker.s.endsWith('USDT'));
 
     const formattedTickers = usdPairs.map((ticker) => ({
@@ -87,7 +82,7 @@ binanceWs.on("message", async (data) => {
         price: parseFloat(ticker.c).toFixed(4),
         volume: parseFloat(ticker.v).toFixed(2),
         change: parseFloat(ticker.P).toFixed(2),
-        type: "crypto" // Add type identifier
+        type: "crypto"
     }));
 
     wss.clients.forEach((client) => {
@@ -95,18 +90,12 @@ binanceWs.on("message", async (data) => {
             client.send(JSON.stringify({ type: "allTokens", data: formattedTickers }));
 
             const userId = client.userId;
-            console.log("User ID ==> :", userId);
-
             if (userId && favoriteSubscriptions.has(userId)) {
                 const favoriteTokens = favoriteSubscriptions.get(userId);
                 const filteredData = formattedTickers.filter(t => favoriteTokens.has(t.symbol));
                 if (filteredData.length > 0) {
-                    console.log(`Sending favorite tokens to ${userId}:`, filteredData);
                     client.send(JSON.stringify({ type: "favoriteTokens", data: filteredData }));
-                } else {
-                    console.log(`No favorite tokens found for ${userId}`);
                 }
-
             }
 
             const adminFilteredData = formattedTickers.filter(t => adminTokens.has(t.symbol));
@@ -122,170 +111,62 @@ binanceWs.on("message", async (data) => {
     }
 });
 
+// OANDA WebSocket for Forex Data
+const OANDA_API_KEY = process.env.OANDA_API_KEY;
+const OANDA_ACCOUNT_ID = process.env.OANDA_ACCOUNT_ID;
+const OANDA_INSTRUMENTS = "EUR_USD,GBP_USD,USD_JPY,AUD_USD,USD_CAD"; 
 
-// const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
-// const SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY'];
+const OANDA_WS_URL = `wss://stream-fxpractice.oanda.com/v3/accounts/${OANDA_ACCOUNT_ID}/pricing/stream?instruments=${OANDA_INSTRUMENTS}`;
 
-// const forexPriceCache = new Map();
-
-// async function getForexPrices() {
-//     const prices = {};
-//     const requests = SYMBOLS.map(async (symbol) => {
-//         try {
-//             const [from_currency, to_currency] = symbol.split('/');
-//             const response = await axios.get(
-//                 `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${from_currency}&to_currency=${to_currency}&apikey=${API_KEY}`
-//             );
-
-//             // Check if the response contains the expected data
-//             if (!response.data || !response.data['Realtime Currency Exchange Rate']) {
-//                 console.error(`Invalid API response for ${symbol}:`, response.data);
-
-//                 // Return cached value if available
-//                 if (forexPriceCache.has(symbol)) {
-//                     prices[symbol] = forexPriceCache.get(symbol);
-//                     return;
-//                 }
-
-//                 throw new Error('Invalid API response structure');
-//             }
-
-//             const exchangeData = response.data['Realtime Currency Exchange Rate'];
-//             const priceData = {
-//                 symbol,
-//                 price: parseFloat(exchangeData['5. Exchange Rate']).toFixed(4),
-//                 bid: parseFloat(exchangeData['8. Bid Price']).toFixed(4),
-//                 ask: parseFloat(exchangeData['9. Ask Price']).toFixed(4),
-//                 lastRefreshed: exchangeData['6. Last Refreshed'],
-//                 timezone: exchangeData['7. Time Zone']
-//             };
-
-//             prices[symbol] = priceData;
-//             forexPriceCache.set(symbol, priceData);
-//         } catch (error) {
-//             console.error(`Error fetching forex price for ${symbol}:`, error.message);
-
-//             // Fallback to cached value if available
-//             if (forexPriceCache.has(symbol)) {
-//                 prices[symbol] = forexPriceCache.get(symbol);
-//             } else {
-//                 prices[symbol] = {
-//                     symbol,
-//                     price: 'N/A',
-//                     bid: 'N/A',
-//                     ask: 'N/A',
-//                     lastRefreshed: new Date().toISOString(),
-//                     timezone: 'UTC'
-//                 };
-//             }
-//         }
-//     });
-
-//     await Promise.all(requests);
-//     return prices;
-// }
-
-// wss.on('connection', ws => {
-//     console.log('Client connected');
-
-//     // Send initial prices immediately
-//     getForexPrices().then(prices => {
-//         ws.send(JSON.stringify({
-//             type: 'forexData',
-//             data: prices
-//         }));
-//     });
-
-//     // Set up periodic updates (every 60 seconds to avoid rate limiting)
-//     const interval = setInterval(async () => {
-//         const prices = await getForexPrices();
-//         ws.send(JSON.stringify({
-//             type: 'forexData',
-//             data: prices
-//         }));
-//     }, 2000); // 60 seconds
-
-//     ws.on('close', () => {
-//         console.log('Client disconnected');
-//         clearInterval(interval);
-//     });
-// });
-
-
-const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
-const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD"];
-const forexDataStore = {};
-
-if (TWELVEDATA_API_KEY) {
-    const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
-    const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
-
-    twelveDataWs.on("open", () => {
-        console.log("Connected to TwelveData Forex WebSocket");
-        twelveDataWs.send(JSON.stringify({
-            action: "subscribe",
-            params: { symbols: forexSymbols.join(",") }
-        }));
-    });
-
-    twelveDataWs.on("message", async (data) => {
-        try {
-            const message = JSON.parse(data);
-
-            if (message.event === "price") {
-                const { symbol, price } = message;
-
-                // Update stored forex prices
-                forexDataStore[symbol] = {
-                    symbol: symbol,
-                    price: parseFloat(price).toFixed(4),
-                    volume: "N/A",
-                    change: "N/A",
-                    type: "forex"
-                };
-
-                // Broadcast all forex data at once
-                const allForexData = Object.values(forexDataStore);
-
-                wss.clients.forEach((client) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({
-                            type: "forexData",
-                            data: allForexData
-                        }));
-                    }
-                });
-
-                await checkAndSendAlerts(symbol, parseFloat(price));
-            }
-        } catch (error) {
-            console.error("Error processing forex data:", error);
+if (OANDA_API_KEY) {
+    const oandaWs = new WebSocket(OANDA_WS_URL, {
+        headers: {
+            "Authorization": `Bearer ${OANDA_API_KEY}`,
         }
     });
 
-    twelveDataWs.on("close", () => {
-        console.log("Disconnected from TwelveData Forex WebSocket");
-        // Implement reconnection logic here
+    oandaWs.on("open", () => {
+        console.log("Connected to OANDA Forex WebSocket");
     });
 
-    twelveDataWs.on("error", (error) => {
-        console.error("Forex WebSocket error:", error);
+    oandaWs.on("message", async (data) => {
+        try {
+            const message = JSON.parse(data);
+
+            if (message.prices) {
+                const formattedForexData = message.prices.map(price => ({
+                    symbol: price.instrument,
+                    price: parseFloat(price.bids[0].price).toFixed(4),
+                    type: "forex"
+                }));
+
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({ type: "forexData", data: formattedForexData }));
+                    }
+                });
+
+                for (const forex of formattedForexData) {
+                    await checkAndSendAlerts(forex.symbol, forex.price);
+                }
+            }
+        } catch (error) {
+            console.error("Error processing OANDA data:", error);
+        }
+    });
+
+    oandaWs.on("close", () => {
+        console.log("Disconnected from OANDA Forex WebSocket");
+    });
+
+    oandaWs.on("error", (error) => {
+        console.error("OANDA WebSocket error:", error);
     });
 } else {
-    console.warn("TWELVEDATA_API_KEY not set - Forex data will not be available");
+    console.warn("OANDA_API_KEY not set - Forex data will not be available");
 }
 
-
-
-
-
-
-
-
-
-
-
-
+// Check alerts every 60 seconds
 setInterval(loadAdminTokens, 60000);
 
 const checkAndSendAlerts = async (symbol, price) => {
