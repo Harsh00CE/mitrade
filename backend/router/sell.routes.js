@@ -1,23 +1,16 @@
 import express from "express";
-import mongoose from "mongoose";
 import UserModel from "../schemas/userSchema.js";
-import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import { v4 as uuidv4 } from 'uuid';
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
         
-        // Validate required fields
+        console.time("check validation and order placement time");
         if (!userId || !symbol || !quantity || !price || !leverage) {
-            await session.abortTransaction();
-            session.endSession();
             return res.status(200).json({
                 success: false,
                 message: "Required fields: userId, symbol, quantity, price, leverage",
@@ -27,23 +20,20 @@ router.post("/", async (req, res) => {
         // Validate numeric fields
         if (isNaN(quantity) || isNaN(price) || isNaN(leverage) || 
             quantity <= 0 || price <= 0 || leverage < 1) {
-            await session.abortTransaction();
-            session.endSession();
             return res.status(200).json({
                 success: false,
                 message: "Quantity and price must be positive numbers, leverage must be ≥1"
             });
         }
+        console.timeEnd("check validation and order placement time");
 
-        // Get user with wallet
+        
+        console.time("fetch user and wallet time");
         const user = await UserModel.findById(userId)
             .select('demoWallet')
             .populate('demoWallet')
-            .session(session);
 
         if (!user || !user.demoWallet) {
-            await session.abortTransaction();
-            session.endSession();
             return res.status(200).json({ 
                 success: false, 
                 message: "User or wallet not found" 
@@ -51,23 +41,18 @@ router.post("/", async (req, res) => {
         }
 
         const wallet = user.demoWallet;
+        console.timeEnd("fetch user and wallet time");
 
-        // Calculate margin requirements
+        console.time("calculate margin time");
         const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
 
-        // Check available balance
         if (wallet.available < marginRequired) {
-            await session.abortTransaction();
-            session.endSession();
             return res.status(200).json({ 
                 success: false, 
                 message: `Insufficient balance. Required: ${marginRequired}, Available: ${wallet.available}` 
             });
         }
-
-        // Create order
         const orderId = uuidv4();
-        const openingValue = quantity * price;
 
         const order = new OpenOrdersModel({
             orderId,
@@ -87,16 +72,13 @@ router.post("/", async (req, res) => {
             userId
         });
 
-        // Update wallet
         wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
         wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
 
-        // Execute operations
-        await order.save({ session });
-        await wallet.save({ session });
+        await order.save();
+        await wallet.save();
 
-        await session.commitTransaction();
-        
+        console.timeEnd("create order time");
         res.status(200).json({
             success: true,
             message: "Sell order placed successfully",
@@ -110,7 +92,6 @@ router.post("/", async (req, res) => {
         });
 
     } catch (error) {
-        await session.abortTransaction();
         console.error("Sell order error:", error.message);
         
         // Only send response if not already sent
@@ -121,8 +102,6 @@ router.post("/", async (req, res) => {
                 error: error.message
             });
         }
-    } finally {
-        session.endSession();
     }
 });
 

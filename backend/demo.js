@@ -150,3 +150,91 @@ wss.on("connection", (ws) => {
 //     console.warn("TWELVEDATA_API_KEY not set - Forex data will not be available");
 // }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const TWELVEDATA_API_KEY = process.env.TWELVEDATA_API_KEY;
+// const forexSymbols = ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD"];
+// const forexDataStore = {};
+
+// if (TWELVEDATA_API_KEY) {
+//     const TWELVEDATA_WS_URL = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${TWELVEDATA_API_KEY}`;
+//     const twelveDataWs = new WebSocket(TWELVEDATA_WS_URL);
+
+//     twelveDataWs.on("open", () => {
+//         console.log("Connected to TwelveData Forex WebSocket");
+//         twelveDataWs.send(JSON.stringify({
+//             action: "subscribe",
+//             params: { symbols: forexSymbols.join(",") }
+//         }));
+//     });
+
+//     twelveDataWs.on("message", async (data) => {
+//         try {
+//             const message = JSON.parse(data);
+
+//             if (message.event === "price") {
+//                 const { symbol, price } = message;
+
+//                 // Update stored forex prices
+//                 forexDataStore[symbol] = {
+//                     symbol: symbol,
+//                     price: parseFloat(price).toFixed(4),
+//                     volume: "N/A",
+//                     change: "N/A",
+//                     type: "forex"
+//                 };
+
+//                 // Broadcast all forex data at once
+//                 const allForexData = Object.values(forexDataStore);
+
+//                 wss.clients.forEach((client) => {
+//                     if (client.readyState === WebSocket.OPEN) {
+//                         client.send(JSON.stringify({
+//                             type: "forexData",
+//                             data: allForexData
+//                         }));
+//                     }
+//                 });
+
+//                 await checkAndSendAlerts(symbol, parseFloat(price));
+//             }
+//         } catch (error) {
+//             console.error("Error processing forex data:", error);
+//         }
+//     });
+
+//     twelveDataWs.on("close", () => {
+//         console.log("Disconnected from TwelveData Forex WebSocket");
+//         // Implement reconnection logic here
+//     });
+
+//     twelveDataWs.on("error", (error) => {
+//         console.error("Forex WebSocket error:", error);
+//     });
+// } else {
+//     console.warn("TWELVEDATA_API_KEY not set - Forex data will not be available");
+// }
+
+
+
+
+
+
+
+
+
+
+

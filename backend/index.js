@@ -7,13 +7,17 @@ import UserModel from "./schemas/userSchema.js";
 import PairInfoModel from "./schemas/pairInfo.js";
 import AlertModel from "./schemas/alertSchema.js";
 import { sendVerificationEmail } from "./helpers/sendAlertEmail.js";
+import { createServer } from 'http';
+import axios from 'axios';
+
 
 dotenv.config({ path: ".env" });
 
 await connectDB();
 
 app.listen(process.env.PORT || 3000, () => {
-    console.log(`Server is running on port ${process.env.PORT || 3000}`);
+    console.log(`Server is running on port ${process.env.PORT || 3000}
+    `);
 });
 
 const wss = new WebSocketServer({ port: 8080 });
@@ -40,7 +44,7 @@ wss.on("connection", async (ws) => {
     ws.on("message", async (message) => {
         const data = JSON.parse(message);
         console.log("Received message:", data);
-        
+
         if (data.type === "subscribeFavorites") {
             const { userId } = data;
             console.log("User ID:", userId);
@@ -111,62 +115,174 @@ binanceWs.on("message", async (data) => {
     }
 });
 
-// OANDA WebSocket for Forex Data
-const OANDA_API_KEY = process.env.OANDA_API_KEY;
-const OANDA_ACCOUNT_ID = process.env.OANDA_ACCOUNT_ID;
-const OANDA_INSTRUMENTS = "EUR_USD,GBP_USD,USD_JPY,AUD_USD,USD_CAD"; 
 
-const OANDA_WS_URL = `wss://stream-fxpractice.oanda.com/v3/accounts/${OANDA_ACCOUNT_ID}/pricing/stream?instruments=${OANDA_INSTRUMENTS}`;
 
-if (OANDA_API_KEY) {
-    const oandaWs = new WebSocket(OANDA_WS_URL, {
+
+const TOP_100_FOREX_PAIRS = [
+    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD'];
+
+const server = createServer();
+const forexWss = new WebSocketServer({ server });
+
+const PORT = 3001;
+
+const OANDA_ACCOUNT_ID = '101-001-31219533-001';
+const OANDA_API_KEY = '5feac4ec1ff4d5d5fa28bd53f31a2fd7-d3da8ffeb17a5a449d6f46f583f9bc4a';
+const OANDA_URL = `https://stream-fxpractice.oanda.com/v3/accounts/${OANDA_ACCOUNT_ID}/pricing/stream`;
+
+// Add this near the top with other constants
+const PRICE_UPDATE_INTERVAL = 1000; // 1 second
+
+// Add this with other variable declarations
+const currentPrices = new Map();
+
+forexWss.on('connection', (ws) => {
+    console.log('New client connected');
+
+    // Send initial list of available pairs
+    ws.send(JSON.stringify({
+        type: 'pairList',
+        pairs: TOP_100_FOREX_PAIRS
+    }));
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
+
+// Connect to OANDA stream
+let oandaStream = null;
+
+function subscribeToPairs(pairs) {
+    if (oandaStream) {
+        oandaStream.data.destroy();
+    }
+
+    const instruments = Array.from(new Set([...pairs])).join(',');
+    const url = `${OANDA_URL}?instruments=${instruments}`;
+
+    oandaStream = axios({
+        method: 'get',
+        url: url,
         headers: {
-            "Authorization": `Bearer ${OANDA_API_KEY}`,
-        }
-    });
+            "Authorization": `Bearer ${OANDA_API_KEY}`
+        },
+        responseType: 'stream'
+    })
+        .then(response => {
+            console.log(`Subscribed to ${pairs.length} forex pairs`);
 
-    oandaWs.on("open", () => {
-        console.log("Connected to OANDA Forex WebSocket");
-    });
+            // Modify the OANDA stream data handler:
+            response.data.on('data', chunk => {
+                const lines = chunk.toString().split('\n');
 
-    oandaWs.on("message", async (data) => {
-        try {
-            const message = JSON.parse(data);
+                lines.forEach(line => {
+                    if (line.trim() === '') return;
 
-            if (message.prices) {
-                const formattedForexData = message.prices.map(price => ({
-                    symbol: price.instrument,
-                    price: parseFloat(price.bids[0].price).toFixed(4),
-                    type: "forex"
-                }));
+                    try {
+                        // Skip lines that don't start with { and end with }
+                        if (!line.startsWith('{') || !line.endsWith('}')) {
+                            console.log('Skipping malformed line:', line);
+                            return;
+                        }
 
-                wss.clients.forEach((client) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: "forexData", data: formattedForexData }));
+                        const data = JSON.parse(line);
+                        if (data.type === 'PRICE') {
+                            // Format the price data
+                            const priceData = {
+                                instrument: data.instrument,
+                                time: data.time,
+                                bid: data.bids[0].price,
+                                ask: data.asks[0].price,
+                                spread: (data.asks[0].price - data.bids[0].price).toFixed(5),
+                                type: "forex"  // Add type to distinguish from crypto
+                            };
+
+                            // Update the current prices map
+                            currentPrices.set(data.instrument, priceData);
+
+                            // Broadcast to both WebSocket servers
+                            broadcastToAllClients(priceData);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing data:', e.message, 'Line:', line);
                     }
                 });
+            });
 
-                for (const forex of formattedForexData) {
-                    await checkAndSendAlerts(forex.symbol, forex.price);
-                }
+            response.data.on('error', err => {
+                console.error('Stream error:', err);
+                restartStream();
+            });
+
+            response.data.on('end', () => {
+                console.log('Stream ended');
+                restartStream();
+            });
+
+            return response;
+        })
+        .catch(err => {
+            console.error('Connection error:', err);
+            restartStream();
+        });
+}
+
+function sendAllPrices() {
+    if (currentPrices.size > 0) {
+        const allPrices = Array.from(currentPrices.values());
+        forexWss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'allPrices',
+                    data: allPrices,
+                    timestamp: new Date().toISOString()
+                }));
             }
-        } catch (error) {
-            console.error("Error processing OANDA data:", error);
+        });
+    }
+}
+
+function broadcastToAllClients(priceData) {
+    // Broadcast to forex clients
+    forexWss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'priceUpdate',
+                data: priceData
+            }));
         }
     });
 
-    oandaWs.on("close", () => {
-        console.log("Disconnected from OANDA Forex WebSocket");
+    // Broadcast to main WebSocket clients if needed
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'allTokens',
+                data: [priceData]
+            }));
+        }
     });
-
-    oandaWs.on("error", (error) => {
-        console.error("OANDA WebSocket error:", error);
-    });
-} else {
-    console.warn("OANDA_API_KEY not set - Forex data will not be available");
 }
 
-// Check alerts every 60 seconds
+
+
+
+function restartStream() {
+    console.log('Reconnecting in 5 seconds...');
+    setTimeout(() => subscribeToPairs(TOP_100_FOREX_PAIRS), 5000);
+}
+
+
+server.listen(PORT, () => {
+    console.log(`WebSocket server running on port ${PORT}`);
+    subscribeToPairs(TOP_100_FOREX_PAIRS);
+    setInterval(sendAllPrices, PRICE_UPDATE_INTERVAL);
+});
+
+
+
+
 setInterval(loadAdminTokens, 60000);
 
 const checkAndSendAlerts = async (symbol, price) => {
