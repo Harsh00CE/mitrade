@@ -4,15 +4,14 @@ import { useParams } from "react-router-dom";
 const TradingViewChart = () => {
 
     const chartRef = useRef(null);
-    const { symbol } = useParams();
-    console.log("symbol => ", symbol);
+    const formattedSymbol = symbol.replace("_", "");
 
     useEffect(() => {
         if (chartRef.current) {
             new window.TradingView.widget({
                 width: "100%",
                 height: 250,
-                symbol: symbol,
+                symbol: formattedSymbol,
                 interval: "1", 
                 timezone: "Etc/UTC",
                 theme: "dark", 
