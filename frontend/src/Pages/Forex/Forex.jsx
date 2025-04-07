@@ -34,7 +34,7 @@ const Forex = () => {
     }, [lastMessage]);
 
     const handleSymbolClick = (symbol) => {
-        navigate(`/admin/${symbol}`); // Navigate to symbol-specific admin page
+        navigate(`/admin/${symbol}`); 
     };
 
     return (

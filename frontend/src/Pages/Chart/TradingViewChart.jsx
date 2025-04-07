@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 const TradingViewChart = () => {
 
     const chartRef = useRef(null);
+    const { symbol } = useParams();
     const formattedSymbol = symbol.replace("_", "");
 
     useEffect(() => {
