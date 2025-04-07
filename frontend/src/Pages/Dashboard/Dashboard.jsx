@@ -13,7 +13,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const userId = "67ea83a1df43302963e04095";
 
-    const { sendMessage, lastMessage } = useWebSocket(`ws://157.173.219.118:8080`, {
+    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:3001`, {
         onOpen: () => {
             console.log("Connected to WebSocket ✅");
             sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));
@@ -24,7 +24,7 @@ const Dashboard = () => {
     useEffect(() => {
         if (lastMessage) {
             const data = JSON.parse(lastMessage.data);
-            if (data.type === "allTokens") setAllTickers(data.data);
+            if (data.type === "allCryptoPrice") setAllTickers(data.data);
         }
     }, [lastMessage]);
 
@@ -93,18 +93,18 @@ const TokenTable = ({ title, tickers, handleCoinClick }) => {
                         {tickers.length > 0 ? (
                             tickers.map((ticker, index) => (
                                 <tr key={index} className="border-b border-gray-700 hover:bg-gray-700 transition duration-200 cursor-pointer">
-                                    <td className="py-3 px-4 font-medium" onClick={() => handleCoinClick(ticker.symbol)}>
-                                        {ticker.symbol}
+                                    <td className="py-3 px-4 font-medium" onClick={() => handleCoinClick(ticker.instrument)}>
+                                        {ticker.instrument}
                                     </td>
-                                    <td className="py-3 px-4">${ticker.price}</td>
-                                    <td className="py-3 px-4">{ticker.volume}</td>
-                                    <td className={`py-3 px-4 font-semibold ${ticker.change >= 0 ? "text-green-400" : "text-red-400"}`}>
-                                        {ticker.change}%
+                                    <td className="py-3 px-4">${ticker.ask}</td>
+                                    <td className="py-3 px-4">{ticker.spread}</td>
+                                    <td className={`py-3 px-4 font-semibold ${ticker.spread >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                        {(ticker.spread/100).toFixed(2)}%
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                         <button
                                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm"
-                                            onClick={() => handleCoinClick(ticker.symbol)}
+                                            onClick={() => handleCoinClick(ticker.instrument)}
                                         >
                                             Config
                                         </button>

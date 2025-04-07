@@ -38,7 +38,7 @@ const basicKYCSchema = new mongoose.Schema({
   documentType: { 
     type: String, 
     required: true,
-    enum: ['passport', 'national_id', 'driver_license', 'voter_id']
+    enum: ['passport', 'adharcard' , 'pan_card']
   },
   documentNumber: { 
     type: String, 

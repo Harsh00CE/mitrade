@@ -15,6 +15,8 @@ const WalletConfigPage = () => {
         try {
             setIsLoading(true);
             const response = await axios.get(`http://${BASE_URL}:3000/api/userwallet/${userId}`);
+            console.log("Wallet response:", response.data);
+            
             setUserWallet(response.data.data);
             setEditedWallet(response.data.data);
         } catch (error) {

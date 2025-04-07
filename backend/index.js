@@ -10,119 +10,24 @@ import { sendVerificationEmail } from "./helpers/sendAlertEmail.js";
 import { createServer } from 'http';
 import axios from 'axios';
 
-
 dotenv.config({ path: ".env" });
 
 await connectDB();
 
 app.listen(process.env.PORT || 3000, () => {
-    console.log(`Server is running on port ${process.env.PORT || 3000}
-    `);
+    console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
-
-const wss = new WebSocketServer({ port: 8080 });
-console.log(`WebSocket server running on ws://${process.env.SERVER_URL}:8080`);
-
-const favoriteSubscriptions = new Map();
-const adminTokens = new Set();
-
-const loadAdminTokens = async () => {
-    try {
-        const pairs = await PairInfoModel.find({}, "symbol");
-        adminTokens.clear();
-        pairs.forEach((pair) => adminTokens.add(pair.symbol));
-    } catch (error) {
-        console.error("Error loading admin tokens:", error);
-    }
-};
-
-await loadAdminTokens();
-
-wss.on("connection", async (ws) => {
-    console.log("New client connected");
-
-    ws.on("message", async (message) => {
-        const data = JSON.parse(message);
-        console.log("Received message:", data);
-
-        if (data.type === "subscribeFavorites") {
-            const { userId } = data;
-            console.log("User ID:", userId);
-
-            if (!userId) return;
-
-            const user = await UserModel.findById(userId);
-            if (!user) {
-                console.log(`User ${userId} not found`);
-                return;
-            }
-
-            const favoriteTokens = Array.isArray(user.favoriteTokens) ? user.favoriteTokens : [];
-            if (favoriteTokens.length === 0) {
-                console.log(`User ${userId} has no favorite tokens.`);
-            } else {
-                console.log(`User ${userId} subscribed to favorite tokens:`, favoriteTokens);
-            }
-
-            favoriteSubscriptions.set(userId, new Set(favoriteTokens));
-            ws.userId = userId;
-        }
-    });
-
-    ws.on("close", () => {
-        console.log("Client disconnected");
-    });
-});
-
-// Binance WebSocket for crypto data
-// const binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!ticker@arr");
-
-// binanceWs.on("message", async (data) => {
-//     const tickers = JSON.parse(data);
-//     const usdPairs = tickers.filter(ticker => ticker.s.endsWith('USDT'));
-
-//     const formattedTickers = usdPairs.map((ticker) => ({
-//         symbol: ticker.s,
-//         price: parseFloat(ticker.c).toFixed(4),
-//         volume: parseFloat(ticker.v).toFixed(2),
-//         change: parseFloat(ticker.P).toFixed(2),
-//         type: "crypto"
-//     }));
-
-//     wss.clients.forEach((client) => {
-//         if (client.readyState === WebSocket.OPEN) {
-//             client.send(JSON.stringify({ type: "allTokens", data: formattedTickers }));
-
-//             const userId = client.userId;
-//             if (userId && favoriteSubscriptions.has(userId)) {
-//                 const favoriteTokens = favoriteSubscriptions.get(userId);
-//                 const filteredData = formattedTickers.filter(t => favoriteTokens.has(t.symbol));
-//                 if (filteredData.length > 0) {
-//                     client.send(JSON.stringify({ type: "favoriteTokens", data: filteredData }));
-//                 }
-//             }
-
-//             const adminFilteredData = formattedTickers.filter(t => adminTokens.has(t.symbol));
-//             if (adminFilteredData.length > 0) {
-//                 client.send(JSON.stringify({ type: "adminTokens", data: adminFilteredData }));
-//             }
-//         }
-//     });
-
-//     for (const ticker of formattedTickers) {
-//         const { symbol, price } = ticker;
-//         await checkAndSendAlerts(symbol, price);
-//     }
-// });
-
-
-
 
 const TOP_100_FOREX_PAIRS = [
-    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD'];
+    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD'
+];
+
+const TOP_100_CRYPTO_PAIRS = [
+    'BTC_USD', 'ETH_USD' , 'BCH_USD' , 'LTC_USD', 'SOL_USD', 'DOGE_USD',
+];
 
 const server = createServer();
-const forexWss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server });
 
 const PORT = 3001;
 
@@ -130,19 +35,16 @@ const OANDA_ACCOUNT_ID = '101-001-31219533-001';
 const OANDA_API_KEY = '5feac4ec1ff4d5d5fa28bd53f31a2fd7-d3da8ffeb17a5a449d6f46f583f9bc4a';
 const OANDA_URL = `https://stream-fxpractice.oanda.com/v3/accounts/${OANDA_ACCOUNT_ID}/pricing/stream`;
 
-// Add this near the top with other constants
-const PRICE_UPDATE_INTERVAL = 1000; // 1 second
-
-// Add this with other variable declarations
+const PRICE_UPDATE_INTERVAL = 1000;
 const currentPrices = new Map();
 
-forexWss.on('connection', (ws) => {
+wss.on('connection', (ws) => {
     console.log('New client connected');
 
-    // Send initial list of available pairs
     ws.send(JSON.stringify({
         type: 'pairList',
-        pairs: TOP_100_FOREX_PAIRS
+        forexPairs: TOP_100_FOREX_PAIRS,
+        cryptoPairs: TOP_100_CRYPTO_PAIRS
     }));
 
     ws.on('close', () => {
@@ -150,11 +52,9 @@ forexWss.on('connection', (ws) => {
     });
 });
 
-// Connect to OANDA stream
 let oandaStreamController = null;
 
 function subscribeToPairs(pairs) {
-    // Safely close the previous stream if exists
     if (oandaStreamController) {
         oandaStreamController.destroy();
         oandaStreamController = null;
@@ -172,40 +72,46 @@ function subscribeToPairs(pairs) {
         responseType: 'stream'
     })
         .then(response => {
-            console.log(`Subscribed to ${pairs.length} forex pairs`);
+            console.log(`Subscribed to ${pairs.length} pairs`);
 
             const stream = response.data;
-            oandaStreamController = stream; // Save reference for cleanup
+            oandaStreamController = stream;
+
+            let buffer = ''; // Buffer to accumulate incomplete JSON
 
             stream.on('data', chunk => {
-                const lines = chunk.toString().split('\n');
+                buffer += chunk.toString(); // Append new chunk to buffer
+                const lines = buffer.split('\n');
 
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    if (!line.startsWith('{') || !line.endsWith('}')) {
-                        console.log('Skipping malformed line:', line);
-                        continue;
-                    }
+                // Process all complete lines except the last one (might be incomplete)
+                for (let i = 0; i < lines.length - 1; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
 
                     try {
                         const data = JSON.parse(line);
                         if (data.type === 'PRICE') {
+                            const pairType = TOP_100_FOREX_PAIRS.includes(data.instrument) ? 'forex' : 'crypto';
                             const priceData = {
                                 instrument: data.instrument,
                                 time: data.time,
                                 bid: data.bids[0].price,
                                 ask: data.asks[0].price,
                                 spread: (data.asks[0].price - data.bids[0].price).toFixed(5),
-                                type: "forex"
+                                type: pairType
                             };
 
                             currentPrices.set(data.instrument, priceData);
                             broadcastToAllClients(priceData);
+                            checkAndSendAlerts(data.instrument, parseFloat(priceData.bid));
                         }
                     } catch (e) {
-                        console.error('Error parsing data:', e.message, 'Line:', line);
+                        console.error('Error parsing JSON:', e.message, 'Line:', line);
                     }
                 }
+
+                // Keep the last (potentially incomplete) line in the buffer
+                buffer = lines[lines.length - 1];
             });
 
             stream.on('error', err => {
@@ -224,25 +130,36 @@ function subscribeToPairs(pairs) {
         });
 }
 
-
 function sendAllPrices() {
     if (currentPrices.size > 0) {
         const allPrices = Array.from(currentPrices.values());
-        forexWss.clients.forEach(client => {
+        const forexPrices = allPrices.filter(price => price.type === 'forex');
+        const cryptoPrices = allPrices.filter(price => price.type === 'crypto');
+
+        wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    type: 'allPrices',
-                    data: allPrices,
-                    timestamp: new Date().toISOString()
-                }));
+                if (forexPrices.length > 0) {
+                    client.send(JSON.stringify({
+                        type: 'allForexPrice',
+                        data: forexPrices,
+                        timestamp: new Date().toISOString()
+                    }));
+                }
+
+                if (cryptoPrices.length > 0) {
+                    client.send(JSON.stringify({
+                        type: 'allCryptoPrice',
+                        data: cryptoPrices,
+                        timestamp: new Date().toISOString()
+                    }));
+                }
             }
         });
     }
 }
 
 function broadcastToAllClients(priceData) {
-    // Broadcast to forex clients
-    forexWss.clients.forEach(client => {
+    wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({
                 type: 'priceUpdate',
@@ -250,39 +167,20 @@ function broadcastToAllClients(priceData) {
             }));
         }
     });
-
-    // Broadcast to main WebSocket clients if needed
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-                type: 'allTokens',
-                data: [priceData]
-            }));
-        }
-    });
 }
-
-
 
 function restartStream() {
     console.log('Reconnecting in 5 seconds...');
     setTimeout(() => {
-        subscribeToPairs(TOP_100_FOREX_PAIRS);
+        subscribeToPairs([...TOP_100_FOREX_PAIRS, ...TOP_100_CRYPTO_PAIRS]);
     }, 5000);
 }
 
-
-
 server.listen(PORT, () => {
     console.log(`WebSocket server running on port ${PORT}`);
-    subscribeToPairs(TOP_100_FOREX_PAIRS);
+    subscribeToPairs([...TOP_100_FOREX_PAIRS, ...TOP_100_CRYPTO_PAIRS]);
     setInterval(sendAllPrices, PRICE_UPDATE_INTERVAL);
 });
-
-
-
-
-setInterval(loadAdminTokens, 60000);
 
 const checkAndSendAlerts = async (symbol, price) => {
     const alerts = await AlertModel.find({ symbol, triggered: false });

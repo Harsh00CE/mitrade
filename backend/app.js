@@ -92,7 +92,7 @@ app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
 app.use("/api/users", getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
-app.use("/api/userwallet",authMiddleware , getUserWallet)
+app.use("/api/userwallet" , getUserWallet)
 app.use("/api/configwallet", configWallet);
 app.use("/api/KYC", kycRoutes);
 app.use("/api/forgot-password", forgorPasswordRoutes);
