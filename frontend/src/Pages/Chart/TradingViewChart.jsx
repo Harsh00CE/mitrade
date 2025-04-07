@@ -6,6 +6,8 @@ const TradingViewChart = () => {
     const chartRef = useRef(null);
     const { symbol } = useParams();
     const formattedSymbol = symbol.replace("_", "");
+    console.log("Formatted Symbol: ", formattedSymbol);
+    
 
     useEffect(() => {
         if (chartRef.current) {
