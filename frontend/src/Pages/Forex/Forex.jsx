@@ -3,6 +3,7 @@ import useWebSocket from "react-use-websocket";
 import TradingViewChart from "../Chart/TradingViewChart";
 import { BASE_URL } from "../../utils/constant";
 import { fullLoading, logo } from "../../assets/imgs";
+import { useNavigate } from "react-router-dom";
 
 const Forex = () => {
     const [forexTickers, setForexTickers] = useState([]);
@@ -11,7 +12,8 @@ const Forex = () => {
 
     const userId = "67dbae524f382518d92a2ca6";
 
-    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, {
+    const navigate = useNavigate();
+    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:3001`, {
         onOpen: () => {
             console.log("✅ Connected to WebSocket");
             sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));
@@ -23,14 +25,18 @@ const Forex = () => {
     useEffect(() => {
         if (lastMessage) {
             const data = JSON.parse(lastMessage.data);
-            if (data.type === "forexData") {
+            if (data.type === "allPrices") {
+                console.log("Forex Data: ", data.data);
+
                 setForexTickers(data.data);
             }
         }
     }, [lastMessage]);
 
     const handleSymbolClick = (symbol) => {
-        setSelectedSymbol(symbol);
+        // setSelectedSymbol(symbol);
+
+        navigate(`/admin/${symbol}`);
     };
 
     return (
@@ -85,15 +91,15 @@ const TokenTable = ({ title, tickers, handleSymbolClick, isLoading }) => {
                                 >
                                     <td
                                         className="py-3 px-4 font-medium"
-                                        onClick={() => handleSymbolClick(ticker.symbol)}
+                                        onClick={() => handleSymbolClick(ticker.instrument)}
                                     >
-                                        {ticker.symbol}
+                                        {ticker.instrument}
                                     </td>
-                                    <td className="py-3 px-4">${ticker.price}</td>
+                                    <td className="py-3 px-4">${ticker.ask}</td>
                                     <td className="py-3 px-4 text-center">
                                         <button
                                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm"
-                                            onClick={() => handleSymbolClick(ticker.symbol)}
+                                            onClick={() => handleSymbolClick(ticker.instrument)}
                                         >
                                             Config
                                         </button>

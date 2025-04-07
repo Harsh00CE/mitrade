@@ -15,10 +15,13 @@ const User = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      console.log("Fetching users...");
+      
       const response = await axios.get(`http://${BASE_URL}:3000/api/users`, {
         params: { page, limit },
       });
 
+      console.log("Users response: ", response.data);
       setUsers(response.data.data);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {

@@ -4,7 +4,7 @@ const ForexTable = () => {
     const [forexData, setForexData] = useState([]);
 
     useEffect(() => {
-        const ws = new WebSocket("ws://192.168.0.103:8081");
+        const ws = new WebSocket("ws://157.173.219.118:3001/");
 
         ws.onopen = () => {
             console.log("✅ Connected to WebSocket");
@@ -14,7 +14,7 @@ const ForexTable = () => {
             const message = JSON.parse(event.data);
             console.log("message ==> ", message);
             
-            if (message.type === "forexTokens") {
+            if (message.type === "allPrices") {
                 setForexData((prevData) => {
                     const updatedData = [...prevData];
                     message.data.forEach((newItem) => {

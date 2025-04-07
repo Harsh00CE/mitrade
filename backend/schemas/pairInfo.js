@@ -5,6 +5,10 @@ const pairInfoSchema = new Schema({
         type: String,
         required: [true, "Symbol is required"],
     },
+    pairType:{
+        type: String,
+        required: [true, "Pair type is required"],
+    },
     volumePerTrade: {
         min: {
             type: Number,

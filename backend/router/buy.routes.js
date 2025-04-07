@@ -38,7 +38,6 @@ router.post("/", async (req, res) => {
             .populate('demoWallet')
 
         if (!user || !user.demoWallet) {
-            await session.abortTransaction();
             return res.status(200).json({
                 success: false,
                 message: "User or wallet not found",
