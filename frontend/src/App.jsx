@@ -3,20 +3,21 @@ import Login from "./Pages/Login/Login.jsx";
 import Dashboard from "./Pages/Dashboard/Dashboard.jsx";
 import Comodity from "./Pages/Comodity/Comodity.jsx";
 import Forex from "./Pages/Forex/Forex.jsx";
+import Crypto from "./Pages/Crypto/Crypto.jsx";
 import User from "./Pages/Users/User.jsx";
 import AdminPage from "./Pages/Admin/AdminPage.jsx";
-import CandlestickChart from "./Pages/Chart/ChartPage.jsx";
 import WalletConfigPage from "./Pages/WalletConfigPage/WalletConfigPage.jsx";
 import LoginPage from "./Pages/LoginPage.jsx";
 import Sidebar from "./components/Sidebar/Sidebar.jsx";
 import TradingViewChart from "./Pages/Chart/TradingViewChart.jsx";
-import ForexTable from "./Pages/Forex/ForexTable.jsx";
+import AdminLogin from "./Pages/AdminLogin/AdminLogin.jsx";
+import AdminRegister from "./Pages/AdminRegister/AdminRegister.jsx";
+import ProtectedRoute from "./routes/PrivateRoute.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  
-  // Hide Sidebar only on TradingViewChart route
-  const hideSidebar = location.pathname.startsWith("/chart/");
+
+  const hideSidebar = location.pathname.includes("/chart/") || location.pathname === "/login";
 
   return (
     <div className="flex">
@@ -30,20 +31,79 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Full screen view for trading chart */}
         <Route path="/chart/:symbol" element={<TradingViewChart />} />
+
+        {/* Routes with sidebar layout */}
         <Route
           path="/*"
           element={
             <Layout>
               <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/crypto" element={<Dashboard />} />
-                <Route path="/forex" element={<Forex />} />
-                {/* <Route path="/forex" element={<ForexTable />} /> */}
+                <Route path="/login" element={<AdminLogin />} />
+                <Route path="/admin-register" element={<AdminRegister />} />
+
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/crypto"
+                  element={
+                    <ProtectedRoute>
+                      <Crypto />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/comodity"
+                  element={
+                    <ProtectedRoute>
+                      <Comodity />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                   path="/forex"
+                  element={
+                    <ProtectedRoute>
+                      <Forex />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute>
+                      <User />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/:symbol"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/user-config/:userId"
+                  element={
+                    <ProtectedRoute>
+                      <WalletConfigPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* <Route path="/forex" element={<Forex />} />
                 <Route path="/users" element={<User />} />
                 <Route path="/admin/:symbol" element={<AdminPage />} />
-                <Route path="/user-config/:userId" element={<WalletConfigPage />} />
+                <Route path="/user-config/:userId" element={<WalletConfigPage />} /> */}
+                <Route path="*" element={<div className="text-center text-black text-xl mt-20">404 - Page Not Found</div>} />
               </Routes>
             </Layout>
           }

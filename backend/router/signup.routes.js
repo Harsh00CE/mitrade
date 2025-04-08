@@ -40,8 +40,6 @@ router.post("/", async (req, res) => {
         console.timeEnd("Saving Time");
 
         
-        // Create the demo wallet linked to the user
-        console.time("1 Demo Wallet Creation Time");
         const wallet = new DemoWalletModel({
             userId: newUser._id,
         });
@@ -49,20 +47,13 @@ router.post("/", async (req, res) => {
 
         // Update the user with the wallet reference
         newUser.demoWallet = wallet._id;
-        console.timeEnd("1 Demo Wallet Creation Time");
-        console.time("Demo Wallet Creation Time");
         await newUser.save();
-        console.timeEnd("Demo Wallet Creation Time");
-
-        console.time("Token Generation Time");
         // Generate JWT Token
         const token = jwt.sign(
             { id: newUser._id, username: newUser.username, email: newUser.email },
             process.env.JWT_SECRET, // Make sure to set this in your environment variables
             { expiresIn: "7d" } // Token expires in 7 days
         );
-        console.timeEnd("Token Generation Time");
-
         res.status(200).json({
             success: true,
             message: "User registered successfully. Please check your email for the verification code.",

@@ -9,7 +9,6 @@ router.post("/", async (req, res) => {
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
         
-        console.time("check validation and order placement time");
         if (!userId || !symbol || !quantity || !price || !leverage) {
             return res.status(200).json({
                 success: false,
@@ -25,11 +24,7 @@ router.post("/", async (req, res) => {
                 message: "Quantity and price must be positive numbers, leverage must be ≥1"
             });
         }
-        console.timeEnd("check validation and order placement time");
-
-        
-        console.time("fetch user and wallet time");
-        const user = await UserModel.findById(userId)
+          const user = await UserModel.findById(userId)
             .select('demoWallet')
             .populate('demoWallet')
 
@@ -41,9 +36,6 @@ router.post("/", async (req, res) => {
         }
 
         const wallet = user.demoWallet;
-        console.timeEnd("fetch user and wallet time");
-
-        console.time("calculate margin time");
         const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
 
         if (wallet.available < marginRequired) {
@@ -78,8 +70,7 @@ router.post("/", async (req, res) => {
         await order.save();
         await wallet.save();
 
-        console.timeEnd("create order time");
-        res.status(200).json({
+         res.status(200).json({
             success: true,
             message: "Sell order placed successfully",
             data: {

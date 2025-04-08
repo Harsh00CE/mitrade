@@ -9,8 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createClient } from 'redis';
-import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes } from "./router/index.routes.js";
-import authMiddleware from "./middleware/auth.js";
+import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes, adminAuthLogin, adminAuthRegister } from "./router/index.routes.js";
+import { authMiddleware, verifyAdmin } from "./middleware/auth.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -92,11 +92,15 @@ app.use("/api/get-favorite", getFavoriteRouter);
 app.use("/api/chart", getChartRouter);
 app.use("/api/users", getUsersRouter);
 app.use("/api/send-alerts", sendAlertsRouter);
-app.use("/api/userwallet" , getUserWallet)
+app.use("/api/userwallet",authMiddleware, getUserWallet)
+app.use("/api/adminuserwallet", getUserWallet)
 app.use("/api/configwallet", configWallet);
 app.use("/api/KYC", kycRoutes);
 app.use("/api/forgot-password", forgorPasswordRoutes);
 app.use("/api/update-password", updartePasswordRoutes);
+app.use("/api/dashboard-register", adminAuthRegister);
+app.use("/api/dashboard-login", adminAuthLogin);
+
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
 

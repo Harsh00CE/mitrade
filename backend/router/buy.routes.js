@@ -11,8 +11,7 @@ connectDB().catch(console.error);
 
 router.post("/", async (req, res) => {
 
-    console.time("Buy Order Placement Time");
-
+   
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
 
@@ -95,7 +94,6 @@ router.post("/", async (req, res) => {
                 marginRequired
             }
         });
-        console.timeEnd("Buy Order Placement Time");
     } catch (error) {
         console.error("Order placement error:", error.message);
         

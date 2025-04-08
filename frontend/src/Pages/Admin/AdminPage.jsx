@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import useWebSocket from "react-use-websocket";
 import Select from "react-select";
 import { BASE_URL } from "../../utils/constant";
+import BackButton from "../../components/BackButton/BackButton";
 
 const leverageOptions = [
     { value: 5, label: "5x" },
@@ -13,7 +14,7 @@ const leverageOptions = [
     { value: 100, label: "100x" },
     { value: 150, label: "150x" },
     { value: 200, label: "200x" },
-    { value: 500, label: "500x" }
+    { value: 500, label: "500x" },
 ];
 
 const AdminPage = () => {
@@ -66,6 +67,7 @@ const AdminPage = () => {
     const handleLeverageChange = (selectedOptions) => {
         setFormData((prev) => ({ ...prev, leverages: selectedOptions.map(option => option.value) }));
     };
+
     const handleVolumeChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -76,7 +78,6 @@ const AdminPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         try {
             const response = await axios.post(`http://${BASE_URL}:3000/api/admin`, formData);
             if (response.data.success) {
@@ -91,32 +92,63 @@ const AdminPage = () => {
         }
     };
 
-    const { lastMessage } = useWebSocket(`wss://stream.binance.com:9443/ws/${symbol?.toLowerCase()}@trade`);
+    const { sendMessage, lastMessage, readyState } = useWebSocket(`ws://${BASE_URL}:3001`, {
+        onOpen: () => {
+             sendMessage(JSON.stringify({ type: "subscribe", symbol }));
+        },
+        shouldReconnect: () => true,
+        reconnectInterval: 3000,
+        onError: (err) => console.error("WebSocket Error", err),
+    });
+
 
     useEffect(() => {
-        if (lastMessage) {
-            const tradeData = JSON.parse(lastMessage.data);
-            setCurrentPrice(parseFloat(tradeData.p).toFixed(2));
+        if (!lastMessage?.data || !symbol) return;
+
+        try {
+            const message = JSON.parse(lastMessage.data);
+
+            if (message.type === "priceUpdate") {
+                const { instrument, bid, ask } = message.data;
+                if (instrument === symbol) {
+                    const avgPrice = ((parseFloat(bid) + parseFloat(ask)) / 2).toFixed(2);
+                    setCurrentPrice(avgPrice);
+                }
+            }
+
+            else if (message.type === "allForexPrice" || message.type === "allCryptoPrice") {
+                const instrumentData = message.data.find((item) => item.instrument === symbol);
+                if (instrumentData) {
+                    const avgPrice = ((parseFloat(instrumentData.bid) + parseFloat(instrumentData.ask)) / 2).toFixed(2);
+                    setCurrentPrice(avgPrice);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to process WebSocket message:", error);
         }
-    }, [lastMessage]);
+    }, [lastMessage, symbol]);
+
 
     return (
-        <div className="w-full h-screen bg-gray-900 text-white">
+        <div className="min-h-screen bg-gray-900 text-white px-4 sm:px-6 lg:px-20 py-6">
+            <div className="mb-6 w-full ml-10">
+                <BackButton />
+            </div>
+            <div className="max-w-4xl mx-auto bg-gray-800 shadow-md rounded-lg p-6">
 
-            <div className="mx-20 my-2 p-6 bg-gray-800 shadow-md rounded-lg">
-                <h1 className="text-2xl font-bold mb-4">Admin Page - Pair Information</h1>
+
+                <h1 className="text-xl sm:text-2xl font-bold mb-4">Admin Page - Pair Information</h1>
 
                 {currentPrice && (
-                    <div className="mb-4 text-lg font-semibold">
+                    <div className="mb-4 text-base sm:text-lg font-semibold">
                         <strong>Current Price:</strong> ${currentPrice}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-
                     <div>
                         <label className="block font-medium">Volume Per Trade:</label>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
                             <input
                                 type="number"
                                 name="min"
@@ -124,7 +156,7 @@ const AdminPage = () => {
                                 onChange={handleVolumeChange}
                                 placeholder="Min"
                                 required
-                                className="w-1/2 px-3 py-2 border rounded-md"
+                                className="w-full sm:w-1/2 px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                             />
                             <input
                                 type="number"
@@ -133,7 +165,7 @@ const AdminPage = () => {
                                 onChange={handleVolumeChange}
                                 placeholder="Max"
                                 required
-                                className="w-1/2 px-3 py-2 border rounded-md"
+                                className="w-full sm:w-1/2 px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                             />
                         </div>
                     </div>
@@ -146,7 +178,7 @@ const AdminPage = () => {
                             value={formData.maxVolumeOfOpenPosition}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
 
@@ -157,7 +189,7 @@ const AdminPage = () => {
                             value={formData.CurrencyOfQuote}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         >
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
@@ -175,7 +207,7 @@ const AdminPage = () => {
                             onChange={handleChange}
                             step="0.01"
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
 
@@ -187,7 +219,7 @@ const AdminPage = () => {
                             value={formData.ContractSize}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
 
@@ -200,7 +232,7 @@ const AdminPage = () => {
                             onChange={handleChange}
                             step="0.0001"
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
 
@@ -213,7 +245,7 @@ const AdminPage = () => {
                             onChange={handleChange}
                             step="0.0001"
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
 
@@ -225,33 +257,49 @@ const AdminPage = () => {
                             value={formData.OvernightFundingRateTime}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-md"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
 
-                    <div className="bg-gray-900 p-4 rounded-lg shadow-md">
-                        <label className="block font-medium text-white">Leverages:</label>
+                    <div>
+                        <label className="block font-medium mb-1 text-white">Leverages:</label>
                         <Select
                             isMulti
                             options={leverageOptions}
                             value={leverageOptions.filter(option => formData.leverages.includes(option.value))}
                             onChange={handleLeverageChange}
-                            className="w-full text-white"
+                            className="text-white"
                             styles={{
                                 control: (base) => ({
                                     ...base,
-                                    backgroundColor: "#1f2937", 
-                                    borderColor: "#374151", 
-                                    color: "#ffffff", 
+                                    backgroundColor: "#1f2937",
+                                    borderColor: "#374151",
+                                    color: "#ffffff",
                                 }),
                                 menu: (base) => ({
                                     ...base,
-                                    backgroundColor: "#1f2937", 
+                                    backgroundColor: "#1f2937",
                                     color: "#ffffff",
                                 }),
                                 option: (base, { isFocused }) => ({
                                     ...base,
-                                    backgroundColor: isFocused ? "#374151" : "#1f2937", 
+                                    backgroundColor: isFocused ? "#374151" : "#1f2937",
+                                    color: "#ffffff",
+                                }),
+                                multiValue: (base) => ({
+                                    ...base,
+                                    backgroundColor: "#374151",
+                                }),
+                                multiValueLabel: (base) => ({
+                                    ...base,
+                                    color: "#ffffff",
+                                }),
+                                singleValue: (base) => ({
+                                    ...base,
+                                    color: "#ffffff",
+                                }),
+                                input: (base) => ({
+                                    ...base,
                                     color: "#ffffff",
                                 }),
                             }}
@@ -259,7 +307,10 @@ const AdminPage = () => {
                     </div>
 
 
-                    <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    <button
+                        type="submit"
+                        className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                    >
                         {pairInfo ? "Update Pair Info" : "Save Pair Info"}
                     </button>
                 </form>
