@@ -17,7 +17,7 @@ import {
 
 const Sidebar = () => {
   const [active, setActive] = useState("Dashboard");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // 👈 for List dropdown
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
