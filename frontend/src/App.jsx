@@ -15,6 +15,8 @@ import AdminRegister from "./Pages/AdminRegister/AdminRegister.jsx";
 import ProtectedRoute from "./routes/PrivateRoute.jsx";
 import BuyHistory from "./Pages/BuyHistory/BuyHistory.jsx";
 import SellHistory from "./Pages/SellHistory/SellHistory.jsx";
+import WithdrawReport from "./Pages/WithdrawReport/WithdrawReport.jsx";
+import DepositReport from "./Pages/DepositReport/DepositReport.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -117,6 +119,16 @@ function App() {
                 <Route path="/sell-history" element={
                   <ProtectedRoute>
                     <SellHistory/>
+                  </ProtectedRoute>
+                } />
+                <Route path="/deposit-report" element={
+                  <ProtectedRoute>
+                    <DepositReport/>
+                  </ProtectedRoute>
+                } />
+                <Route path="/withdraw-report" element={
+                  <ProtectedRoute>
+                    <WithdrawReport/>
                   </ProtectedRoute>
                 } />
 

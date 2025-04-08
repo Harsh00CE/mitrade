@@ -32,18 +32,25 @@ const Sidebar = () => {
       subItems: [
         { name: "Crypto", path: "/crypto" },
         { name: "Forex", path: "/forex" },
-        { name: "Commodities", path: "/commodities" },
-        { name: "Shares", path: "/shares" }
+        // { name: "Commodities", path: "/commodities" },
+        // { name: "Shares", path: "/shares" }
       ]
     },
-    { name: "Trade History", icon: <History size={20} />, path: "#" , subItems:[
-      { name:"buy", path:"/buy-history" },
-      { name:"sell", path:"/sell-history" },
-    ] },
-    { name: "Reports", icon: <FileText size={20} />, path: "/reports" },
-    { name: "Admin Wallet", icon: <Wallet size={20} />, path: "/admin-wallet" },
-    { name: "Withdraw Wallet", icon: <Wallet size={20} />, path: "/withdraw-wallet" },
-    { name: "KYC Submit", icon: <ShieldCheck size={20} />, path: "/kyc-submit" },
+    {
+      name: "Trade History", icon: <History size={20} />, path: "#", subItems: [
+        { name: "buy", path: "/buy-history" },
+        { name: "sell", path: "/sell-history" },
+      ]
+    },
+    {
+      name: "Reports", icon: <FileText size={20} />, path: "#",
+      subItems: [
+        { name: "deposit", path: "/deposit-report" },
+        { name: "withdraw", path: "/withdraw-report" },
+      ]
+    },
+    // { name: "Withdraw Wallet", icon: <Wallet size={20} />, path: "/withdraw-wallet" },
+    // { name: "KYC Submit", icon: <ShieldCheck size={20} />, path: "/kyc-submit" },
   ];
 
   return (
