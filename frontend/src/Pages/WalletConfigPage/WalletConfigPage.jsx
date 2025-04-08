@@ -17,7 +17,7 @@ const WalletConfigPage = () => {
     const fetchUserWallet = async () => {
         try {
             setIsLoading(true);
-            console.log("Fetching wallet for user ID:", token, userId);
+      
             if (!token) {
                 setMessage({ text: "Please login to fetch wallet", type: "error" });
                 return;
@@ -28,7 +28,6 @@ const WalletConfigPage = () => {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            console.log("Wallet data response:", response.data);
             
             setUserWallet(response.data.data);
             setEditedWallet(response.data.data);
