@@ -60,4 +60,24 @@ router.get("/:userId", async (req, res) => {
     }
 });
 
+router.get("/", async (req, res) => {
+    try {
+        
+        const orders = await ClosedOrdersModel.find()
+        .lean()
+        return res.status(200).json({
+            success: true,
+            message: orders.length ? "Closed orders fetched successfully" : "No closed orders found",
+            data: orders
+        });
+
+    } catch (error) {
+        console.error("Error fetching closed orders:", error);
+        return res.status(200).json({
+            success: false,
+            message: "Error fetching closed orders"
+        });
+    }
+});
+
 export default router;

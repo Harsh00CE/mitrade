@@ -11,7 +11,7 @@ connectDB().catch(console.error);
 
 router.post("/", async (req, res) => {
 
-   
+
     try {
         const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
 
@@ -23,7 +23,7 @@ router.post("/", async (req, res) => {
         }
 
         // Numeric validation
-        if (isNaN(quantity) || isNaN(price) || isNaN(leverage) || 
+        if (isNaN(quantity) || isNaN(price) || isNaN(leverage) ||
             quantity <= 0 || price <= 0 || leverage < 1) {
             return res.status(200).json({
                 success: false,
@@ -46,7 +46,7 @@ router.post("/", async (req, res) => {
         const wallet = user.demoWallet;
 
         const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
-        
+
         if (wallet.available < marginRequired) {
             return res.status(200).json({
                 success: false,
@@ -55,6 +55,12 @@ router.post("/", async (req, res) => {
         }
 
         const orderId = uuidv4();
+        const getISTDate = () => {
+            const now = new Date();
+            const istOffset = 5.5 * 60; // IST is UTC+5:30 in minutes
+            const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
+            return istTime;
+        };
 
         const order = new OpenOrdersModel({
             orderId,
@@ -68,7 +74,7 @@ router.post("/", async (req, res) => {
             trailingStop: "Unset",
             status: "active",
             position: "open",
-            openingTime: new Date(),
+            openingTime: getISTDate(),
             margin: marginRequired,
             tradingAccount: "demo",
             userId
@@ -91,12 +97,13 @@ router.post("/", async (req, res) => {
                 symbol,
                 quantity,
                 price,
-                marginRequired
+                marginRequired,
+                openingTime: getISTDate(),
             }
         });
     } catch (error) {
         console.error("Order placement error:", error.message);
-        
+
         if (!res.headersSent) {
             res.status(200).json({
                 success: false,
@@ -104,7 +111,7 @@ router.post("/", async (req, res) => {
                 error: error.message
             });
         }
-    } 
+    }
 });
 
 export default router;

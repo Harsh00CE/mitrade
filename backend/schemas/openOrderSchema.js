@@ -50,7 +50,6 @@ const openOrdersSchema = new Schema(
         openingTime: {
             type: Date,
             required: true,
-            default: Date.now,
         },
         takeProfit: {
             type: Number,

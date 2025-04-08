@@ -13,6 +13,8 @@ import TradingViewChart from "./Pages/Chart/TradingViewChart.jsx";
 import AdminLogin from "./Pages/AdminLogin/AdminLogin.jsx";
 import AdminRegister from "./Pages/AdminRegister/AdminRegister.jsx";
 import ProtectedRoute from "./routes/PrivateRoute.jsx";
+import BuyHistory from "./Pages/BuyHistory/BuyHistory.jsx";
+import SellHistory from "./Pages/SellHistory/SellHistory.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -99,6 +101,25 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/buy-history" element={
+                  <ProtectedRoute>
+                    <BuyHistory/>
+                  </ProtectedRoute>
+                } />
+                <Route path="/sell-history" element={
+                  <ProtectedRoute>
+                    <SellHistory/>
+                  </ProtectedRoute>
+                } />
+
                 {/* <Route path="/forex" element={<Forex />} />
                 <Route path="/users" element={<User />} />
                 <Route path="/admin/:symbol" element={<AdminPage />} />

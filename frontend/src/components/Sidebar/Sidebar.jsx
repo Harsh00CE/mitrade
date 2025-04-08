@@ -25,7 +25,6 @@ const Sidebar = () => {
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/dashboard" },
     { name: "Users", icon: <Users size={20} />, path: "/users" },
-    { name: "Coin Settings", icon: <Coins size={20} />, path: "/coin-settings" },
     {
       name: "List",
       icon: <ListIcon size={20} />,
@@ -37,7 +36,10 @@ const Sidebar = () => {
         { name: "Shares", path: "/shares" }
       ]
     },
-    { name: "Trade History", icon: <History size={20} />, path: "/trade-history" },
+    { name: "Trade History", icon: <History size={20} />, path: "#" , subItems:[
+      { name:"buy", path:"/buy-history" },
+      { name:"sell", path:"/sell-history" },
+    ] },
     { name: "Reports", icon: <FileText size={20} />, path: "/reports" },
     { name: "Admin Wallet", icon: <Wallet size={20} />, path: "/admin-wallet" },
     { name: "Withdraw Wallet", icon: <Wallet size={20} />, path: "/withdraw-wallet" },

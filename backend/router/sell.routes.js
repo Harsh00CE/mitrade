@@ -45,6 +45,13 @@ router.post("/", async (req, res) => {
             });
         }
         const orderId = uuidv4();
+        const getISTDate = () => {
+            const now = new Date();
+            const istOffset = 5.5 * 60; // IST is UTC+5:30 in minutes
+            const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
+            return istTime;
+        };
+
 
         const order = new OpenOrdersModel({
             orderId,
@@ -58,7 +65,7 @@ router.post("/", async (req, res) => {
             trailingStop: "Unset",
             status: "active",
             position: "open",
-            openingTime: new Date(),
+            openingTime: getISTDate(),
             margin: marginRequired,
             tradingAccount: "demo",
             userId
@@ -78,7 +85,8 @@ router.post("/", async (req, res) => {
                 symbol,
                 quantity,
                 price,
-                marginRequired
+                marginRequired,
+                openingTime: getISTDate(),
             }
         });
 
