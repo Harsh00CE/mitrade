@@ -1,6 +1,7 @@
 import express from "express";
 import BasicKYC from "../schemas/KYCSchema.js";
 import multer from "multer";
+import ActiveWalletModel from "../schemas/activeWalletSchema.js";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB per file
+    limits: { fileSize: 5 * 1024 * 1024 } 
 }).fields([
     { name: 'documentFront', maxCount: 1 },
     { name: 'documentBack', maxCount: 1 }
@@ -31,7 +32,7 @@ router.post('/register', (req, res) => {
         }
 
         try {
-            const {userId , fullName, email, mobile, address, nationality, documentType, documentNumber } = req.body;
+            const { userId, fullName, email, mobile, address, nationality, documentType, documentNumber } = req.body;
 
             // Validate required fields
             if (!fullName || !email || !mobile || !nationality || !documentType || !documentNumber || !userId) {
@@ -72,10 +73,15 @@ router.post('/register', (req, res) => {
                     front: req.files.documentFront ? req.files.documentFront[0].path : null,
                     back: req.files.documentBack ? req.files.documentBack[0].path : null
                 },
-                status: 'pending'
+                status: 'pending' 
             });
 
             const savedKYC = await newKYC.save();
+
+            const wallet = new ActiveWalletModel({
+                userId: userId,
+            });
+            await wallet.save();
 
             res.status(200).json({
                 message: 'KYC registration submitted successfully',
@@ -96,42 +102,83 @@ router.post('/register', (req, res) => {
     });
 });
 
-
-
-// Get KYC status
 router.get('/status/:id', async (req, res) => {
     try {
-        const kycRecord = await BasicKYC.findById(req.params.id).select('status updatedAt');
 
+        const {userId} = req.params;
+        const kycRecord = await BasicKYC.findOne({userId}).select('status updatedAt');
         if (!kycRecord) {
             return res.status(200).json({ error: 'KYC record not found' });
         }
-
-        res.json({
-            status: kycRecord.status,
-            lastUpdated: kycRecord.updatedAt
-        });
+        const { status, updatedAt } = kycRecord;
+        const lastUpdated = updatedAt.toDate();
+       
+        
     } catch (error) {
         console.error('KYC status check error:', error);
         res.status(200).json({ error: 'Failed to retrieve KYC status' });
     }
 });
 
-// Admin endpoint to list all KYC submissions (protected in real implementation)
+router.put('/update-status/:id', async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        if (!['pending', 'approved', 'rejected'].includes(status)) {
+            return res.status(200).json({ error: 'Invalid status value' });
+        }
+
+        const updated = await BasicKYC.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        ).select('status updatedAt');
+
+        if (!updated) {
+            return res.status(200).json({ error: 'KYC record not found' });
+        }
+
+        res.status(200).json({
+            message: 'KYC status updated successfully',
+            data: updated
+        });
+    } catch (error) {
+        console.error('Failed to update KYC status:', error);
+        res.status(200).json({ error: 'Failed to update status' });
+    }
+});
+
+
+
 router.get('/submissions', async (req, res) => {
     try {
         const { status } = req.query;
         const filter = status ? { status } : {};
 
         const submissions = await BasicKYC.find(filter)
-            .select('fullName email mobile nationality documentType status createdAt')
+            .select('fullName email mobile nationality documentType status createdAt documentImage')
             .sort({ createdAt: -1 });
 
-        res.json(submissions);
+        res.status(200).json({
+            message: 'Submissions fetched successfully',
+            data: submissions.map(user => ({
+                ...user._doc,
+                documentImage: {
+                    front: user.documentImage.front
+                        ? `${req.protocol}://${req.get('host')}/${user.documentImage.front}`
+                        : null,
+                    back: user.documentImage.back
+                        ? `${req.protocol}://${req.get('host')}/${user.documentImage.back}`
+                        : null,
+                }
+            }))
+        });
+
     } catch (error) {
         console.error('Failed to fetch KYC submissions:', error);
         res.status(200).json({ error: 'Failed to fetch submissions' });
     }
 });
+
 
 export default router;

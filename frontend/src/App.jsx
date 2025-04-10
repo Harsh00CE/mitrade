@@ -17,6 +17,7 @@ import BuyHistory from "./Pages/BuyHistory/BuyHistory.jsx";
 import SellHistory from "./Pages/SellHistory/SellHistory.jsx";
 import WithdrawReport from "./Pages/WithdrawReport/WithdrawReport.jsx";
 import DepositReport from "./Pages/DepositReport/DepositReport.jsx";
+import KYCManagement from "./Pages/KYCManagement/KYCManagement.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -131,7 +132,11 @@ function App() {
                     <WithdrawReport/>
                   </ProtectedRoute>
                 } />
-
+                <Route path="/kyc-submit" element={
+                  <ProtectedRoute>
+                    <KYCManagement/>
+                  </ProtectedRoute>
+                } />
                 {/* <Route path="/forex" element={<Forex />} />
                 <Route path="/users" element={<User />} />
                 <Route path="/admin/:symbol" element={<AdminPage />} />

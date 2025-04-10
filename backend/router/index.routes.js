@@ -24,6 +24,8 @@ import forgorPasswordRoutes from "./forgotPassword.routes.js"
 import updartePasswordRoutes from "./updatePassword.routes.js"
 import adminAuthLogin from "./adminAuthLogin.routes.js"
 import adminAuthRegister from "./adminAuthRegister.routes.js"
+import depositRoutes from "./deposit.routes.js"
+import withdrawRoutes from "./withdraw.routes.js"
 
 export {
     cryptoRoutes,
@@ -51,5 +53,7 @@ export {
     forgorPasswordRoutes,
     updartePasswordRoutes,
     adminAuthLogin,
-    adminAuthRegister
+    adminAuthRegister,
+    depositRoutes,
+    withdrawRoutes
 }

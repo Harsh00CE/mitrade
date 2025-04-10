@@ -13,7 +13,7 @@ router.post("/", async (req, res) => {
 
 
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss , contractSize } = req.body;
 
         if (!userId || !symbol || !quantity || !price || !leverage) {
             return res.status(200).json({
@@ -57,7 +57,7 @@ router.post("/", async (req, res) => {
         const orderId = uuidv4();
         const getISTDate = () => {
             const now = new Date();
-            const istOffset = 5.5 * 60; // IST is UTC+5:30 in minutes
+            const istOffset = 5.5 * 60; 
             const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
             return istTime;
         };
@@ -65,6 +65,7 @@ router.post("/", async (req, res) => {
         const order = new OpenOrdersModel({
             orderId,
             symbol,
+            contractSize,
             type: "buy",
             quantity: parseFloat(quantity),
             openingPrice: parseFloat(price),

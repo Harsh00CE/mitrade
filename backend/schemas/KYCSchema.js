@@ -47,7 +47,7 @@ const basicKYCSchema = new mongoose.Schema({
   },
   documentImage: { 
     front: { type: String, required: true },
-    back: { type: String, required: function() { return this.documentType === 'national_id'; } } 
+    back: { type: String, required: function() { return this.documentType === 'adharcard'; } } 
   },
   status: {
     type: String,

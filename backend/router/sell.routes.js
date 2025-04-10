@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss , contractSize } = req.body;
         
         if (!userId || !symbol || !quantity || !price || !leverage) {
             return res.status(200).json({
@@ -56,6 +56,7 @@ router.post("/", async (req, res) => {
         const order = new OpenOrdersModel({
             orderId,
             symbol,
+            contractSize,
             type: "sell",
             quantity: parseFloat(quantity),
             openingPrice: parseFloat(price),

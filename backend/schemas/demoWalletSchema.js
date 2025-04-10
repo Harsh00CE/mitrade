@@ -4,9 +4,9 @@ const demoWalletSchema = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        unique: true, // Ensures one wallet per user
+        unique: true,
         required: true,
-        index: true, // Adds an index for faster lookups
+        index: true,
     },
     balance: {
         type: Number,

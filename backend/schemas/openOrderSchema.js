@@ -14,6 +14,10 @@ const openOrdersSchema = new Schema(
             required: true,
             index: true,
         },
+        contractSize:{
+            type: Number,
+            required: true,
+        },
         type: {
             type: String,
             required: true,

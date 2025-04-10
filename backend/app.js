@@ -9,7 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createClient } from 'redis';
-import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes, adminAuthLogin, adminAuthRegister } from "./router/index.routes.js";
+import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes, adminAuthLogin, adminAuthRegister, depositRoutes, withdrawRoutes } from "./router/index.routes.js";
 import { authMiddleware, verifyAdmin } from "./middleware/auth.js";
 
 
@@ -100,6 +100,8 @@ app.use("/api/forgot-password", forgorPasswordRoutes);
 app.use("/api/update-password", updartePasswordRoutes);
 app.use("/api/dashboard-register", adminAuthRegister);
 app.use("/api/dashboard-login", adminAuthLogin);
+app.use("/api/deposit", depositRoutes);
+app.use("/api/withdraw", withdrawRoutes);
 
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
