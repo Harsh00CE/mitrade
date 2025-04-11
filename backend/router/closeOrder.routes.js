@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Optimized projections
 const ORDER_PROJECTION = {
-    userId: 1, type: 1, openingPrice: 1, quantity: 1, margin: 1,
+    userId: 1, type: 1, openingPrice: 1, contractSize: 1, quantity: 1, margin: 1,
     symbol: 1, leverage: 1, takeProfit: 1, stopLoss: 1,
     openingTime: 1, tradingAccount: 1
 };
@@ -38,14 +38,17 @@ router.post("/", async (req, res) => {
             });
         }
 
+
         // Calculate values
         const openingValue = openOrder.openingPrice * openOrder.quantity;
         const closingValue = closingPrice * openOrder.quantity;
-        const realisedPL = openOrder.type === "buy"
+        let realisedPL = openOrder.type === "buy"
             ? closingValue - openingValue
             : openingValue - closingValue;
 
+        realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
 
+        console.log("realisedPL", realisedPL);
 
         // Create closed order
         const closedOrder = new ClosedOrdersModel({
@@ -53,6 +56,7 @@ router.post("/", async (req, res) => {
             orderId: new mongoose.Types.ObjectId().toString(),
             userId: openOrder.userId,
             symbol: openOrder.symbol,
+            contractSize: openOrder.contractSize,
             type: openOrder.type,
             quantity: openOrder.quantity,
             openingPrice: openOrder.openingPrice,
@@ -83,7 +87,7 @@ router.post("/", async (req, res) => {
         wallet.available = parseFloat((wallet.available + realisedPL + openOrder.margin).toFixed(2));
         wallet.margin = parseFloat((wallet.margin - openOrder.margin).toFixed(2));
         wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
- 
+
         // Execute all operations
         await Promise.all([
             closedOrder.save(),
