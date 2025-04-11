@@ -7,12 +7,6 @@ import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
-// Optimized projections
-const ORDER_PROJECTION = {
-    userId: 1, type: 1, openingPrice: 1, contractSize: 1, quantity: 1, margin: 1,
-    symbol: 1, leverage: 1, takeProfit: 1, stopLoss: 1,
-    openingTime: 1, tradingAccount: 1
-};
 
 router.post("/", async (req, res) => {
     try {
@@ -47,8 +41,6 @@ router.post("/", async (req, res) => {
             : openingValue - closingValue;
 
         realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
-
-        console.log("realisedPL", realisedPL);
 
         // Create closed order
         const closedOrder = new ClosedOrdersModel({

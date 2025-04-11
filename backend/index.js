@@ -9,6 +9,10 @@ import AlertModel from "./schemas/alertSchema.js";
 import { sendVerificationEmail } from "./helpers/sendAlertEmail.js";
 import { createServer } from 'http';
 import axios from 'axios';
+import OpenOrdersModel from "./schemas/openOrderSchema.js";
+import ClosedOrdersModel from "./schemas/closeOrderSchema.js";
+import mongoose from "mongoose";
+import DemoWalletModel from "./schemas/demoWalletSchema.js";
 
 dotenv.config({ path: ".env" });
 
@@ -19,11 +23,11 @@ app.listen(process.env.PORT || 3000, () => {
 });
 
 const TOP_100_FOREX_PAIRS = [
-    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD'
+    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD', 'NATGAS_USD'
 ];
 
 const TOP_100_CRYPTO_PAIRS = [
-    'BTC_USD', 'ETH_USD' , 'BCH_USD' , 'LTC_USD', 'SOL_USD', 'DOGE_USD',
+    'BTC_USD', 'ETH_USD', 'BCH_USD', 'LTC_USD', 'SOL_USD', 'DOGE_USD',
 ];
 
 const server = createServer();
@@ -104,6 +108,7 @@ function subscribeToPairs(pairs) {
                             currentPrices.set(data.instrument, priceData);
                             broadcastToAllClients(priceData);
                             checkAndSendAlerts(data.instrument, parseFloat(priceData.bid));
+                            checkTP_SL_Triggers(data.instrument, parseFloat(priceData.bid), wss);
                         }
                     } catch (e) {
                         console.error('Error parsing JSON:', e.message, 'Line:', line);
@@ -216,5 +221,128 @@ const checkAndSendAlerts = async (symbol, price) => {
 
             await alert.save();
         }
+    }
+};
+
+const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
+    const activeTrades = await OpenOrdersModel.find({ symbol, status: "active" });
+
+    for (const trade of activeTrades) {
+        const { _id, userId, takeProfit, stopLoss, type, openingPrice, quantity, contractSize } = trade;
+
+        let isTP = false, isSL = false;
+
+        const entryValue = openingPrice * quantity;
+        const currentValue = currentPrice * quantity;
+        const profitOrLoss = type === "buy"
+            ? (currentValue - entryValue)* contractSize
+            : (entryValue - currentValue)* contractSize;
+
+        // --- Take Profit ---
+        if (takeProfit && takeProfit.value !== null) {
+            if (takeProfit.type === 'price') {
+                if ((type === 'buy' && currentPrice >= takeProfit.value) ||
+                    (type === 'sell' && currentPrice <= takeProfit.value)) {
+                    isTP = true;
+                }
+            } else if (takeProfit.type === 'profit') {
+                if (profitOrLoss >= takeProfit.value) {
+                    isTP = true;
+                }
+            }
+        }
+
+        // --- Stop Loss ---
+        if (stopLoss && stopLoss.value !== null) {
+            if (stopLoss.type === 'price') {
+                if ((type === 'buy' && currentPrice <= stopLoss.value) ||
+                    (type === 'sell' && currentPrice >= stopLoss.value)) {
+                    isSL = true;
+                }
+            } else if (stopLoss.type === 'loss') {
+                if (profitOrLoss <= -Math.abs(stopLoss.value)) {
+                    isSL = true;
+                }
+            }
+        }
+
+        console.log("isTP:", isTP, "isSL:", isSL, "currentPrice:", currentPrice, "TP:", takeProfit, "SL:", stopLoss);
+
+        if (!isTP && !isSL) continue;
+
+        const openOrder = await OpenOrdersModel.findOneAndDelete({ _id, status: "active" }).lean();
+        if (!openOrder) continue;
+
+        const closingValue = currentPrice * openOrder.quantity;
+        let realisedPL = openOrder.type === "buy"
+            ? closingValue - entryValue
+            : entryValue - closingValue;
+
+        realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
+        console.log("Realised P/L:", realisedPL);
+
+        // Create Closed Order
+        const closedOrder = new ClosedOrdersModel({
+            originalOrderId: _id,
+            orderId: new mongoose.Types.ObjectId().toString(),
+            userId: openOrder.userId,
+            symbol: openOrder.symbol,
+            contractSize: openOrder.contractSize,
+            type: openOrder.type,
+            quantity: openOrder.quantity,
+            openingPrice: openOrder.openingPrice,
+            closingPrice: currentPrice,
+            leverage: openOrder.leverage,
+            status: "closed",
+            position: "close",
+            openingTime: openOrder.openingTime,
+            closingTime: new Date(),
+            takeProfit: openOrder.takeProfit,
+            stopLoss: openOrder.stopLoss,
+            realisedPL,
+            margin: openOrder.margin,
+            tradingAccount: openOrder.tradingAccount || "demo",
+            closeReason: isTP ? "take-profit" : "stop-loss"
+        });
+
+        const user = await UserModel.findById(openOrder.userId).lean();
+        const wallet = await DemoWalletModel.findById(user.demoWallet);
+        if (!wallet) continue;
+
+        // Update wallet
+        wallet.balance = parseFloat((wallet.balance + realisedPL).toFixed(2));
+        wallet.available = parseFloat((wallet.available + realisedPL + openOrder.margin).toFixed(2));
+        wallet.margin = parseFloat((wallet.margin - openOrder.margin).toFixed(2));
+        wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
+
+        await Promise.all([
+            closedOrder.save(),
+            wallet.save(),
+            UserModel.updateOne(
+                { _id: openOrder.userId },
+                {
+                    $push: { closedOrders: closedOrder.orderId },
+                    $pull: { openOrders: _id }
+                }
+            )
+        ]);
+
+        // WebSocket notification
+        wss.clients.forEach(client => {
+            if (client.readyState === 1) {
+                client.send(JSON.stringify({
+                    type: 'tradeClosed',
+                    data: {
+                        tradeId: _id,
+                        symbol,
+                        price: currentPrice,
+                        reason: isTP ? 'TP' : 'SL',
+                        realisedPL
+                    }
+                }));
+            }
+        });
+
+        console.log(`Closed Order: ${symbol} @ ${currentPrice} for ${isTP ? "TP" : "SL"}`);
     }
 };

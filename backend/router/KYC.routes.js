@@ -32,10 +32,10 @@ router.post('/register', (req, res) => {
         }
 
         try {
-            const { userId, fullName, email, mobile, address, nationality, documentType, documentNumber } = req.body;
+            const { userId, fname ,lname , mname, email, mobile, address, nationality, documentType, documentNumber } = req.body;
 
             // Validate required fields
-            if (!fullName || !email || !mobile || !nationality || !documentType || !documentNumber || !userId) {
+            if (!fname || !lname || !mname || !email || !mobile || !nationality || !documentType || !documentNumber || !userId) {
                 return res.status(200).json({ error: 'Missing required fields' });
             }
 
@@ -59,13 +59,31 @@ router.post('/register', (req, res) => {
                     return res.status(200).json({ error: "Document image is required" });
                 }
             }
+            const getISTDate = () => {
+                const now = new Date();
+                const istOffset = 5.5 * 60; 
+                const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
+                return istTime;
+            };
+    
+            console.log("File => " , req.files.documentFront);
+            console.log("File1 => " , req.files.documentFront[0].path);
+
+            console.log("File3 => " , req.files.documentBack);
+            console.log("File2 => " , req.files.documentBack[0].path);
+            
 
             const newKYC = new BasicKYC({
                 userId,
-                fullName,
+                fname,
+                mname,
+                lname,
+                // gender,
+                // dateOfBirth,
                 email,
                 mobile,
-                address: address ? JSON.parse(address) : {},
+                // address: address ? JSON.parse(address) : {},
+                address: address,
                 nationality,
                 documentType,
                 documentNumber,
@@ -73,7 +91,8 @@ router.post('/register', (req, res) => {
                     front: req.files.documentFront ? req.files.documentFront[0].path : null,
                     back: req.files.documentBack ? req.files.documentBack[0].path : null
                 },
-                status: 'pending' 
+                status: 'pending',
+                registrationDate: getISTDate()
             });
 
             const savedKYC = await newKYC.save();
@@ -86,6 +105,7 @@ router.post('/register', (req, res) => {
             res.status(200).json({
                 message: 'KYC registration submitted successfully',
                 data: { id: savedKYC._id, status: savedKYC.status }
+                
             });
 
             return;
@@ -150,25 +170,23 @@ router.put('/update-status/:id', async (req, res) => {
 
 
 
-router.get('/submissions', async (req, res) => {
+router.get('/all', async (req, res) => {
     try {
         const { status } = req.query;
         const filter = status ? { status } : {};
 
-        const submissions = await BasicKYC.find(filter)
-            .select('fullName email mobile nationality documentType status createdAt documentImage')
-            .sort({ createdAt: -1 });
+        const submissions = await BasicKYC.find(filter).sort({ createdAt: -1 });
 
         res.status(200).json({
             message: 'Submissions fetched successfully',
             data: submissions.map(user => ({
                 ...user._doc,
                 documentImage: {
-                    front: user.documentImage.front
-                        ? `${req.protocol}://${req.get('host')}/${user.documentImage.front}`
+                    front: user.documentImage?.front
+                        ? `${req.protocol}://${req.get('host')}/${user.documentImage.front.replace(/\\/g, '/')}`
                         : null,
-                    back: user.documentImage.back
-                        ? `${req.protocol}://${req.get('host')}/${user.documentImage.back}`
+                    back: user.documentImage?.back
+                        ? `${req.protocol}://${req.get('host')}/${user.documentImage.back.replace(/\\/g, '/')}`
                         : null,
                 }
             }))
@@ -176,9 +194,10 @@ router.get('/submissions', async (req, res) => {
 
     } catch (error) {
         console.error('Failed to fetch KYC submissions:', error);
-        res.status(200).json({ error: 'Failed to fetch submissions' });
+        res.status(500).json({ error: 'Failed to fetch submissions' }); // changed to 500 for real error
     }
 });
+
 
 
 export default router;

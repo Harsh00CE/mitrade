@@ -26,6 +26,7 @@ import adminAuthLogin from "./adminAuthLogin.routes.js"
 import adminAuthRegister from "./adminAuthRegister.routes.js"
 import depositRoutes from "./deposit.routes.js"
 import withdrawRoutes from "./withdraw.routes.js"
+import countryNames from "./countries.routes.js";
 
 export {
     cryptoRoutes,
@@ -55,5 +56,6 @@ export {
     adminAuthLogin,
     adminAuthRegister,
     depositRoutes,
-    withdrawRoutes
+    withdrawRoutes,
+    countryNames,
 }

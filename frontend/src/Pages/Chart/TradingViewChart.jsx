@@ -13,7 +13,7 @@ const TradingViewChart = () => {
         if (chartRef.current) {
             new window.TradingView.widget({
                 width: "100%",
-                height: 250,
+                height: 305,
                 symbol: formattedSymbol,
                 interval: "1", 
                 timezone: "Etc/UTC",
@@ -22,7 +22,6 @@ const TradingViewChart = () => {
                 locale: "en",
                 toolbar_bg: "#1e1e1e",
                 container_id: chartRef.current.id,
-
                 enable_publishing: false,
                 hide_top_toolbar: false, 
                 hide_side_toolbar: true,

@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
+import { BASE_URL } from "./../../utils/constant.js";
 import axios from "axios";
+import moment from "moment";
 
 const KYCManagement = () => {
   const [kycs, setKycs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [previewImg, setPreviewImg] = useState(null);
+  const [expandedRow, setExpandedRow] = useState(null);
 
   const fetchKYCs = async () => {
     try {
-      const res = await axios.get(`http://localhost:3000/api/kyc/submissions`);
+      const res = await axios.get(`http://${BASE_URL}:3000/api/kyc/all`);
       setKycs(res.data.data);
       setLoading(false);
     } catch (error) {
@@ -29,6 +32,10 @@ const KYCManagement = () => {
     fetchKYCs();
   }, []);
 
+  const toggleExpand = (id) => {
+    setExpandedRow((prev) => (prev === id ? null : id));
+  };
+
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
       <h2 className="text-2xl font-bold text-blue-500 mb-6">🛡️ KYC Submissions</h2>
@@ -40,7 +47,10 @@ const KYCManagement = () => {
           <table className="min-w-full bg-gray-800 text-sm border border-gray-700">
             <thead className="bg-blue-600 text-white">
               <tr>
-                <th className="p-3 text-left">Name</th>
+                <th className="p-3 text-left">Full Name</th>
+                {/* <th className="p-3 text-left">First</th>
+                <th className="p-3 text-left">Middle</th>
+                <th className="p-3 text-left">Last</th> */}
                 <th className="p-3 text-left">Email</th>
                 <th className="p-3 text-left">Mobile</th>
                 <th className="p-3 text-left">Nationality</th>
@@ -52,10 +62,16 @@ const KYCManagement = () => {
             <tbody>
               {kycs.map((kyc) => (
                 <tr key={kyc._id} className="border-t border-gray-700 hover:bg-gray-700 transition">
-                  <td className="p-3">{kyc.fullName}</td>
+                  <td className="p-3 cursor-pointer" onClick={() => toggleExpand(kyc._id)}>
+                    {kyc.fullName || [kyc.fname, kyc.mname, kyc.lname].filter(Boolean).join(" ")}
+                    <span className="ml-2 text-blue-400">[+]</span>
+                  </td>
+                  {/* <td className="p-3">{kyc.fname || "-"}</td>
+                  <td className="p-3">{kyc.mname || "-"}</td>
+                  <td className="p-3">{kyc.lname || "-"}</td> */}
                   <td className="p-3">{kyc.email}</td>
                   <td className="p-3">{kyc.mobile}</td>
-                  <td className="p-3">{kyc.nationality}</td>
+                  <td className="p-3 capitalize">{kyc.nationality}</td>
                   <td className="p-3 space-y-1">
                     {kyc.documentImage?.front && (
                       <img
@@ -97,6 +113,28 @@ const KYCManagement = () => {
                   </td>
                 </tr>
               ))}
+              {expandedRow &&
+                kycs
+                  .filter((k) => k._id === expandedRow)
+                  .map((kyc) => (
+                    <tr key={`details-${kyc._id}`} className="bg-gray-800 text-sm text-gray-300 border-t border-gray-700">
+                      <td colSpan={10} className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* <div><strong>Gender:</strong> {kyc.gender}</div>
+                          <div><strong>Date of Birth:</strong> {moment(kyc.dateOfBirth).format("DD MMM YYYY")}</div> */}
+                          <div><strong>Document Type:</strong> {kyc.documentType}</div>
+                          <div><strong>Document Number:</strong> {kyc.documentNumber}</div>
+                          <div><strong>Address:</strong> {kyc.address}</div>
+                          {/* <div><strong>Street:</strong> {kyc.address?.street}</div>
+                          <div><strong>City:</strong> {kyc.address?.city}</div>
+                          <div><strong>State:</strong> {kyc.address?.state}</div>
+                          <div><strong>Postal Code:</strong> {kyc.address?.postalCode}</div>
+                          <div><strong>Country:</strong> {kyc.address?.country}</div> */}
+                          <div><strong>Registered On:</strong> {moment(kyc.registrationDate).format("DD MMM YYYY, h:mm A")}</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
             </tbody>
           </table>
         </div>

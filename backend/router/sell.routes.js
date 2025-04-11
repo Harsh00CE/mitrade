@@ -7,8 +7,8 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss , contractSize } = req.body;
-        
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize } = req.body;
+
         if (!userId || !symbol || !quantity || !price || !leverage) {
             return res.status(200).json({
                 success: false,
@@ -16,7 +16,6 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Validate numeric fields
         if (isNaN(quantity) || isNaN(price) || isNaN(leverage) || 
             quantity <= 0 || price <= 0 || leverage < 1) {
             return res.status(200).json({
@@ -24,9 +23,10 @@ router.post("/", async (req, res) => {
                 message: "Quantity and price must be positive numbers, leverage must be ≥1"
             });
         }
-          const user = await UserModel.findById(userId)
+
+        const user = await UserModel.findById(userId)
             .select('demoWallet')
-            .populate('demoWallet')
+            .populate('demoWallet');
 
         if (!user || !user.demoWallet) {
             return res.status(200).json({ 
@@ -44,14 +44,45 @@ router.post("/", async (req, res) => {
                 message: `Insufficient balance. Required: ${marginRequired}, Available: ${wallet.available}` 
             });
         }
+
         const orderId = uuidv4();
         const getISTDate = () => {
             const now = new Date();
-            const istOffset = 5.5 * 60; // IST is UTC+5:30 in minutes
-            const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
-            return istTime;
+            const istOffset = 5.5 * 60;
+            return new Date(now.getTime() + istOffset * 60 * 1000);
         };
 
+        // ✅ Format takeProfit if object
+        let formattedTP = null;
+        if (takeProfit && typeof takeProfit === 'object' && takeProfit.type && takeProfit.value !== undefined) {
+            const validTypes = ['price', 'profit'];
+            if (!validTypes.includes(takeProfit.type) || isNaN(takeProfit.value)) {
+                return res.status(200).json({
+                    success: false,
+                    message: "Invalid takeProfit format"
+                });
+            }
+            formattedTP = {
+                type: takeProfit.type,
+                value: parseFloat(takeProfit.value)
+            };
+        }
+
+        // ✅ Format stopLoss if object
+        let formattedSL = null;
+        if (stopLoss && typeof stopLoss === 'object' && stopLoss.type && stopLoss.value !== undefined) {
+            const validTypes = ['price', 'loss'];
+            if (!validTypes.includes(stopLoss.type) || isNaN(stopLoss.value)) {
+                return res.status(200).json({
+                    success: false,
+                    message: "Invalid stopLoss format"
+                });
+            }
+            formattedSL = {
+                type: stopLoss.type,
+                value: parseFloat(stopLoss.value)
+            };
+        }
 
         const order = new OpenOrdersModel({
             orderId,
@@ -61,8 +92,8 @@ router.post("/", async (req, res) => {
             quantity: parseFloat(quantity),
             openingPrice: parseFloat(price),
             leverage: parseInt(leverage),
-            takeProfit: takeProfit ? parseFloat(takeProfit) : null,
-            stopLoss: stopLoss ? parseFloat(stopLoss) : null,
+            takeProfit: formattedTP,
+            stopLoss: formattedSL,
             trailingStop: "Unset",
             status: "active",
             position: "open",
@@ -75,10 +106,9 @@ router.post("/", async (req, res) => {
         wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
         wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
 
-        await order.save();
-        await wallet.save();
+        await Promise.all([order.save(), wallet.save()]);
 
-         res.status(200).json({
+        res.status(200).json({
             success: true,
             message: "Sell order placed successfully",
             data: {
@@ -87,14 +117,12 @@ router.post("/", async (req, res) => {
                 quantity,
                 price,
                 marginRequired,
-                openingTime: getISTDate(),
+                openingTime: order.openingTime
             }
         });
 
     } catch (error) {
         console.error("Sell order error:", error.message);
-        
-        // Only send response if not already sent
         if (!res.headersSent) {
             res.status(200).json({
                 success: false,

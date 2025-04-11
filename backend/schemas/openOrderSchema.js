@@ -14,7 +14,7 @@ const openOrdersSchema = new Schema(
             required: true,
             index: true,
         },
-        contractSize:{
+        contractSize: {
             type: Number,
             required: true,
         },
@@ -56,12 +56,26 @@ const openOrdersSchema = new Schema(
             required: true,
         },
         takeProfit: {
-            type: Number,
-            default: null,
+            type: {
+                type: String,
+                enum: ["price", "profit"],
+                default: null,
+            },
+            value: {
+                type: Number,
+                default: null,
+            }
         },
         stopLoss: {
-            type: Number,
-            default: null,
+            type: {
+                type: String,
+                enum: ["price", "loss"],
+                default: null,
+            },
+            value: {
+                type: Number,
+                default: null,
+            }
         },
         trailingStop: {
             type: String,

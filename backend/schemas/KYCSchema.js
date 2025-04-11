@@ -7,54 +7,80 @@ const basicKYCSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  fullName: { 
-    type: String, 
-    required: true, 
-    trim: true 
+  fname: {
+    type: String,
+    required: true,
+    trim: true
   },
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true, 
-    trim: true, 
-    lowercase: true 
+  mname: {
+    type: String,
+    trim: true
   },
-  mobile: { 
-    type: String, 
+  lname: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  // gender: {
+  //   type: String,
+  //   enum: ['male', 'female', 'other'],
+  //   required: true
+  // },
+  // dateOfBirth: {
+  //   type: Date,
+  //   required: true
+  // },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  mobile: {
+    type: String,
     required: true,
     validate: {
-      validator: function(v) { return /^[0-9]{10,15}$/.test(v); },
+      validator: function (v) { return /^[0-9]{10,15}$/.test(v); },
       message: props => `${props.value} is not a valid phone number!`
     }
   },
   address: {
-    street: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String
-  },
-  nationality: { type: String, required: true },
-  documentType: { 
-    type: String, 
+    type: String,
     required: true,
-    enum: ['passport', 'adharcard' , 'pan_card']
   },
-  documentNumber: { 
-    type: String, 
-    required: true, 
-    unique: true  
+  // address: {
+  //   street: String,
+  //   city: String,
+  //   state: String,
+  //   postalCode: String,
+  //   country: String
+  // },
+  nationality: { type: String, required: true },
+  documentType: {
+    type: String,
+    required: true,
+    enum: ['passport', 'adharcard', 'pan_card']
   },
-  documentImage: { 
+  documentNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  documentImage: {
     front: { type: String, required: true },
-    back: { type: String, required: function() { return this.documentType === 'adharcard'; } } 
+    back: { type: String, required: function () { return this.documentType === 'adharcard'; } }
   },
   status: {
     type: String,
     enum: ['pending', 'verified', 'rejected'],
     default: 'pending'
-  }
-}, { 
+  },
+  registrationDate: {
+    type: Date,
+    default: Date.now
+  },
+}, {
   timestamps: true,
   autoIndex: true
 });
