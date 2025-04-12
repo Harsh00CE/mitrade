@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BASE_URL } from "./../../utils/constant.js";
 import axios from "axios";
 import moment from "moment";
+import BackButton from "../../components/BackButton/BackButton.jsx";
 
 const KYCManagement = () => {
   const [kycs, setKycs] = useState([]);
@@ -21,7 +22,7 @@ const KYCManagement = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.put(`http://localhost:3000/api/kyc/update-status/${id}`, { status });
+      await axios.put(`http://${BASE_URL}:3000/api/kyc/update-status/${id}`, { status });
       fetchKYCs();
     } catch (error) {
       console.error("Status update failed", error);
@@ -38,6 +39,9 @@ const KYCManagement = () => {
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
+      <div className="w-full ml-10 p-4">
+        <BackButton />
+      </div>
       <h2 className="text-2xl font-bold text-blue-500 mb-6">🛡️ KYC Submissions</h2>
 
       {loading ? (
@@ -92,10 +96,10 @@ const KYCManagement = () => {
                   </td>
                   <td
                     className={`p-3 font-semibold ${kyc.status === "approved"
-                        ? "text-green-400"
-                        : kyc.status === "rejected"
-                          ? "text-red-400"
-                          : "text-yellow-400"
+                      ? "text-green-400"
+                      : kyc.status === "rejected"
+                        ? "text-red-400"
+                        : "text-yellow-400"
                       }`}
                   >
                     {kyc.status}

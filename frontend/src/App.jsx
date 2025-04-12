@@ -18,6 +18,11 @@ import SellHistory from "./Pages/SellHistory/SellHistory.jsx";
 import WithdrawReport from "./Pages/WithdrawReport/WithdrawReport.jsx";
 import DepositReport from "./Pages/DepositReport/DepositReport.jsx";
 import KYCManagement from "./Pages/KYCManagement/KYCManagement.jsx";
+import AdminBankForm from "./Pages/BankDetails/AdminBankForm.jsx";
+import ApprovedDeposits from "./Pages/DepositReport/ApprovedDeposits.jsx";
+import RejectedDeposits from "./Pages/DepositReport/RejectedDeposits.jsx";
+import WithdrawApproved from "./Pages/WithdrawReport/WithdrawApproved.jsx";
+import WithdrawRejected from "./Pages/WithdrawReport/WithdrawRejected.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -73,7 +78,7 @@ function App() {
                   }
                 />
                 <Route
-                   path="/forex"
+                  path="/forex"
                   element={
                     <ProtectedRoute>
                       <Forex />
@@ -114,27 +119,52 @@ function App() {
                 />
                 <Route path="/buy-history" element={
                   <ProtectedRoute>
-                    <BuyHistory/>
+                    <BuyHistory />
                   </ProtectedRoute>
                 } />
                 <Route path="/sell-history" element={
                   <ProtectedRoute>
-                    <SellHistory/>
+                    <SellHistory />
                   </ProtectedRoute>
                 } />
-                <Route path="/deposit-report" element={
+                <Route path="/deposit-pandding" element={
                   <ProtectedRoute>
-                    <DepositReport/>
+                    <DepositReport />
                   </ProtectedRoute>
                 } />
-                <Route path="/withdraw-report" element={
+                <Route path="/deposit-approved" element={
                   <ProtectedRoute>
-                    <WithdrawReport/>
+                    <ApprovedDeposits />
                   </ProtectedRoute>
                 } />
+                <Route path="/deposit-rejected" element={
+                  <ProtectedRoute>
+                    <RejectedDeposits />
+                  </ProtectedRoute>
+                } />
+                <Route path="/withdraw-pandding" element={
+                  <ProtectedRoute>
+                    <WithdrawReport />
+                  </ProtectedRoute>
+                } />
+                <Route path="/withdraw-approved" element={
+                  <ProtectedRoute>
+                    <WithdrawApproved />
+                  </ProtectedRoute>
+                }/>
+                <Route path="/withdraw-rejected" element={
+                  <ProtectedRoute>
+                    <WithdrawRejected />
+                  </ProtectedRoute>
+                }/>
                 <Route path="/kyc-submit" element={
                   <ProtectedRoute>
-                    <KYCManagement/>
+                    <KYCManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin-bank-details" element={
+                  <ProtectedRoute>
+                    <AdminBankForm />
                   </ProtectedRoute>
                 } />
                 {/* <Route path="/forex" element={<Forex />} />

@@ -1,6 +1,7 @@
 import express from "express";
 import UserModel from "../schemas/userSchema.js";
 import mongoose from "mongoose";
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 
 const router = express.Router();
 
@@ -17,11 +18,11 @@ const WALLET_PROJECTION = {
 router.get("/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(200).json({ 
-                success: false, 
-                message: "Invalid user ID format" 
+            return res.status(200).json({
+                success: false,
+                message: "Invalid user ID format"
             });
         }
 
@@ -33,22 +34,31 @@ router.get("/:userId", async (req, res) => {
             .lean()
 
         if (!user) {
-            return res.status(200).json({ 
-                success: false, 
-                message: "User not found" 
+            return res.status(200).json({
+                success: false,
+                message: "User not found"
             });
         }
 
+        const wallet = await DemoWalletModel.findOne({ userId: user._id }).lean();
+        if (!wallet) {
+            return res.status(200).json({
+                success: false,
+                message: "Wallet not found"
+            });
+        }
+
+
         return res.status(200).json({
             success: true,
-            message: "User data fetched successfully",
-            data: user.demoWallet || null,
+            message: "Wallet fetched successfully",
+            data: wallet
         });
 
     } catch (error) {
         console.error("Error fetching user data:", error);
-        return res.status(200).json({ 
-            success: false, 
+        return res.status(200).json({
+            success: false,
             message: "Error fetching data",
         });
     }

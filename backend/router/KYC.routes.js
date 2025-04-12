@@ -2,6 +2,8 @@ import express from "express";
 import BasicKYC from "../schemas/KYCSchema.js";
 import multer from "multer";
 import ActiveWalletModel from "../schemas/activeWalletSchema.js";
+import mongoose from "mongoose";
+import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
@@ -17,7 +19,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 } 
+    limits: { fileSize: 5 * 1024 * 1024 }
 }).fields([
     { name: 'documentFront', maxCount: 1 },
     { name: 'documentBack', maxCount: 1 }
@@ -26,52 +28,67 @@ const upload = multer({
 router.post('/register', (req, res) => {
     upload(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
-            return res.status(200).json({ error: 'File upload error', details: err.message });
+            return res.status(200).json({ message: 'File upload error', details: err.message });
         } else if (err) {
-            return res.status(200).json({ error: 'Server error', details: err.message });
+            return res.status(200).json({ message: 'Server error', details: err.message });
         }
 
         try {
-            const { userId, fname ,lname , mname, email, mobile, address, nationality, documentType, documentNumber } = req.body;
+            const { userId, fname, lname, mname, email, mobile, address, nationality, documentType, documentNumber } = req.body;
 
             // Validate required fields
-            if (!fname || !lname || !mname || !email || !mobile || !nationality || !documentType || !documentNumber || !userId) {
-                return res.status(200).json({ error: 'Missing required fields' });
+            if (!fname || !lname || !mname || !email || !mobile || !nationality || !documentType || !documentNumber) {
+                return res.status(200).json({ message: 'Missing required fields' });
             }
+
+            const user = await UserModel.findById(userId);
+            if (!user) {
+                return res.status(200).json({ message: 'User not found' });
+            }
+
+            if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+                return res.status(200).json({ message: 'Invalid or missing userId' });
+            }
+
+            const existingKYC = await BasicKYC.findOne({ userId });
+            if (existingKYC) {
+                return res.status(200).json({ message: 'KYC already submitted for this userId' });
+            }
+
 
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                return res.status(200).json({ error: "Invalid email format" });
+                return res.status(200).json({ message: "Invalid email format" });
             }
             // Validate mobile format
             if (!/^[0-9]{10,15}$/.test(mobile)) {
-                return res.status(200).json({ error: "Invalid mobile number format" });
+                return res.status(200).json({ message: "Invalid mobile number format" });
             }
 
             // Ensure correct number of images is uploaded
             if (documentType === 'national_id') {
                 if (!req.files || !req.files.documentFront || !req.files.documentBack) {
-                    return res.status(200).json({ error: "Both front and back images are required for national ID" });
+                    return res.status(200).json({ message: "Both front and back images are required for national ID" });
                 }
             } else {
                 if (!req.files || !req.files.documentFront) {
-                    return res.status(200).json({ error: "Document image is required" });
+                    return res.status(200).json({ message: "Document image is required" });
                 }
             }
             const getISTDate = () => {
                 const now = new Date();
-                const istOffset = 5.5 * 60; 
+                const istOffset = 5.5 * 60;
                 const istTime = new Date(now.getTime() + istOffset * 60 * 1000);
                 return istTime;
             };
-    
-            console.log("File => " , req.files.documentFront);
-            console.log("File1 => " , req.files.documentFront[0].path);
 
-            console.log("File3 => " , req.files.documentBack);
-            console.log("File2 => " , req.files.documentBack[0].path);
-            
+            // console.log("File => ", req.files.documentFront);
+            // console.log("File1 => ", req.files.documentFront[0].path);
+
+            // console.log("File3 => ", req.files.documentBack);
+            // console.log("File2 => ", req.files.documentBack[0].path);
+
 
             const newKYC = new BasicKYC({
                 userId,
@@ -102,21 +119,30 @@ router.post('/register', (req, res) => {
             });
             await wallet.save();
 
-            res.status(200).json({
-                message: 'KYC registration submitted successfully',
-                data: { id: savedKYC._id, status: savedKYC.status }
-                
-            });
+            user.activeWallet = wallet._id;
+            await user.save();
 
-            return;
+
+            return res.status(200).json({
+                message: 'KYC registration submitted successfully',
+                data: { id: savedKYC._id, status: savedKYC.status },
+                success: true
+            });
 
         } catch (error) {
             if (error.code === 11000) {
                 const field = error.message.includes('email') ? 'email' : 'document number';
-                res.status(200).json({ error: `${field} already registered` });
+                res.status(200).json({
+                    message: `${field} already registered`,
+                    success: false
+                },);
+
             } else {
                 console.error('KYC registration error:', error);
-                res.status(200).json({ error: 'Failed to process KYC registration' });
+                res.status(200).json({
+                    message: 'Failed to process KYC registration',
+                    success: false
+                });
             }
         }
     });
@@ -124,21 +150,31 @@ router.post('/register', (req, res) => {
 
 router.get('/status/:id', async (req, res) => {
     try {
+        const userId = req.params.id;
+        console.log("userId => ", userId);
 
-        const {userId} = req.params;
-        const kycRecord = await BasicKYC.findOne({userId}).select('status updatedAt');
+        const kycRecord = await BasicKYC.findOne({ userId });
+        console.log("kycRecord => ", kycRecord);
+
         if (!kycRecord) {
-            return res.status(200).json({ error: 'KYC record not found' });
+            return res.status(200).json({ message: 'KYC record not found', success: false });
         }
+
         const { status, updatedAt } = kycRecord;
-        const lastUpdated = updatedAt.toDate();
-       
-        
+        const lastUpdated = updatedAt; 
+
+        return res.status(200).json({
+            message: 'KYC status retrieved successfully',
+            success: true,
+            data: { status, lastUpdated }
+        });
+
     } catch (error) {
         console.error('KYC status check error:', error);
         res.status(200).json({ error: 'Failed to retrieve KYC status' });
     }
 });
+
 
 router.put('/update-status/:id', async (req, res) => {
     try {
@@ -194,7 +230,7 @@ router.get('/all', async (req, res) => {
 
     } catch (error) {
         console.error('Failed to fetch KYC submissions:', error);
-        res.status(500).json({ error: 'Failed to fetch submissions' }); // changed to 500 for real error
+        res.status(500).json({ error: 'Failed to fetch submissions' });
     }
 });
 

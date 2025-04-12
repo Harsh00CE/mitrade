@@ -1,6 +1,10 @@
 import express from 'express';
 import multer from 'multer';
 
+import UserModel from '../schemas/userSchema.js'; // adjust path if needed
+import DepositModel from '../schemas/depositSchema.js';
+import ActiveWalletModel from '../schemas/activeWalletSchema.js';
+
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -17,56 +21,132 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }
 }).fields([
-    { name: 'documentFront', maxCount: 1 },
+    { name: 'documentImage', maxCount: 1 },
 ]);
 
 router.post('/', async (req, res) => {
     upload(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
-            return res.status(200).json({ error: 'File upload error', details: err.message });
+            return res.status(200).json({ message: 'File upload error', details: err.message });
         } else if (err) {
-            return res.status(200).json({ error: 'Server error', details: err.message });
+            return res.status(200).json({ message: 'Server error', details: err.message });
         }
 
         try {
-            const { userId, amount } = req.body;
+            const { userId, amount, amountType, utr } = req.body;
 
             // Validate required fields
-            if (!userId || !amount ) {
-                return res.status(200).json({ error: 'Missing required fields' });
+            if (!userId || !amount || !amountType) {
+                return res.status(200).json({ message: 'Missing required fields' });
             }
-
 
             // Validate amount
             if (isNaN(amount) || amount <= 0) {
-                return res.status(200).json({ error: 'Invalid amount' });
+                return res.status(200).json({ message: 'Invalid amount' });
             }
 
-            const newDeposit = new Deposit({
+            const newDeposit = new DepositModel({
                 userId,
                 amount,
-                status: 'pending'
+                amountType,
+                utr,
+                status: 'pending',
+                documentImage: req.files?.documentImage?.[0]?.path || ''
             });
 
             const savedDeposit = await newDeposit.save();
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: 'Deposit submitted successfully',
-                data: { id: savedDeposit._id, status: savedDeposit.status }
+                data: { id: savedDeposit._id, status: savedDeposit.status },
+                success: true
             });
 
-            return;
 
         } catch (error) {
             if (error.code === 11000) {
                 const field = error.message.includes('email') ? 'email' : 'document number';
-                res.status(200).json({ error: `${field} already registered` });
+                res.status(200).json({ message: `${field} already registered`, success: false });
             } else {
                 console.error('Deposit submission error:', error);
-                res.status(200).json({ error: 'Failed to process deposit submission' });
+                res.status(200).json({ message: 'Failed to process deposit submission' });
             }
         }
     });
 });
+
+
+// Approve Deposit API
+router.post('/approve/:id', async (req, res) => {
+    try {
+        const depositId = req.params.id;
+        const deposit = await DepositModel.findById(depositId);
+
+        console.log("Deposit ID:", depositId);
+
+
+        if (!deposit) return res.status(200).json({ message: 'Deposit not found' });
+        if (deposit.status !== 'pending') return res.status(200).json({ message: 'Deposit already processed' });
+
+        const user = await UserModel.findById(deposit.userId);
+        if (!user) return res.status(200).json({ message: 'User not found' });
+
+        const wallet = await ActiveWalletModel.findById(user.activeWallet);
+        if (!wallet) return res.status(200).json({ message: 'Wallet not found' });
+
+        wallet.balance = parseFloat((wallet.balance + deposit.amount).toFixed(2));
+        wallet.available = parseFloat((wallet.available + deposit.amount).toFixed(2));
+        wallet.equity = parseFloat((wallet.equity + deposit.amount).toFixed(2));
+
+        await wallet.save();
+
+
+        // Update deposit status
+        deposit.status = 'approved';
+        await deposit.save();
+
+        res.status(200).json({ message: 'Deposit approved and balance updated' });
+    } catch (error) {
+        console.error('Error approving deposit:', error);
+        res.status(200).json({ message: 'Failed to approve deposit' });
+    }
+});
+
+// Reject Deposit API
+router.post('/reject/:id', async (req, res) => {
+    try {
+        const depositId = req.params.id;
+        const deposit = await DepositModel.findById(depositId);
+
+        if (!deposit) return res.status(200).json({ message: 'Deposit not found' , success: false });
+        if (deposit.status !== 'pending') return res.status(200).json({ message: 'Deposit already processed' , success: false });
+
+        deposit.status = 'rejected';
+        await deposit.save();
+
+        res.status(200).json({ message: 'Deposit rejected successfully', success: true });
+    } catch (error) {
+        console.error('Error rejecting deposit:', error);
+        res.status(200).json({ message: 'Failed to reject deposit', success: false });
+    }
+});
+
+
+
+router.get('/all', async (req, res) => {
+    try {
+        const deposits = await DepositModel.find({}).sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: 'Deposits fetched successfully',
+            data: deposits
+            , success: true
+        });
+    } catch (error) {
+        console.error('Failed to fetch deposits:', error);
+        res.status(200).json({ message: 'Failed to fetch deposits', success: false });
+    }
+});
+
 
 export default router;  

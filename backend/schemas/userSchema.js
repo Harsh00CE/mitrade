@@ -38,6 +38,10 @@ const UserSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "DemoWallet",
   },
+  activeWallet: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ActiveWallet",
+  },
   orderList: [
     {
       type: mongoose.Schema.Types.ObjectId,

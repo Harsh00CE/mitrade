@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronRight
 } from "lucide-react";
+import AdminAccountDetails from "../../../../backend/schemas/adminAccountDetails";
 
 const Sidebar = () => {
   const [active, setActive] = useState("Dashboard");
@@ -43,14 +44,27 @@ const Sidebar = () => {
       ]
     },
     {
-      name: "Reports", icon: <FileText size={20} />, path: "#",
+      name: "deposit", icon: <FileText size={20} />, path: "#",
       subItems: [
-        { name: "deposit", path: "/deposit-report" },
-        { name: "withdraw", path: "/withdraw-report" },
+        { name: "pandding", path: "/deposit-pandding" },
+        { name: "approved", path: "/deposit-approved" },
+        { name: "rejected", path: "/deposit-rejected" },
+      ]
+    },
+    {
+      name: "withdraw", icon: <FileText size={20} />, path: "#",
+      subItems: [
+        { name: "pandding", path: "/withdraw-pandding" },
+        { name: "approved", path: "/withdraw-approved" },
+        { name: "rejected", path: "/withdraw-rejected" },
       ]
     },
     // { name: "Withdraw Wallet", icon: <Wallet size={20} />, path: "/withdraw-wallet" },
-    { name: "KYC Submit", icon: <ShieldCheck size={20} />, path: "/kyc-submit" },
+    { name: "KYC Submit", icon: <ShieldCheck size={20} />, 
+    path: "/kyc-submit" },
+    {
+      name: "Admin Bank Details", icon: <FileText size={20} />, path: "/admin-bank-details"
+    }
   ];
 
   return (
