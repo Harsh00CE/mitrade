@@ -170,5 +170,21 @@ router.get('/all', async (req, res) => {
     }
 });
 
+router.get('/:userId' , async(req , res) => {
+    try {
+        const userId = req.params.userId;
+        const deposits = await DepositModel.find({ userId });
+        
+        res.status(200).json({
+            message: 'Deposits fetched successfully',
+            data: deposits
+            , success: true
+        });
+    } catch (error) {
+        console.error('Failed to fetch deposits:', error);
+        res.status(200).json({ message: 'Failed to fetch deposits', success: false });
+    }   
+});
+
 
 export default router;  

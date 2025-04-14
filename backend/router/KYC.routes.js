@@ -173,10 +173,9 @@ router.post('/register', (req, res) => {
 router.get('/status/:id', async (req, res) => {
     try {
         const userId = req.params.id;
-        console.log("userId => ", userId);
 
         const kycRecord = await BasicKYC.findOne({ userId });
-        console.log("kycRecord => ", kycRecord);
+    
 
         if (!kycRecord) {
             return res.status(200).json({ message: 'KYC record not found', success: false });
