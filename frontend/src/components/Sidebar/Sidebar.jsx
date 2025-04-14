@@ -46,7 +46,7 @@ const Sidebar = () => {
     {
       name: "deposit", icon: <FileText size={20} />, path: "#",
       subItems: [
-        { name: "pandding", path: "/deposit-pandding" },
+        { name: "pending", path: "/deposit-pandding" },
         { name: "approved", path: "/deposit-approved" },
         { name: "rejected", path: "/deposit-rejected" },
       ]
@@ -54,7 +54,7 @@ const Sidebar = () => {
     {
       name: "withdraw", icon: <FileText size={20} />, path: "#",
       subItems: [
-        { name: "pandding", path: "/withdraw-pandding" },
+        { name: "pending", path: "/withdraw-pandding" },
         { name: "approved", path: "/withdraw-approved" },
         { name: "rejected", path: "/withdraw-rejected" },
       ]

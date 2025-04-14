@@ -109,6 +109,7 @@ function subscribeToPairs(pairs) {
                             broadcastToAllClients(priceData);
                             checkAndSendAlerts(data.instrument, parseFloat(priceData.bid));
                             checkTP_SL_Triggers(data.instrument, parseFloat(priceData.bid), wss);
+                            checkPendingOrders(data.instrument, parseFloat(priceData.bid), wss);
                         }
                     } catch (e) {
                         console.error('Error parsing JSON:', e.message, 'Line:', line);
@@ -235,8 +236,8 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
         const entryValue = openingPrice * quantity;
         const currentValue = currentPrice * quantity;
         const profitOrLoss = type === "buy"
-            ? (currentValue - entryValue)* contractSize
-            : (entryValue - currentValue)* contractSize;
+            ? (currentValue - entryValue) * contractSize
+            : (entryValue - currentValue) * contractSize;
 
         // --- Take Profit ---
         if (takeProfit && takeProfit.value !== null) {
@@ -266,7 +267,7 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             }
         }
 
-        console.log("isTP:", isTP, "isSL:", isSL, "currentPrice:", currentPrice, "TP:", takeProfit, "SL:", stopLoss);
+        // console.log("isTP:", isTP, "isSL:", isSL, "currentPrice:", currentPrice, "TP:", takeProfit, "SL:", stopLoss);
 
         if (!isTP && !isSL) continue;
 
@@ -344,5 +345,92 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
         });
 
         console.log(`Closed Order: ${symbol} @ ${currentPrice} for ${isTP ? "TP" : "SL"}`);
+    }
+};
+
+const getISTDate = () => {
+    const now = new Date();
+    const istOffset = 5.5 * 60;
+    return new Date(now.getTime() + istOffset * 60 * 1000);
+};
+
+
+const checkPendingOrders = async (symbol, currentPrice, wss) => {
+    const pendingOrders = await OpenOrdersModel.find({
+        symbol,
+        status: "pending",
+        "pendingValue": { $ne: null }
+    });
+    for (const order of pendingOrders) {
+        const { _id, userId, type, quantity, contractSize, leverage, margin, tradingAccount, pendingValue } = order;
+        
+        if (!pendingValue) continue;
+
+        const triggerType = type;
+        const triggerPrice = pendingValue;
+
+        let shouldTrigger = false;
+
+        if (triggerType == 'buy' && currentPrice <= triggerPrice) {
+            shouldTrigger = true;
+        }
+
+        if (triggerType == 'sell' && currentPrice >= triggerPrice) {
+            shouldTrigger = true;
+        }
+
+
+
+        console.log("Trigger Type:", triggerType, "Current Price:", currentPrice, "Trigger Price:", triggerPrice, "Should Trigger:", shouldTrigger);
+        if (!shouldTrigger) continue;
+
+        const updatedOrder = await OpenOrdersModel.findByIdAndUpdate(
+            _id,
+            {
+                status: "active",
+                openingPrice: currentPrice,
+                openingTime: getISTDate(),
+                $unset: { pending: "" }
+            },
+            { new: true }
+        ).lean();
+
+        // Update user's wallet: only if demo account (you can add real account logic similarly)
+        if (tradingAccount === "demo") {
+            const user = await UserModel.findById(userId).lean();
+            if (!user) continue;
+
+            const wallet = await DemoWalletModel.findById(user.demoWallet);
+            if (!wallet || wallet.available < margin) {
+                console.log(`Insufficient margin for user ${userId}`);
+                continue;
+            }
+
+            wallet.available = parseFloat((wallet.available - margin).toFixed(2));
+            wallet.margin = parseFloat((wallet.margin + margin).toFixed(2));
+            await wallet.save();
+        }
+
+        wss.clients.forEach(client => {
+            if (client.readyState === 1) {
+                client.send(JSON.stringify({
+                    type: 'tradeActivated',
+                    data: {
+                        tradeId: updatedOrder._id,
+                        userId,
+                        symbol,
+                        quantity,
+                        leverage,
+                        openingPrice: currentPrice,
+                        margin,
+                        accountType: tradingAccount,
+                        time: getISTDate(),
+                        positionType: type,
+                    }
+                }));
+            }
+        });
+
+        console.log(`[✓] Activated pending order ${_id} at price ${currentPrice}`);
     }
 };

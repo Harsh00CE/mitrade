@@ -24,6 +24,10 @@ const depositSchema = new mongoose.Schema({
         default: '',
         required: true
     },
+    reason: {
+        type: String,
+        default: ''
+    },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],

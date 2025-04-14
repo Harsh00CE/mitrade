@@ -7,6 +7,26 @@ import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
+const path = (await import('path')).default;
+
+const fileFilter = (req, file, cb) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype;
+
+    const isMimeValid = allowedMimeTypes.includes(mime);
+    const isExtValid = allowedExtensions.includes(ext);
+
+    if (isMimeValid || isExtValid) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only JPG, JPEG, and PNG files are allowed'), false);
+    }
+};
+
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/');
@@ -19,11 +39,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: fileFilter
 }).fields([
     { name: 'documentFront', maxCount: 1 },
     { name: 'documentBack', maxCount: 1 }
 ]);
+
 
 router.post('/register', (req, res) => {
     upload(req, res, async (err) => {
@@ -161,7 +183,7 @@ router.get('/status/:id', async (req, res) => {
         }
 
         const { status, updatedAt } = kycRecord;
-        const lastUpdated = updatedAt; 
+        const lastUpdated = updatedAt;
 
         return res.status(200).json({
             message: 'KYC status retrieved successfully',

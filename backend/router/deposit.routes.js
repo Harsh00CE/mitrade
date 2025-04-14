@@ -19,7 +19,20 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: function (req, file, cb) {
+        const allowedExtensions = /jpeg|jpg|png/;
+        const ext = file.originalname.toLowerCase().split('.').pop();
+        const extname = allowedExtensions.test(ext);
+        const mimetypeOk = file.mimetype.startsWith("image/") || file.mimetype === "application/octet-stream";
+
+        if (extname && mimetypeOk) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only .jpg, .jpeg, and .png image files are allowed!'));
+        }
+    }
+
 }).fields([
     { name: 'documentImage', maxCount: 1 },
 ]);
@@ -29,7 +42,7 @@ router.post('/', async (req, res) => {
         if (err instanceof multer.MulterError) {
             return res.status(200).json({ message: 'File upload error', details: err.message });
         } else if (err) {
-            return res.status(200).json({ message: 'Server error', details: err.message });
+            return res.status(200).json({ message: 'Server error', details: err.message, success: false });
         }
 
         try {
@@ -82,8 +95,6 @@ router.post('/approve/:id', async (req, res) => {
         const depositId = req.params.id;
         const deposit = await DepositModel.findById(depositId);
 
-        console.log("Deposit ID:", depositId);
-
 
         if (!deposit) return res.status(200).json({ message: 'Deposit not found' });
         if (deposit.status !== 'pending') return res.status(200).json({ message: 'Deposit already processed' });
@@ -113,14 +124,25 @@ router.post('/approve/:id', async (req, res) => {
 });
 
 // Reject Deposit API
-router.post('/reject/:id', async (req, res) => {
+router.post('/reject', async (req, res) => {
     try {
-        const depositId = req.params.id;
+        const { depositId, reason } = req.body;
+
+        console.log("Reject Deposit ID:", depositId);
+        console.log("Reject Reason:", reason);
+
+
+        if (!depositId) return res.status(200).json({ message: 'Deposit ID is required', success: false });
+        if (!reason) return res.status(200).json({ message: 'Reason is required', success: false });
+
         const deposit = await DepositModel.findById(depositId);
 
-        if (!deposit) return res.status(200).json({ message: 'Deposit not found' , success: false });
-        if (deposit.status !== 'pending') return res.status(200).json({ message: 'Deposit already processed' , success: false });
+        if (!deposit) return res.status(200).json({ message: 'Deposit not found', success: false });
+        if (deposit.status !== 'pending') return res.status(200).json({ message: 'Deposit already processed', success: false });
 
+        if (deposit.status === 'rejected') return res.status(200).json({ message: 'Deposit already rejected', success: false });
+
+        deposit.reason = reason;
         deposit.status = 'rejected';
         await deposit.save();
 

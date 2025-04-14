@@ -2,6 +2,7 @@ import express from "express";
 import UserModel from "../schemas/userSchema.js";
 import { v4 as uuidv4 } from 'uuid';
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
+import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 
 const router = express.Router();
@@ -10,12 +11,19 @@ connectDB().catch(console.error);
 
 router.post("/", async (req, res) => {
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, pendingValue, status } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage) {
+        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status) {
             return res.status(200).json({
                 success: false,
-                message: "Required fields: userId, symbol, quantity, price, leverage",
+                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status",
+            });
+        }
+
+        if (status === "pending" && pendingValue === undefined) {
+            return res.status(200).json({
+                success: false,
+                message: "Pending order requires pendingValue",
             });
         }
 
@@ -28,8 +36,6 @@ router.post("/", async (req, res) => {
         }
 
         const user = await UserModel.findById(userId)
-            .select('demoWallet')
-            .populate('demoWallet');
 
         if (!user || !user.demoWallet) {
             return res.status(200).json({
@@ -38,9 +44,10 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const wallet = user.demoWallet;
+        const wallet = await DemoWalletModel.findById(user.demoWallet);
 
         const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
+
         if (wallet.available < marginRequired) {
             return res.status(200).json({
                 success: false,
@@ -92,7 +99,8 @@ router.post("/", async (req, res) => {
             takeProfit: formattedTP,
             stopLoss: formattedSL,
             trailingStop: "Unset",
-            status: "active",
+            status: status,
+            pendingValue: pendingValue,
             position: "open",
             openingTime: getISTDate(),
             margin: marginRequired,
@@ -100,12 +108,16 @@ router.post("/", async (req, res) => {
             userId
         });
 
-        wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
-        wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+        if (status === "active") {
+            wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
+            wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+        }
+
+
 
         await Promise.all([order.save(), wallet.save()]);
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Buy order placed successfully",
             data: {
@@ -114,7 +126,8 @@ router.post("/", async (req, res) => {
                 quantity,
                 price,
                 marginRequired,
-                openingTime: order.openingTime
+                openingTime: order.openingTime,
+                status: order.status,
             }
         });
     } catch (error) {

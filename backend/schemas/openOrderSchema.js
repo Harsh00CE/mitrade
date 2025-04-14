@@ -42,7 +42,6 @@ const openOrdersSchema = new Schema(
             type: String,
             required: true,
             enum: ["active", "pending"],
-            default: "pending",
             index: true,
         },
         position: {
@@ -76,6 +75,10 @@ const openOrdersSchema = new Schema(
                 type: Number,
                 default: null,
             }
+        },
+        pendingValue: {
+                type: Number,
+                default: null,
         },
         trailingStop: {
             type: String,

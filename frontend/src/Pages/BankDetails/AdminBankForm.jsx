@@ -78,6 +78,7 @@ const AdminBankForm = () => {
                 <h2 className="text-2xl font-bold mb-4">Set Admin Bank Details</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="mt-4 mb-0">Account Number:</p>
                     <input
                         type="text"
                         name="accountNumber"
@@ -87,7 +88,7 @@ const AdminBankForm = () => {
                         className="w-full p-2 border rounded"
                         required
                     />
-
+                    <p className="mt-4 mb-0 ">Holder Name:</p>
                     <input
                         type="text"
                         name="holderName"
@@ -97,7 +98,7 @@ const AdminBankForm = () => {
                         className="w-full p-2 border rounded"
                         required
                     />
-
+                    <p className="mt-4 mb-0">IFSC Code:</p>
                     <input
                         type="text"
                         name="IFSCcode"
@@ -107,7 +108,7 @@ const AdminBankForm = () => {
                         className="w-full p-2 border rounded"
                         required
                     />
-
+                    <p className="mt-4 mb-0">Bank Name:</p>
                     <input
                         type="text"
                         name="bankName"

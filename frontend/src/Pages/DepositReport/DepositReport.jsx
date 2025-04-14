@@ -8,6 +8,10 @@ const DepositReport = () => {
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [previewImg, setPreviewImg] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [selectedDepositId, setSelectedDepositId] = useState(null);
+
 
   const fetchDeposits = async () => {
     try {
@@ -25,6 +29,12 @@ const DepositReport = () => {
   }, []);
 
   const handleAction = async (id, action) => {
+    if (action === 'reject') {
+      setSelectedDepositId(id);
+      setShowRejectModal(true);
+      return;
+    }
+
     try {
       const endpoint = `http://${BASE_URL}:3000/api/deposit/${action}/${id}`;
       const res = await axios.post(endpoint);
@@ -40,6 +50,36 @@ const DepositReport = () => {
       alert(`Failed to ${action} deposit`);
     }
   };
+
+  const submitRejectReason = async () => {
+    if (!rejectReason.trim()) {
+      alert('Please enter a reason');
+      return;
+    }
+
+    try {
+      const res = await axios.post(`http://${BASE_URL}:3000/api/deposit/reject`, {
+        depositId: selectedDepositId,
+        reason: rejectReason
+      });
+
+      if (res.data.success) {
+        alert(res.data.message);
+        fetchDeposits();
+      } else {
+        alert(res.data.message || 'Failed to reject deposit');
+      }
+    } catch (error) {
+      console.error('Reject error:', error);
+      alert('Server error');
+    } finally {
+      setShowRejectModal(false);
+      setRejectReason('');
+      setSelectedDepositId(null);
+    }
+  };
+
+
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
@@ -135,6 +175,40 @@ const DepositReport = () => {
           </div>
         </div>
       )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Reject Deposit</h3>
+            <textarea
+              rows="4"
+              placeholder="Enter reason for rejection..."
+              className="w-full p-2 border text-black border-gray-300 rounded mb-4"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                  setSelectedDepositId(null);
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRejectReason}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

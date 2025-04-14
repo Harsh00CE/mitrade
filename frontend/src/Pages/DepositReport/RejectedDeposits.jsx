@@ -41,6 +41,7 @@ const RejectedDeposits = () => {
               <tr>
                 <th className="text-left py-2 px-4 border-b">User ID</th>
                 <th className="text-left py-2 px-4 border-b">Amount</th>
+                <th className="text-left py-2 px-4 border-b">Reason</th>
                 <th className="text-left py-2 px-4 border-b">Document</th>
                 <th className="text-left py-2 px-4 border-b">Created At</th>
               </tr>
@@ -50,6 +51,7 @@ const RejectedDeposits = () => {
                 <tr key={deposit._id}>
                   <td className="py-2 px-4 border-b">{deposit.userId}</td>
                   <td className="py-2 px-4 border-b">{deposit.amount}</td>
+                  <td className="py-2 px-4 border-b">{deposit.reason}</td>
                   <td className="py-2 px-4 border-b">
                     {deposit.documentImage ? (
                       <img
