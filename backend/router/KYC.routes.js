@@ -139,6 +139,7 @@ router.post('/register', (req, res) => {
             const wallet = new ActiveWalletModel({
                 userId: userId,
             });
+            wallet.leverage = 1;
             await wallet.save();
 
             user.activeWallet = wallet._id;
@@ -170,24 +171,21 @@ router.post('/register', (req, res) => {
     });
 });
 
-router.get('/status/:id', async (req, res) => {
+router.get('/data/:id', async (req, res) => {
     try {
         const userId = req.params.id;
 
         const kycRecord = await BasicKYC.findOne({ userId });
-    
+
 
         if (!kycRecord) {
             return res.status(200).json({ message: 'KYC record not found', success: false });
         }
 
-        const { status, updatedAt } = kycRecord;
-        const lastUpdated = updatedAt;
-
         return res.status(200).json({
             message: 'KYC status retrieved successfully',
             success: true,
-            data: { status, lastUpdated }
+            data: kycRecord
         });
 
     } catch (error) {
@@ -199,20 +197,27 @@ router.get('/status/:id', async (req, res) => {
 
 router.put('/update-status/:id', async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, reason } = req.body;
 
         if (!['pending', 'approved', 'rejected'].includes(status)) {
-            return res.status(200).json({ error: 'Invalid status value' });
+            return res.status(400).json({ error: 'Invalid status value' });
+        }
+
+        const updateFields = { status };
+        if (status === 'rejected') {
+            updateFields.reason = reason || ''; // Optional: prevent null value
+        } else {
+            updateFields.reason = ''; // Clear reason if not rejected
         }
 
         const updated = await BasicKYC.findByIdAndUpdate(
             req.params.id,
-            { status },
+            updateFields,
             { new: true }
-        ).select('status updatedAt');
+        ).select('status reason updatedAt');
 
         if (!updated) {
-            return res.status(200).json({ error: 'KYC record not found' });
+            return res.status(404).json({ error: 'KYC record not found' });
         }
 
         res.status(200).json({
@@ -221,7 +226,7 @@ router.put('/update-status/:id', async (req, res) => {
         });
     } catch (error) {
         console.error('Failed to update KYC status:', error);
-        res.status(200).json({ error: 'Failed to update status' });
+        res.status(500).json({ error: 'Failed to update status' });
     }
 });
 
@@ -254,6 +259,67 @@ router.get('/all', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch submissions' });
     }
 });
+
+
+
+router.patch('/update-data/:id', (req, res) => {
+    upload(req, res, async (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ message: 'Multer upload error', details: err.message });
+        } else if (err) {
+            return res.status(500).json({ message: 'File upload error', details: err.message });
+        }
+
+        try {
+            const kycId = req.params.id;
+            const updateFields = req.body;
+
+            const allowedFields = [
+                'fname', 'lname', 'mname', 'email', 'mobile',
+                'address', 'nationality', 'documentType', 'documentNumber'
+            ];
+
+            const validUpdates = {};
+            for (let key of allowedFields) {
+                if (updateFields[key] !== undefined) {
+                    validUpdates[key] = updateFields[key];
+                }
+            }
+
+            // Update document images if new ones are uploaded
+            if (req.files?.documentFront) {
+                validUpdates['documentImage.front'] = req.files.documentFront[0].path;
+            }
+            if (req.files?.documentBack) {
+                validUpdates['documentImage.back'] = req.files.documentBack[0].path;
+            }
+
+            if (Object.keys(validUpdates).length === 0) {
+                return res.status(400).json({ message: 'No valid fields or files to update' });
+            }
+
+            const updatedKYC = await BasicKYC.findByIdAndUpdate(
+                kycId,
+                { $set: validUpdates },
+                { new: true }
+            );
+
+            if (!updatedKYC) {
+                return res.status(404).json({ message: 'KYC record not found' });
+            }
+
+            res.status(200).json({
+                message: 'KYC data updated successfully',
+                success: true,
+                data: updatedKYC
+            });
+        } catch (error) {
+            console.error('KYC update error:', error);
+            res.status(500).json({ message: 'Failed to update KYC record' });
+        }
+    });
+});
+
 
 
 

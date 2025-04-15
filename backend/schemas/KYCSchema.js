@@ -76,6 +76,10 @@ const basicKYCSchema = new mongoose.Schema({
     enum: ['pending', 'verified', 'rejected'],
     default: 'pending'
   },
+  reason:{
+    type: String,
+    default: 'No reason provided'
+  },
   registrationDate: {
     type: Date,
     default: Date.now

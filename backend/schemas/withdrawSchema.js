@@ -17,7 +17,7 @@ const withdrawSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    amountType:{
+    amountType: {
         type: String,
         enum: ['USD', 'INR'],
         required: true
@@ -34,6 +34,10 @@ const withdrawSchema = new mongoose.Schema({
     bankName: {
         type: String,
         required: true
+    },
+    reason: {
+        type: String,
+        default: ''
     },
     createdAt: {
         type: Date,

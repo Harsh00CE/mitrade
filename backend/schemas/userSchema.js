@@ -58,9 +58,9 @@ const UserSchema = new Schema({
       ref: "Alert",
     },
   ],
-  kyc:{
+  kyc: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "BasicKYC",  
+    ref: "BasicKYC",
   },
   orderHistory: [
     {

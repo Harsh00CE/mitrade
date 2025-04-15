@@ -7,14 +7,14 @@ const WithdrawReport = () => {
     const [withdrawals, setWithdrawals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
-    const [messageType, setMessageType] = useState(''); // success or error
+    const [messageType, setMessageType] = useState('');
+    const [rejectReason, setRejectReason] = useState({});
+    const [openRejectForm, setOpenRejectForm] = useState(null); // Track which row's reject box is open
 
-    // Fetch withdrawal data
     const fetchWithdrawals = async () => {
         try {
             const res = await axios.get(`http://${BASE_URL}:3000/api/withdraw/all`);
-            // Filter only pending withdrawals
-            const pendingWithdrawals = res.data.data.filter((withdrawal) => withdrawal.status === 'pending');
+            const pendingWithdrawals = res.data.data.filter(w => w.status === 'pending');
             setWithdrawals(pendingWithdrawals);
         } catch (err) {
             console.error('Error fetching withdrawals:', err);
@@ -29,18 +29,12 @@ const WithdrawReport = () => {
         fetchWithdrawals();
     }, []);
 
-    // Handle approve action
     const handleApprove = async (id) => {
         try {
             const response = await axios.post(`http://${BASE_URL}:3000/api/withdraw/approve/${id}`);
-            if (response.data.success) {
-                setMessage('Withdrawal approved successfully');
-                setMessageType('success');
-            }else{
-                setMessage(response.data.message);
-                setMessageType('error');
-            }
-            fetchWithdrawals(); // Refresh the list after approving
+            setMessage(response.data.message);
+            setMessageType(response.data.success ? 'success' : 'error');
+            fetchWithdrawals();
         } catch (err) {
             console.error('Error approving withdrawal:', err);
             setMessage('Error approving withdrawal');
@@ -48,23 +42,31 @@ const WithdrawReport = () => {
         }
     };
 
-    // Handle reject action
     const handleReject = async (id) => {
+        const reason = rejectReason[id];
+        if (!reason || reason.trim() === '') {
+            setMessage('Rejection reason is required');
+            setMessageType('error');
+            return;
+        }
+
         try {
-            const response = await axios.post(`http://${BASE_URL}:3000/api/withdraw/reject/${id}`);
-            if (response.data.success) {
-                setMessage('Withdrawal rejected successfully');
-                setMessageType('success');
-            }else{
-                setMessage(response.data.message);
-                setMessageType('error');
-            }
-            fetchWithdrawals(); // Refresh the list after rejecting
+            const response = await axios.post(`http://${BASE_URL}:3000/api/withdraw/reject`, {
+                withdrawId: id,
+                reason,
+            });
+            setMessage(response.data.message);
+            setMessageType(response.data.success ? 'success' : 'error');
+            fetchWithdrawals();
         } catch (err) {
             console.error('Error rejecting withdrawal:', err);
             setMessage('Error rejecting withdrawal');
             setMessageType('error');
         }
+    };
+
+    const handleInputChange = (id, value) => {
+        setRejectReason(prev => ({ ...prev, [id]: value }));
     };
 
     return (
@@ -75,9 +77,7 @@ const WithdrawReport = () => {
             <h2 className="text-2xl font-bold mb-4">Pending Withdrawals</h2>
 
             {message && (
-                <div
-                    className={`p-4 mb-4 rounded ${messageType === 'success' ? 'bg-green-600' : 'bg-red-600'}`}
-                >
+                <div className={`p-4 mb-4 rounded ${messageType === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
                     <p>{message}</p>
                 </div>
             )}
@@ -102,32 +102,54 @@ const WithdrawReport = () => {
                         </thead>
                         <tbody>
                             {withdrawals.map((withdrawal) => (
-                                <tr key={withdrawal._id}>
-                                    <td className="py-2 px-4 border-b">{withdrawal.userId}</td>
-                                    <td className="py-2 px-4 border-b">{withdrawal.amount}</td>
-                                    <td className="py-2 px-4 border-b">{withdrawal.amountType}</td>
-                                    <td className="py-2 px-4 border-b">{withdrawal.holderName}</td>
-                                    <td className="py-2 px-4 border-b">{withdrawal.bankName}</td>
-                                    <td className="py-2 px-4 border-b">{withdrawal.accountNumber}</td>
-                                    <td className="py-2 px-4 border-b">{withdrawal.IFSCcode}</td>
-                                    <td className="py-2 px-4 border-b">
-                                        {new Date(withdrawal.createdAt).toLocaleString()}
-                                    </td>
-                                    <td className="py-2 px-4 border-b">
-                                        <button
-                                            className="bg-green-600 text-white py-1 w-full m-2 px-4 rounded"
-                                            onClick={() => handleApprove(withdrawal._id)}
-                                        >
-                                            Approve
-                                        </button>
-                                        <button
-                                            className="bg-red-600 text-white py-1 w-full m-2 px-4 rounded"
-                                            onClick={() => handleReject(withdrawal._id)}
-                                        >
-                                            Reject
-                                        </button>
-                                    </td>
-                                </tr>
+                                <React.Fragment key={withdrawal._id}>
+                                    <tr>
+                                        <td className="py-2 px-4 border-b">{withdrawal.userId}</td>
+                                        <td className="py-2 px-4 border-b">{withdrawal.amount}</td>
+                                        <td className="py-2 px-4 border-b">{withdrawal.amountType}</td>
+                                        <td className="py-2 px-4 border-b">{withdrawal.holderName}</td>
+                                        <td className="py-2 px-4 border-b">{withdrawal.bankName}</td>
+                                        <td className="py-2 px-4 border-b">{withdrawal.accountNumber}</td>
+                                        <td className="py-2 px-4 border-b">{withdrawal.IFSCcode}</td>
+                                        <td className="py-2 px-4 border-b">
+                                            {new Date(withdrawal.createdAt).toLocaleString()}
+                                        </td>
+                                        <td className="py-2 px-4 border-b">
+                                            <button
+                                                className="bg-green-600 text-white py-1 w-full m-1 px-4 rounded"
+                                                onClick={() => handleApprove(withdrawal._id)}
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                className="bg-red-600 text-white py-1 w-full m-1 px-4 rounded"
+                                                onClick={() => setOpenRejectForm(openRejectForm === withdrawal._id ? null : withdrawal._id)}
+                                            >
+                                                Reject
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {openRejectForm === withdrawal._id && (
+                                        <tr>
+                                            <td colSpan="9" className="bg-gray-700 p-4">
+                                                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                                    <textarea
+                                                        placeholder="Enter rejection reason..."
+                                                        value={rejectReason[withdrawal._id] || ''}
+                                                        onChange={(e) => handleInputChange(withdrawal._id, e.target.value)}
+                                                        className="w-full sm:w-2/3 p-2 rounded bg-black-800 border border-black-600 text-white"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleReject(withdrawal._id)}
+                                                        className="bg-red-500 px-4 py-2 rounded text-white"
+                                                    >
+                                                        Submit Rejection
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>

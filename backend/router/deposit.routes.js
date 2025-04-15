@@ -123,35 +123,40 @@ router.post('/approve/:id', async (req, res) => {
     }
 });
 
-// Reject Deposit API
 router.post('/reject', async (req, res) => {
     try {
         const { depositId, reason } = req.body;
 
-        console.log("Reject Deposit ID:", depositId);
-        console.log("Reject Reason:", reason);
-
-
-        if (!depositId) return res.status(200).json({ message: 'Deposit ID is required', success: false });
-        if (!reason) return res.status(200).json({ message: 'Reason is required', success: false });
+        if (!depositId || !reason) {
+            return res.status(200).json({ success: false, message: 'Deposit ID and reason are required' });
+        }
 
         const deposit = await DepositModel.findById(depositId);
 
-        if (!deposit) return res.status(200).json({ message: 'Deposit not found', success: false });
-        if (deposit.status !== 'pending') return res.status(200).json({ message: 'Deposit already processed', success: false });
+        if (!deposit) {
+            return res.status(200).json({ success: false, message: 'Deposit not found' });
+        }
 
-        if (deposit.status === 'rejected') return res.status(200).json({ message: 'Deposit already rejected', success: false });
+        if (deposit.status === 'approved') {
+            return res.status(200).json({ success: false, message: 'Deposit already approved, cannot reject' });
+        }
 
-        deposit.reason = reason;
         deposit.status = 'rejected';
+        deposit.reason = reason;
         await deposit.save();
 
-        res.status(200).json({ message: 'Deposit rejected successfully', success: true });
+        return res.status(200).json({
+            success: true,
+            message: 'Deposit rejection reason updated',
+            reason: deposit.reason
+        });
+
     } catch (error) {
-        console.error('Error rejecting deposit:', error);
-        res.status(200).json({ message: 'Failed to reject deposit', success: false });
+        console.error('Deposit reject error:', error);
+        return res.status(200).json({ success: false, message: 'Server error', error: error.message });
     }
 });
+
 
 
 
@@ -160,9 +165,8 @@ router.get('/all', async (req, res) => {
         const deposits = await DepositModel.find({}).sort({ createdAt: -1 });
 
         res.status(200).json({
-            message: 'Deposits fetched successfully',
+            success: true,
             data: deposits
-            , success: true
         });
     } catch (error) {
         console.error('Failed to fetch deposits:', error);
@@ -170,11 +174,11 @@ router.get('/all', async (req, res) => {
     }
 });
 
-router.get('/:userId' , async(req , res) => {
+router.get('/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
         const deposits = await DepositModel.find({ userId });
-        
+
         res.status(200).json({
             message: 'Deposits fetched successfully',
             data: deposits
@@ -183,7 +187,7 @@ router.get('/:userId' , async(req , res) => {
     } catch (error) {
         console.error('Failed to fetch deposits:', error);
         res.status(200).json({ message: 'Failed to fetch deposits', success: false });
-    }   
+    }
 });
 
 

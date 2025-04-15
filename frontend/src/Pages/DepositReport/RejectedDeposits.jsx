@@ -7,23 +7,50 @@ import BackButton from '../../components/BackButton/BackButton';
 const RejectedDeposits = () => {
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [previewImg, setPreviewImg] = useState(null);
+  const [editMode, setEditMode] = useState(null);
+  const [editedReason, setEditedReason] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
 
-  const fetchRejected = async () => {
+  const fetchDeposits = async () => {
     try {
       const res = await axios.get(`http://${BASE_URL}:3000/api/deposit/all`);
-      const rejected = res.data.data?.filter((d) => d.status === 'rejected') || [];
-      setDeposits(rejected);
+      setDeposits(res.data.data.filter((d) => d.status === 'rejected'));
     } catch (err) {
-      console.error('Error fetching rejected deposits:', err);
+      console.error('Error fetching deposits:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRejected();
+    fetchDeposits();
   }, []);
+
+  const handleEdit = (deposit) => {
+    setEditMode(deposit._id);
+    setEditedReason(deposit.reason || '');
+  };
+
+  const handleSave = async (id) => {
+    try {
+      const res = await axios.post(`http://${BASE_URL}:3000/api/deposit/reject`, {
+        depositId: id,
+        reason: editedReason,
+      });
+
+      setMessage(res.data.message);
+      setMessageType(res.data.success ? 'success' : 'error');
+
+      setDeposits((prev) =>
+        prev.map((d) => (d._id === id ? { ...d, reason: editedReason } : d))
+      );
+    } catch (err) {
+      console.error('Error updating reason:', err);
+      setMessage('Failed to update reason');
+      setMessageType('error');
+    }
+  };
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
@@ -32,18 +59,27 @@ const RejectedDeposits = () => {
       </div>
       <h2 className="text-2xl font-bold mb-4">Rejected Deposits</h2>
 
+      {message && (
+        <div className={`p-4 mb-4 rounded ${messageType === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {message}
+        </div>
+      )}
+
       {loading ? (
         <p>Loading...</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-gray-800 text-white border border-gray-700 shadow-md">
-            <thead className="bg-red-600">
+            <thead className="bg-blue-600">
               <tr>
-                <th className="text-left py-2 px-4 border-b">User ID</th>
-                <th className="text-left py-2 px-4 border-b">Amount</th>
-                <th className="text-left py-2 px-4 border-b">Reason</th>
-                <th className="text-left py-2 px-4 border-b">Document</th>
-                <th className="text-left py-2 px-4 border-b">Created At</th>
+                <th className="py-2 px-4 border-b">User ID</th>
+                <th className="py-2 px-4 border-b">Amount</th>
+                <th className="py-2 px-4 border-b">Type</th>
+                <th className="py-2 px-4 border-b">UTR</th>
+                <th className="py-2 px-4 border-b">Reject Reason</th>
+                <th className="py-2 px-4 border-b">Document</th>
+                <th className="py-2 px-4 border-b">Date</th>
+                <th className="py-2 px-4 border-b">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -51,49 +87,62 @@ const RejectedDeposits = () => {
                 <tr key={deposit._id}>
                   <td className="py-2 px-4 border-b">{deposit.userId}</td>
                   <td className="py-2 px-4 border-b">{deposit.amount}</td>
-                  <td className="py-2 px-4 border-b">{deposit.reason}</td>
+                  <td className="py-2 px-4 border-b">{deposit.amountType}</td>
+                  <td className="py-2 px-4 border-b">{deposit.utr}</td>
+                  <td className="py-2 px-4 border-b">
+                    {editMode === deposit._id ? (
+                      <textarea
+                        className="w-full p-1 text-white rounded"
+                        value={editedReason}
+                        onChange={(e) => setEditedReason(e.target.value)}
+                      />
+                    ) : (
+                      <span className="text-white italic">
+                        {deposit.reason || 'N/A'}
+                      </span>
+                    )}
+                  </td>
                   <td className="py-2 px-4 border-b">
                     {deposit.documentImage ? (
                       <img
                         src={`http://${BASE_URL}:3000/${deposit.documentImage.replace(/\\/g, '/')}`}
                         alt="Proof"
-                        className="w-16 h-auto rounded border cursor-pointer hover:scale-105 transition"
-                        onClick={() =>
-                          setPreviewImg(`http://${BASE_URL}:3000/${deposit.documentImage.replace(/\\/g, '/')}`)
-                        }
+                        className="w-16 h-auto rounded"
                       />
                     ) : (
-                      <span className="text-gray-500 italic">No Document</span>
+                      'No Doc'
                     )}
                   </td>
+                  <td className="py-2 px-4 border-b">{new Date(deposit.createdAt).toLocaleString()}</td>
                   <td className="py-2 px-4 border-b">
-                    {new Date(deposit.createdAt).toLocaleString()}
+                    {editMode === deposit._id ? (
+                      <>
+                        <button
+                          onClick={() => handleSave(deposit._id)}
+                          className="bg-green-600 text-white px-3 py-1 rounded"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditMode(null)}
+                          className="bg-gray-600 text-white px-3 py-1 rounded"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleEdit(deposit)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {previewImg && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Document Preview</h3>
-            <img
-              src={previewImg}
-              alt="Document"
-              className="max-h-[80vh] w-auto mx-auto rounded shadow-md border border-gray-300"
-            />
-            <div className="text-right mt-4">
-              <button
-                onClick={() => setPreviewImg(null)}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

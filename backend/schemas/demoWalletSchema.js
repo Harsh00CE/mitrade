@@ -38,6 +38,12 @@ const demoWalletSchema = new Schema({
         default: 0,
         set: (value) => Number(value.toFixed(3)),
     },
+    leverage: {
+        type: Number,
+        default: 1,
+        required: true,
+        min: 1,
+    },
     pl: {
         type: Number,
         required: [true, "pl is required"],

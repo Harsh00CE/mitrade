@@ -38,6 +38,11 @@ const activeWalletSchema = new Schema({
         default: 0,
         set: (value) => Number(value.toFixed(3)),
     },
+      leverage: {
+        type: Number,
+        required: true,
+        min: 1,
+      },
     pl: {
         type: Number,
         required: [true, "pl is required"],

@@ -12,6 +12,7 @@ const WALLET_PROJECTION = {
     equity: 1,
     margin: 1,
     marginLevel: 1,
+    leverage: 1,
     pl: 1
 };
 
@@ -27,11 +28,6 @@ router.get("/:userId", async (req, res) => {
         }
 
         const user = await UserModel.findById(userId)
-            .populate({
-                path: "demoWallet",
-                select: WALLET_PROJECTION
-            })
-            .lean()
 
         if (!user) {
             return res.status(200).json({
@@ -47,7 +43,6 @@ router.get("/:userId", async (req, res) => {
                 message: "Wallet not found"
             });
         }
-
 
         return res.status(200).json({
             success: true,

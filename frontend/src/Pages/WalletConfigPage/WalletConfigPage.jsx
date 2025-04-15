@@ -28,6 +28,7 @@ const WalletConfigPage = () => {
                     Authorization: `Bearer ${token}`,
                 },
             });
+            console.log("Response: ", response.data.data);
             
             setUserWallet(response.data.data);
             setEditedWallet(response.data.data);
@@ -121,7 +122,7 @@ const WalletConfigPage = () => {
                 <div className="space-y-5">
                     {Object.entries(userWallet)
                         .filter(([key]) =>
-                            ["balance", "equity", "available", "margin", "marginLevel", "pl"].includes(key)
+                            ["balance", "equity", "available", "margin", "marginLevel","leverage", "pl"].includes(key)
                         )
                         .map(([key, value]) => (
                             <div

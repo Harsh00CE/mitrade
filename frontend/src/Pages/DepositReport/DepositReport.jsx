@@ -7,18 +7,20 @@ import BackButton from '../../components/BackButton/BackButton';
 const DepositReport = () => {
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [previewImg, setPreviewImg] = useState(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [selectedDepositId, setSelectedDepositId] = useState(null);
-
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
+  const [rejectReason, setRejectReason] = useState({});
+  const [openRejectForm, setOpenRejectForm] = useState(null);
 
   const fetchDeposits = async () => {
     try {
       const res = await axios.get(`http://${BASE_URL}:3000/api/deposit/all`);
-      setDeposits(res.data.data || []);
+      const pendingDeposits = res.data.data.filter(d => d.status === 'pending');
+      setDeposits(pendingDeposits);
     } catch (err) {
       console.error('Error fetching deposits:', err);
+      setMessage('Error fetching deposit data');
+      setMessageType('error');
     } finally {
       setLoading(false);
     }
@@ -28,65 +30,58 @@ const DepositReport = () => {
     fetchDeposits();
   }, []);
 
-  const handleAction = async (id, action) => {
-    if (action === 'reject') {
-      setSelectedDepositId(id);
-      setShowRejectModal(true);
-      return;
-    }
-
+  const handleApprove = async (id) => {
     try {
-      const endpoint = `http://${BASE_URL}:3000/api/deposit/${action}/${id}`;
-      const res = await axios.post(endpoint);
-
-      if (res.data.message) {
-        alert(res.data.message);
-        fetchDeposits();
-      } else {
-        alert('Something went wrong');
-      }
+      const res = await axios.post(`http://${BASE_URL}:3000/api/deposit/approve/${id}`);
+      setMessage(res.data.message);
+      setMessageType(res.data.success ? 'success' : 'error');
+      fetchDeposits();
     } catch (error) {
-      console.error(`Error on ${action}:`, error);
-      alert(`Failed to ${action} deposit`);
+      console.error('Error approving deposit:', error);
+      setMessage('Error approving deposit');
+      setMessageType('error');
     }
   };
 
-  const submitRejectReason = async () => {
-    if (!rejectReason.trim()) {
-      alert('Please enter a reason');
+  const handleReject = async (id) => {
+    const reason = rejectReason[id];
+    if (!reason || reason.trim() === '') {
+      setMessage('Rejection reason is required');
+      setMessageType('error');
       return;
     }
 
     try {
       const res = await axios.post(`http://${BASE_URL}:3000/api/deposit/reject`, {
-        depositId: selectedDepositId,
-        reason: rejectReason
+        depositId: id,
+        reason,
       });
-
-      if (res.data.success) {
-        alert(res.data.message);
-        fetchDeposits();
-      } else {
-        alert(res.data.message || 'Failed to reject deposit');
-      }
+      setMessage(res.data.message);
+      setMessageType(res.data.success ? 'success' : 'error');
+      fetchDeposits();
     } catch (error) {
-      console.error('Reject error:', error);
-      alert('Server error');
-    } finally {
-      setShowRejectModal(false);
-      setRejectReason('');
-      setSelectedDepositId(null);
+      console.error('Error rejecting deposit:', error);
+      setMessage('Error rejecting deposit');
+      setMessageType('error');
     }
   };
 
-
+  const handleInputChange = (id, value) => {
+    setRejectReason(prev => ({ ...prev, [id]: value }));
+  };
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
       <div className="flex ml-10 items-center mb-4">
         <BackButton />
       </div>
-      <h2 className="text-2xl font-bold mb-4">All Deposit Requests</h2>
+      <h2 className="text-2xl font-bold mb-4">Pending Deposits</h2>
+
+      {message && (
+        <div className={`p-4 mb-4 rounded ${messageType === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          <p>{message}</p>
+        </div>
+      )}
 
       {loading ? (
         <p>Loading...</p>
@@ -106,10 +101,9 @@ const DepositReport = () => {
               </tr>
             </thead>
             <tbody>
-              {deposits
-                .filter((deposit) => deposit.status === 'pending')
-                .map((deposit) => (
-                  <tr key={deposit._id}>
+              {deposits.map((deposit) => (
+                <React.Fragment key={deposit._id}>
+                  <tr>
                     <td className="py-2 px-4 border-b">{deposit.userId}</td>
                     <td className="py-2 px-4 border-b">{deposit.amount}</td>
                     <td className="py-2 px-4 border-b">{deposit.amountType}</td>
@@ -121,9 +115,6 @@ const DepositReport = () => {
                           src={`http://${BASE_URL}:3000/${deposit.documentImage.replace(/\\/g, '/')}`}
                           alt="Proof"
                           className="w-16 h-auto rounded border cursor-pointer hover:scale-105 transition"
-                          onClick={() =>
-                            setPreviewImg(`http://${BASE_URL}:3000/${deposit.documentImage.replace(/\\/g, '/')}`)
-                          }
                         />
                       ) : (
                         <span className="text-gray-500 italic">No Document</span>
@@ -132,83 +123,47 @@ const DepositReport = () => {
                     <td className="py-2 px-4 border-b">
                       {new Date(deposit.createdAt).toLocaleString()}
                     </td>
-                    <td className="py-2 px-4 border-b space-y-2">
+                    <td className="py-2 px-4 border-b">
                       <button
-                        onClick={() => handleAction(deposit._id, 'approve')}
-                        className="bg-green-600 text-white px-3 py-1 w-full rounded hover:bg-green-700"
+                        className="bg-green-600 text-white py-1 w-full m-1 px-4 rounded"
+                        onClick={() => handleApprove(deposit._id)}
                       >
                         Approve
                       </button>
                       <button
-                        onClick={() => handleAction(deposit._id, 'reject')}
-                        className="bg-red-600 text-white px-3 py-1 w-full rounded hover:bg-red-700"
+                        className="bg-red-600 text-white py-1 w-full m-1 px-4 rounded"
+                        onClick={() => setOpenRejectForm(openRejectForm === deposit._id ? null : deposit._id)}
                       >
                         Reject
                       </button>
                     </td>
                   </tr>
-                ))}
+                  {openRejectForm === deposit._id && (
+                    <tr>
+                      <td colSpan="8" className="bg-gray-700 p-4">
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                          <textarea
+                            placeholder="Enter rejection reason..."
+                            value={rejectReason[deposit._id] || ''}
+                            onChange={(e) => handleInputChange(deposit._id, e.target.value)}
+                            className="w-full sm:w-2/3 p-2 rounded bg-black-800 border border-black-600 text-white"
+                          />
+                          <button
+                            onClick={() => handleReject(deposit._id)}
+                            className="bg-red-500 px-4 py-2 rounded text-white"
+                          >
+                            Submit Rejection
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
             </tbody>
-
-
           </table>
         </div>
       )}
-
-      {previewImg && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Document Preview</h3>
-            <img
-              src={previewImg}
-              alt="Document"
-              className="max-h-[80vh] w-auto mx-auto rounded shadow-md border border-gray-300"
-            />
-            <div className="text-right mt-4">
-              <button
-                onClick={() => setPreviewImg(null)}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Reject Deposit</h3>
-            <textarea
-              rows="4"
-              placeholder="Enter reason for rejection..."
-              className="w-full p-2 border text-black border-gray-300 rounded mb-4"
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-            />
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectReason('');
-                  setSelectedDepositId(null);
-                }}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitRejectReason}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

@@ -44,6 +44,7 @@ const SellHistory = () => {
                         <table className="min-w-full bg-gray-800 border border-gray-700 text-white rounded-lg">
                             <thead className="bg-red-600 text-white uppercase text-sm">
                                 <tr>
+                                    <th className="px-4 py-3 text-left">userId</th>
                                     <th className="px-4 py-3 text-left">Symbol</th>
                                     <th className="px-4 py-3 text-left">Qty</th>
                                     <th className="px-4 py-3 text-left">Open</th>
@@ -58,6 +59,7 @@ const SellHistory = () => {
                             <tbody>
                                 {sellOrders.map((order) => (
                                     <tr key={order._id} className="border-t border-gray-700 hover:bg-gray-700 transition">
+                                        <td className='px-4 py-2'>{order.userId}</td>
                                         <td className="px-4 py-2">{order.symbol}</td>
                                         <td className="px-4 py-2">{order.quantity}</td>
                                         <td className="px-4 py-2">{order.openingPrice}</td>

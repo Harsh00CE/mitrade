@@ -7,6 +7,8 @@ import BackButton from "../../components/BackButton/BackButton";
 
 const User = () => {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -21,6 +23,7 @@ const User = () => {
       });
 
       setUsers(response.data.data);
+      setFilteredUsers(response.data.data);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -33,43 +36,67 @@ const User = () => {
     fetchUsers();
   }, [page, limit]);
 
+  useEffect(() => {
+    const lowerQuery = searchQuery.toLowerCase();
+
+    const filtered = users.filter((user) =>
+      user.username?.toLowerCase().includes(lowerQuery) ||
+      user.email?.toLowerCase().includes(lowerQuery) ||
+      user._id?.toLowerCase().includes(lowerQuery)
+    );
+
+    setFilteredUsers(filtered);
+  }, [searchQuery, users]);
+
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 font-sans mx-auto bg-gray-900 text-white">
 
       <div className="mb-6 w-full ml-10">
-        <BackButton/>
+        <BackButton />
       </div>
 
       <h2 className="ml-10 text-lg sm:text-xl font-semibold text-blue-500 mb-4">Users 🙍‍♂️</h2>
+
+      {/* Search Bar */}
+      <div className="flex justify-end mb-4 mr-10">
+        <input
+          type="text"
+          placeholder="Search by username, email or ID"
+          className="px-4 py-2 rounded-md bg-gray-800 border border-gray-600 text-white placeholder-gray-400 w-full max-w-md"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] border border-gray-700 shadow-md rounded-lg">
           <thead>
             <tr className="bg-gray-800 text-blue-400">
-              <th className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700">User ID</th>
-              <th className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700">Username</th>
-              <th className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700">Email</th>
-              <th className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700">Active</th>
-              <th className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700">Actions</th>
+              <th className="py-2 px-3 border border-gray-700">User ID</th>
+              <th className="py-2 px-3 border border-gray-700">Username</th>
+              <th className="py-2 px-3 border border-gray-700">Email</th>
+              <th className="py-2 px-3 border border-gray-700">Active</th>
+              <th className="py-2 px-3 border border-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.userId} className="border-b border-gray-700 hover:bg-gray-800">
-                <td className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700 text-center">{user.userId}</td>
-                <td className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700 text-center">{user.username}</td>
-                <td className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700 text-center">{user.email}</td>
-                <td className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700 text-center">
-                  {user.balance > 0 ? (
+            {filteredUsers.map((user) => (
+              <tr key={user._id} className="border-b border-gray-700 hover:bg-gray-800">
+                <td className="py-2 px-3 border border-gray-700 text-center">{user._id}</td>
+                <td className="py-2 px-3 border border-gray-700 text-center">{user.username}</td>
+                <td className="py-2 px-3 border border-gray-700 text-center">{user.email}</td>
+                <td className="py-2 px-3 border border-gray-700 text-center">
+                  {user.demoWallet?.balance > 0 ? (
                     <span className="text-green-400 font-semibold">Active</span>
                   ) : (
                     <span className="text-red-400 font-semibold">Not Active</span>
                   )}
+
                 </td>
-                <td className="py-2 px-3 sm:py-3 sm:px-4 border border-gray-700 text-center">
+                <td className="py-2 px-3 border border-gray-700 text-center">
                   <button
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base"
-                    onClick={() => navigate(`/user-config/${user.userId}`)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-md text-sm"
+                    onClick={() => navigate(`/user-config/${user._id}`)}
                   >
                     Config
                   </button>

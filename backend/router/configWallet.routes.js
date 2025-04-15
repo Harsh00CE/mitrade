@@ -9,7 +9,7 @@ router.put("/:userId", async (req, res) => {
     await connectDB();
     try {
         const { userId } = req.params;
-        const { balance, equity, available, margin, marginLevel, pl } = req.body;
+        const { balance, equity, available, margin,leverage, marginLevel, pl } = req.body;
 
         if (!userId) {
             return res.status(200).json({
@@ -33,6 +33,7 @@ router.put("/:userId", async (req, res) => {
                 equity,
                 available,
                 margin,
+                leverage,
                 ...(marginLevel && { marginLevel }),
                 ...(pl && { pl })
             },
