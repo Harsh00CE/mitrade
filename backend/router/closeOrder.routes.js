@@ -21,7 +21,7 @@ router.post("/", async (req, res) => {
         const openOrder = await OpenOrdersModel.findOneAndDelete({
             _id: orderId,
             status: "active"
-        }).select(ORDER_PROJECTION).lean();
+        })
 
 
         if (!openOrder) {
