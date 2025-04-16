@@ -34,11 +34,6 @@ router.get('/', async (req, res) => {
 });
 
 
-
-
-
-
-
 // router.get("/", async (req, res) => {
 //     try {
 //         const page = parseInt(req.query.page) || 1;
@@ -107,7 +102,7 @@ router.get("/:userId", async (req, res) => {
                 userId: user._id,
                 username: user.username,
                 email: user.email,
-                balance: user.demoWallet?.balance || 0,
+                walletType: user.walletType,
             },
         });
     } catch (error) {
@@ -119,5 +114,41 @@ router.get("/:userId", async (req, res) => {
         });
     }
 });
+
+router.post("/:userId", async(req , res) => {
+    try {
+        const { userId } = req.params;
+        const {walletType} = req.body;
+
+        if (!userId) {
+            return res.status(200).json({
+                success: false,
+                message: "User ID is required",
+            });
+        }
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            return res.status(200).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        user.walletType = walletType;
+        await user.save();
+        return res.status(200).json({
+            success: true,
+            message: `switched to ${walletType} wallet`,
+        });
+        
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        return res.status(200).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+        
+    }
+})
 
 export default router;

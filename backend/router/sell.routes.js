@@ -3,6 +3,7 @@ import UserModel from "../schemas/userSchema.js";
 import { v4 as uuidv4 } from 'uuid';
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
+import ActiveWalletModel from "../schemas/activeWalletSchema.js";
 
 const router = express.Router();
 
@@ -33,8 +34,6 @@ router.post("/", async (req, res) => {
         }
 
         const user = await UserModel.findById(userId)
-            .select('demoWallet')
-            .populate('demoWallet');
 
         if (!user || !user.demoWallet) {
             return res.status(200).json({
@@ -43,9 +42,31 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const wallet = await DemoWalletModel.findById(user.demoWallet)
+        if (!user.walletType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+            })
+        }
 
-        const marginRequired = parseFloat(((quantity * price) / leverage).toFixed(2));
+        if (!user.demoWallet && !user.activeWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet not found",
+            })
+        }
+
+        const walletType = user.walletType;
+        let wallet;
+
+        if (walletType === "demo") {
+            wallet = await DemoWalletModel.findById(user.demoWallet);
+        } else {
+            wallet = await ActiveWalletModel.findById(user.activeWallet);
+        }
+
+
+        const marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
 
         if (wallet.available < marginRequired) {
             return res.status(200).json({
@@ -109,7 +130,7 @@ router.post("/", async (req, res) => {
             position: "open",
             openingTime: getISTDate(),
             margin: marginRequired,
-            tradingAccount: "demo",
+            tradingAccount: user.walletType,
             userId
         });
 

@@ -91,7 +91,7 @@ const openOrdersSchema = new Schema(
         tradingAccount: {
             type: String,
             required: true,
-            enum: ["demo", "live"],
+            enum: ["demo", "active"],
             index: true,
         },
         overnightFunding: {

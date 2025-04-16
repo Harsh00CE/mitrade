@@ -13,6 +13,7 @@ import OpenOrdersModel from "./schemas/openOrderSchema.js";
 import ClosedOrdersModel from "./schemas/closeOrderSchema.js";
 import mongoose from "mongoose";
 import DemoWalletModel from "./schemas/demoWalletSchema.js";
+import ActiveWalletModel from "./schemas/activeWalletSchema.js";
 
 dotenv.config({ path: ".env" });
 
@@ -23,11 +24,11 @@ app.listen(process.env.PORT || 3000, () => {
 });
 
 const TOP_100_FOREX_PAIRS = [
-    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD', 'NATGAS_USD'
+    'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD', 'NATGAS_USD', 'EUR_GBP', 'USD_JPY', 'GBP_USD', 'USD_CHF', 'XAU_USD', 'XAG_USD', 'XPT_USD', 'XPD_USD', 'NATGAS_USD', 'EUR_GBP', 'USD_JPY', 'GBP_USD'
 ];
 
 const TOP_100_CRYPTO_PAIRS = [
-    'BTC_USD', 'ETH_USD', 'BCH_USD', 'LTC_USD', 'SOL_USD', 'DOGE_USD',
+    'BTC_USD', 'ETH_USD', 'BCH_USD', 'LTC_USD', 'SOL_USD', 'DOGE_USD', 'USD_THB', 'GBP_CHF', 'EUR_JPY', 'AUD_CAD', 'NZD_USD', 'USD_CAD', 'USD_SGD', 'USD_HKD', 'USD_CZK', 'USD_DKK', 'USD_NOK', 'USD_SEK', 'USD_TRY', 'USD_ZAR'
 ];
 
 const server = createServer();
@@ -280,7 +281,7 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             : entryValue - closingValue;
 
         realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
-        console.log("Realised P/L:", realisedPL);
+        // console.log("Realised P/L:", realisedPL);
 
         // Create Closed Order
         const closedOrder = new ClosedOrdersModel({
@@ -306,8 +307,38 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             closeReason: isTP ? "take-profit" : "stop-loss"
         });
 
-        const user = await UserModel.findById(openOrder.userId).lean();
-        const wallet = await DemoWalletModel.findById(user.demoWallet);
+        const user = await UserModel.findById(openOrder.userId)
+
+        if (!user || !user.demoWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User or wallet not found"
+            });
+        }
+
+        if (!user.walletType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+            })
+        }
+
+        if (!user.demoWallet && !user.activeWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet not found",
+            })
+        }
+
+        const walletType = user.walletType;
+        let wallet;
+
+        if (walletType === "demo") {
+            wallet = await DemoWalletModel.findById(user.demoWallet);
+        } else {
+            wallet = await ActiveWalletModel.findById(user.activeWallet);
+        }
+
         if (!wallet) continue;
 
         // Update wallet
@@ -363,7 +394,7 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
     });
     for (const order of pendingOrders) {
         const { _id, userId, type, quantity, contractSize, leverage, margin, tradingAccount, pendingValue } = order;
-        
+
         if (!pendingValue) continue;
 
         const triggerType = type;
@@ -381,7 +412,7 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
 
 
 
-        console.log("Trigger Type:", triggerType, "Current Price:", currentPrice, "Trigger Price:", triggerPrice, "Should Trigger:", shouldTrigger);
+        // console.log("Trigger Type:", triggerType, "Current Price:", currentPrice, "Trigger Price:", triggerPrice, "Should Trigger:", shouldTrigger);
         if (!shouldTrigger) continue;
 
         const updatedOrder = await OpenOrdersModel.findByIdAndUpdate(
@@ -397,10 +428,40 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
 
         // Update user's wallet: only if demo account (you can add real account logic similarly)
         if (tradingAccount === "demo") {
-            const user = await UserModel.findById(userId).lean();
+            const user = await UserModel.findById(userId)
             if (!user) continue;
 
-            const wallet = await DemoWalletModel.findById(user.demoWallet);
+            if (!user || !user.demoWallet) {
+                return res.status(200).json({
+                    success: false,
+                    message: "User or wallet not found"
+                });
+            }
+    
+            if (!user.walletType) {
+                return res.status(200).json({
+                    success: false,
+                    message: "User wallet type not found",
+                })
+            }
+    
+            if (!user.demoWallet && !user.activeWallet) {
+                return res.status(200).json({
+                    success: false,
+                    message: "User wallet not found",
+                })
+            }
+    
+            const walletType = user.walletType;
+            let wallet;
+    
+            if (walletType === "demo") {
+                wallet = await DemoWalletModel.findById(user.demoWallet);
+            } else {
+                wallet = await ActiveWalletModel.findById(user.activeWallet);
+            }
+    
+            
             if (!wallet || wallet.available < margin) {
                 console.log(`Insufficient margin for user ${userId}`);
                 continue;

@@ -70,7 +70,7 @@ const AdminBankForm = () => {
     }
 
     return (
-        <div className="p-6 bg-gray-900 text-white min-h-screen">
+        <div className="p-6 bg-gray-900 text-white overflow-y-scroll overflow-x-hidden">
             <div className="w-full ml-10">
                 <BackButton />
             </div>

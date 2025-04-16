@@ -85,7 +85,7 @@ const Sidebar = () => {
       `}>
         <div className="mb-6 text-white text-center">
           <h2 className="text-2xl font-bold">Admin Panel</h2>
-          <p className="text-sm text-gray-400">superadmin@erax.biz</p>
+          <p className="text-sm text-gray-400">email</p>
         </div>
 
         <ul className="space-y-2 overflow-y-auto flex-1">

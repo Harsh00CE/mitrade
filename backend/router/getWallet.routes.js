@@ -2,19 +2,10 @@ import express from "express";
 import UserModel from "../schemas/userSchema.js";
 import mongoose from "mongoose";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
+import ActiveWalletModel from "../schemas/activeWalletSchema.js";
 
 const router = express.Router();
 
-
-const WALLET_PROJECTION = {
-    balance: 1,
-    available: 1,
-    equity: 1,
-    margin: 1,
-    marginLevel: 1,
-    leverage: 1,
-    pl: 1
-};
 
 router.get("/:userId", async (req, res) => {
     try {
@@ -36,7 +27,32 @@ router.get("/:userId", async (req, res) => {
             });
         }
 
-        const wallet = await DemoWalletModel.findOne({ userId: user._id }).lean();
+
+        if (!user.walletType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+            })
+        }
+
+        if (!user.demoWallet && !user.activeWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet not found",
+            })
+        }
+
+        const walletType = user.walletType;
+        let wallet;
+
+        if (walletType === "demo") {
+            wallet = await DemoWalletModel.findById(user.demoWallet);
+        } else {
+            wallet = await ActiveWalletModel.findById(user.activeWallet);
+        }
+
+
+
         if (!wallet) {
             return res.status(200).json({
                 success: false,

@@ -5,9 +5,9 @@ const pairInfoSchema = new Schema({
         type: String,
         required: [true, "Symbol is required"],
     },
-    pairType:{
+    pairType: {
         type: String,
-        required: [true, "Pair type is required"],
+        // required: [true, "Pair type is required"],
     },
     volumePerTrade: {
         min: {
@@ -18,10 +18,6 @@ const pairInfoSchema = new Schema({
             type: Number,
             required: [true, "Maximum volume per trade is required"],
         },
-    },
-    leverages: {
-        type: [Number],
-        required: [true, "Leverages are required"],
     },
     ContractSize: {
         type: Number,
@@ -51,6 +47,11 @@ const pairInfoSchema = new Schema({
         type: String,
         required: [true, "Overnight funding rate time is required"],
     },
+    logo: {
+        type: String,
+        default: '',
+    }
+
 });
 
 const PairInfoModel = mongoose.models.PairInfo || mongoose.model("PairInfo", pairInfoSchema);

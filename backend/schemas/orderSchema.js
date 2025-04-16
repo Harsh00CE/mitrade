@@ -54,8 +54,14 @@ const orderSchema = new Schema(
             type: Date,
             default: null,
         },
-        takeProfit: Number,
-        stopLoss: Number,
+        takeProfit: {
+            type: Number,
+            default: null,
+        },
+        stoploss: {
+            type: Number,
+            default: null,
+        },
         trailingStop: {
             type: String,
             default: "Unset",
@@ -77,7 +83,7 @@ const orderSchema = new Schema(
         tradingAccount: {
             type: String,
             required: true,
-            enum: ["demo", "live"],
+            enum: ["demo", "active"],
             index: true, 
         },
         userId: {

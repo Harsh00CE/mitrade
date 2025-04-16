@@ -3,6 +3,7 @@ import useWebSocket from "react-use-websocket";
 import { useNavigate } from "react-router-dom";
 import TradingViewChart from "../Chart/TradingViewChart";
 import { BASE_URL } from "../../utils/constant";
+import BackButton from "../../components/BackButton/BackButton";
 
 const Crypto = () => {
     const [allTickers, setAllTickers] = useState([]);
@@ -44,11 +45,15 @@ const Crypto = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gray-900 min-h-screen w-full text-white">
-            <h1 className="mt-10 text-xl sm:text-2xl font-bold text-blue-500 mb-4">
-                Real-Time Crypto & Forex Prices
-            </h1>
+
 
             {/* Search */}
+            <div className="p-4">
+                <BackButton />
+                <h1 className="text-2xl font-bold text-center mt-4 text-blue-400">
+                    📈 Real-Time Crypto Dashboard
+                </h1>
+            </div>
             <div className="mb-6">
                 <input
                     type="text"
@@ -62,16 +67,16 @@ const Crypto = () => {
                 />
             </div>
 
-            {selectedSymbol && (
+            {/* {selectedSymbol && (
                 <div className="mb-8 bg-gray-800 p-4 sm:p-6 rounded-lg">
                     <h2 className="text-lg sm:text-xl font-semibold text-blue-400 mb-4">
                         TradingView Chart for {selectedSymbol}
                     </h2>
                     <TradingViewChart symbol={`BINANCE:${selectedSymbol}`} />
                 </div>
-            )}
+            )} */}
 
-            <TokenTable title="📊 All Tokens" tickers={currentTickers} handleCoinClick={handleCoinClick} />
+            <TokenTable title="📊 All Crypto" tickers={currentTickers} handleCoinClick={handleCoinClick} />
 
             {/* Pagination */}
             <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
@@ -165,7 +170,7 @@ const TokenTable = ({ title, tickers, handleCoinClick }) => {
                             </div>
                             <div className="flex justify-between text-sm text-gray-300">
                                 <span>24h Volume:</span>
-                                <span>{(ticker.spread /1).toFixed(2)}</span>
+                                <span>{(ticker.spread / 1).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span>Change:</span>

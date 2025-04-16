@@ -4,6 +4,7 @@ import ClosedOrdersModel from "../schemas/closeOrderSchema.js";
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import UserModel from "../schemas/userSchema.js";
+import ActiveWalletModel from "../schemas/activeWalletSchema.js";
 
 const router = express.Router();
 
@@ -58,8 +59,8 @@ router.post("/", async (req, res) => {
             position: "close",
             openingTime: openOrder.openingTime,
             closingTime: new Date(),
-            takeProfit: openOrder.takeProfit,
-            stopLoss: openOrder.stopLoss,
+            takeProfit: typeof openOrder.takeProfit === "number" ? openOrder.takeProfit : undefined,
+            stopLoss: typeof openOrder.stopLoss === "number" ? openOrder.stopLoss : undefined,
             realisedPL,
             margin: openOrder.margin,
             tradingAccount: openOrder.tradingAccount || "demo",
@@ -67,20 +68,48 @@ router.post("/", async (req, res) => {
         });
 
         // Get user and wallet
-        const user = await UserModel.findById(openOrder.userId).lean();
-        const wallet = await DemoWalletModel.findById(user.demoWallet);
+        const user = await UserModel.findById(openOrder.userId)
+
+        if (!user || !user.demoWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User or wallet not found"
+            });
+        }
+
+        if (!user.walletType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+            })
+        }
+
+        if (!user.demoWallet && !user.activeWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet not found",
+            })
+        }
+
+        const walletType = user.walletType;
+        let wallet;
+
+        if (walletType === "demo") {
+            wallet = await DemoWalletModel.findById(user.demoWallet);
+        } else {
+            wallet = await ActiveWalletModel.findById(user.activeWallet);
+        }
+
 
         if (!wallet) {
             return res.status(200).json({ success: false, message: "Wallet not found" });
         }
 
-        // Update wallet using .save()
         wallet.balance = parseFloat((wallet.balance + realisedPL).toFixed(2));
         wallet.available = parseFloat((wallet.available + realisedPL + openOrder.margin).toFixed(2));
         wallet.margin = parseFloat((wallet.margin - openOrder.margin).toFixed(2));
         wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
 
-        // Execute all operations
         await Promise.all([
             closedOrder.save(),
             wallet.save(),

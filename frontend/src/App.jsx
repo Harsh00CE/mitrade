@@ -39,145 +39,147 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Full screen view for trading chart */}
-        <Route path="/chart/:symbol" element={<TradingViewChart />} />
+    <div className="bg-gray-900 min-h-screen text-white">
+      <Router>
+        <Routes>
+          {/* Full screen view for trading chart */}
+          <Route path="/chart/:symbol" element={<TradingViewChart />} />
 
-        {/* Routes with sidebar layout */}
-        <Route
-          path="/*"
-          element={
-            <Layout>
-              <Routes>
-                <Route path="/login" element={<AdminLogin />} />
-                <Route path="/admin-register" element={<AdminRegister />} />
+          {/* Routes with sidebar layout */}
+          <Route
+            path="/*"
+            element={
+              <Layout>
+                <Routes>
+                  <Route path="/login" element={<AdminLogin />} />
+                  <Route path="/admin-register" element={<AdminRegister />} />
 
-                <Route
-                  path="/dashboard"
-                  element={
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/crypto"
+                    element={
+                      <ProtectedRoute>
+                        <Crypto />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/comodity"
+                    element={
+                      <ProtectedRoute>
+                        <Comodity />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/forex"
+                    element={
+                      <ProtectedRoute>
+                        <Forex />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/users"
+                    element={
+                      <ProtectedRoute>
+                        <User />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/:symbol"
+                    element={
+                      <ProtectedRoute>
+                        <AdminPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/user-config/:userId"
+                    element={
+                      <ProtectedRoute>
+                        <WalletConfigPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/buy-history" element={
                     <ProtectedRoute>
-                      <Dashboard />
+                      <BuyHistory />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/crypto"
-                  element={
+                  } />
+                  <Route path="/sell-history" element={
                     <ProtectedRoute>
-                      <Crypto />
+                      <SellHistory />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/comodity"
-                  element={
+                  } />
+                  <Route path="/deposit-pandding" element={
                     <ProtectedRoute>
-                      <Comodity />
+                      <DepositReport />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/forex"
-                  element={
+                  } />
+                  <Route path="/deposit-approved" element={
                     <ProtectedRoute>
-                      <Forex />
+                      <ApprovedDeposits />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/users"
-                  element={
+                  } />
+                  <Route path="/deposit-rejected" element={
                     <ProtectedRoute>
-                      <User />
+                      <RejectedDeposits />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/:symbol"
-                  element={
+                  } />
+                  <Route path="/withdraw-pandding" element={
                     <ProtectedRoute>
-                      <AdminPage />
+                      <WithdrawReport />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/user-config/:userId"
-                  element={
+                  } />
+                  <Route path="/withdraw-approved" element={
                     <ProtectedRoute>
-                      <WalletConfigPage />
+                      <WithdrawApproved />
                     </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/"
-                  element={
+                  } />
+                  <Route path="/withdraw-rejected" element={
                     <ProtectedRoute>
-                      <Dashboard />
+                      <WithdrawRejected />
                     </ProtectedRoute>
-                  }
-                />
-                <Route path="/buy-history" element={
-                  <ProtectedRoute>
-                    <BuyHistory />
-                  </ProtectedRoute>
-                } />
-                <Route path="/sell-history" element={
-                  <ProtectedRoute>
-                    <SellHistory />
-                  </ProtectedRoute>
-                } />
-                <Route path="/deposit-pandding" element={
-                  <ProtectedRoute>
-                    <DepositReport />
-                  </ProtectedRoute>
-                } />
-                <Route path="/deposit-approved" element={
-                  <ProtectedRoute>
-                    <ApprovedDeposits />
-                  </ProtectedRoute>
-                } />
-                <Route path="/deposit-rejected" element={
-                  <ProtectedRoute>
-                    <RejectedDeposits />
-                  </ProtectedRoute>
-                } />
-                <Route path="/withdraw-pandding" element={
-                  <ProtectedRoute>
-                    <WithdrawReport />
-                  </ProtectedRoute>
-                } />
-                <Route path="/withdraw-approved" element={
-                  <ProtectedRoute>
-                    <WithdrawApproved />
-                  </ProtectedRoute>
-                }/>
-                <Route path="/withdraw-rejected" element={
-                  <ProtectedRoute>
-                    <WithdrawRejected />
-                  </ProtectedRoute>
-                }/>
-                <Route path="/kyc-submit" element={
-                  <ProtectedRoute>
-                    <KYCManagement />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin-bank-details" element={
-                  <ProtectedRoute>
-                    <AdminBankForm />
-                  </ProtectedRoute>
-                } />
-                {/* <Route path="/forex" element={<Forex />} />
+                  } />
+                  <Route path="/kyc-submit" element={
+                    <ProtectedRoute>
+                      <KYCManagement />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin-bank-details" element={
+                    <ProtectedRoute>
+                      <AdminBankForm />
+                    </ProtectedRoute>
+                  } />
+                  {/* <Route path="/forex" element={<Forex />} />
                 <Route path="/users" element={<User />} />
                 <Route path="/admin/:symbol" element={<AdminPage />} />
                 <Route path="/user-config/:userId" element={<WalletConfigPage />} /> */}
-                <Route path="*" element={<div className="text-center text-black text-xl mt-20">404 - Page Not Found</div>} />
-              </Routes>
-            </Layout>
-          }
-        />
-      </Routes>
-    </Router>
+                  <Route path="*" element={<div className="text-center text-black text-xl mt-20">404 - Page Not Found</div>} />
+                </Routes>
+              </Layout>
+            }
+          />
+        </Routes>
+      </Router>
+    </div>
   );
 }
 

@@ -14,9 +14,6 @@ const KYCManagement = () => {
   const [selectedKYC, setSelectedKYC] = useState(null);
   const [isEditingReason, setIsEditingReason] = useState(false);
 
-  const [livePrices, setLivePrices] = useState({});
-  const [favoriteTokens, setFavoriteTokens] = useState([]);
-
   const fetchKYCs = async () => {
     try {
       const res = await axios.get(`http://${BASE_URL}:3000/api/kyc/all`);
@@ -27,30 +24,9 @@ const KYCManagement = () => {
     }
   };
 
-  const fetchFavorites = async () => {
-    try {
-      const res = await axios.get(`http://${BASE_URL}:3000/api/favorites`);
-      setFavoriteTokens(res.data);
-    } catch (err) {
-      console.error("Failed to fetch favorites", err);
-    }
-  };
 
   useEffect(() => {
     fetchKYCs();
-    fetchFavorites();
-
-    const socket = new WebSocket(`ws://${BASE_URL}:3000`);
-    socket.onopen = () => console.log("Connected to WebSocket");
-
-    socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      if (message.type === "livePrices") {
-        setLivePrices((prev) => ({ ...prev, ...message.data }));
-      }
-    };
-
-    return () => socket.close();
   }, []);
 
   const updateStatus = async (id, status) => {
@@ -91,20 +67,9 @@ const KYCManagement = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-6 bg-gray-900 text-white overflow-scroll">
       <div className="w-full ml-10 p-4">
         <BackButton />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-        {favoriteTokens.map((token) => (
-          <div key={token} className="bg-gray-800 p-3 rounded-xl border border-gray-700">
-            <h3 className="text-lg font-semibold text-blue-300">{token}</h3>
-            <p className="text-green-400 mt-1">
-              Price: {livePrices[token]?.price || "Loading..."}
-            </p>
-          </div>
-        ))}
       </div>
 
       <h2 className="text-2xl font-bold text-blue-500 mb-6">🛡️ KYC Submissions</h2>

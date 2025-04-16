@@ -7,6 +7,7 @@ import BackButton from "../../components/BackButton/BackButton";
 const WalletConfigPage = () => {
     const { userId } = useParams();
     const [userWallet, setUserWallet] = useState(null);
+    const [userActiveWallet, setUserActiveWallet] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editedWallet, setEditedWallet] = useState({});
     const [isLoading, setIsLoading] = useState(false);
@@ -17,19 +18,37 @@ const WalletConfigPage = () => {
     const fetchUserWallet = async () => {
         try {
             setIsLoading(true);
-      
+
             if (!token) {
                 setMessage({ text: "Please login to fetch wallet", type: "error" });
                 return;
             }
-            
+
             const response = await axios.get(`http://${BASE_URL}:3000/api/adminuserwallet/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            console.log("Response: ", response.data.data);
-            
+
+            if (response.data.success === false) {
+                showMessage("Failed to fetch wallet data", "error");
+                console.error("Error fetching wallet:", response.data.message);
+                return;
+            }
+
+            const activeWalletResponse = await axios.get(`http://${BASE_URL}:3000/api/get-active-wallet/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (activeWalletResponse.data.success === false) {
+                showMessage("Failed to fetch active wallet data", "error");
+                console.error("Error fetching active wallet:", activeWalletResponse.data.message);
+                return;
+            }
+
+            setUserActiveWallet(activeWalletResponse.data.data);
             setUserWallet(response.data.data);
             setEditedWallet(response.data.data);
         } catch (error) {
@@ -67,7 +86,26 @@ const WalletConfigPage = () => {
                 `http://${BASE_URL}:3000/api/configwallet/${userId}`,
                 editedWallet
             );
+
+            if (response.data.success === false) {
+                showMessage("Failed to update wallet", "error");
+                console.error("Error updating wallet:", response.data.message);
+                return;
+            }
+
+            const activeWalletResponse = await axios.put(
+                `http://${BASE_URL}:3000/api/get-active-wallet/${userId}`,
+                editedWallet
+            );
+
+            if (activeWalletResponse.data.success === false) {
+                showMessage("Failed to update active wallet", "error");
+                console.error("Error updating active wallet:", activeWalletResponse.data.message);
+                return;
+            }
+
             setUserWallet(response.data.data);
+            setUserActiveWallet(activeWalletResponse.data.data);
             setIsEditing(false);
             showMessage("Wallet updated successfully!", "success");
         } catch (error) {
@@ -119,64 +157,131 @@ const WalletConfigPage = () => {
                     </div>
                 )}
 
-                <div className="space-y-5">
-                    {Object.entries(userWallet)
-                        .filter(([key]) =>
-                            ["balance", "equity", "available", "margin", "marginLevel","leverage", "pl"].includes(key)
-                        )
-                        .map(([key, value]) => (
-                            <div
-                                key={key}
-                                className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center"
-                            >
-                                <label className="text-gray-300 font-medium capitalize">
-                                    {key.replace(/([A-Z])/g, " $1")}:
-                                </label>
-                                {isEditing ? (
-                                    <input
-                                        type="number"
-                                        name={key}
-                                        value={editedWallet[key] || 0}
-                                        onChange={handleInputChange}
-                                        step="0.01"
-                                        className="sm:col-span-2 px-3 py-2 border border-gray-600 bg-gray-900 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                ) : (
-                                    <span className="sm:col-span-2 px-3 py-2 bg-gray-700 rounded-md text-white">
-                                        {typeof value === "number" ? value.toFixed(2) : value}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                </div>
+                <div className="m-5 border-2 border-gray-600 rounded-lg p-4">
+                <h1 className="text-2xl">Demo Wallet : </h1>
+                    <div className="space-y-5">
+                        {Object.entries(userWallet)
+                            .filter(([key]) =>
+                                ["balance", "equity", "available", "margin", "marginLevel", "leverage", "pl"].includes(key)
+                            )
+                            .map(([key, value]) => (
+                                <div
+                                    key={key}
+                                    className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center"
+                                >
+                                    <label className="text-gray-300 font-medium capitalize">
+                                        {key.replace(/([A-Z])/g, " $1")}:
+                                    </label>
+                                    {isEditing ? (
+                                        <input
+                                            type="number"
+                                            name={key}
+                                            value={editedWallet[key] || 0}
+                                            onChange={handleInputChange}
+                                            step="0.01"
+                                            className="sm:col-span-2 px-3 py-2 border border-gray-600 bg-gray-900 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    ) : (
+                                        <span className="sm:col-span-2 px-3 py-2 bg-gray-700 rounded-md text-white">
+                                            {typeof value === "number" ? value.toFixed(2) : value}
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                    </div>
 
-                <div className="mt-8 flex flex-col sm:flex-row sm:justify-end gap-4">
-                    {isEditing ? (
-                        <>
+                    <div className="mt-8 flex flex-col sm:flex-row sm:justify-end gap-4">
+                        {isEditing ? (
+                            <>
+                                <button
+                                    onClick={handleEditToggle}
+                                    disabled={isLoading}
+                                    className="px-4 py-2 border border-gray-600 text-white rounded-md hover:bg-gray-700 transition disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isLoading}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition disabled:opacity-50"
+                                >
+                                    {isLoading ? "Saving..." : "Save Changes"}
+                                </button>
+                            </>
+                        ) : (
                             <button
                                 onClick={handleEditToggle}
                                 disabled={isLoading}
-                                className="px-4 py-2 border border-gray-600 text-white rounded-md hover:bg-gray-700 transition disabled:opacity-50"
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition disabled:opacity-50"
                             >
-                                Cancel
+                                Edit Wallet
                             </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="m-5 border-2 border-gray-600 rounded-lg p-4">
+                <h1 className="text-2xl">Active Wallet : </h1>
+                    <div className="space-y-5">
+                        {Object.entries(userActiveWallet)
+                            .filter(([key]) =>
+                                ["balance", "equity", "available", "margin", "marginLevel", "leverage", "pl"].includes(key)
+                            )
+                            .map(([key, value]) => (
+                                <div
+                                    key={key}
+                                    className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center"
+                                >
+                                    <label className="text-gray-300 font-medium capitalize">
+                                        {key.replace(/([A-Z])/g, " $1")}:
+                                    </label>
+                                    {isEditing ? (
+                                        <input
+                                            type="number"
+                                            name={key}
+                                            value={editedWallet[key] || 0}
+                                            onChange={handleInputChange}
+                                            step="0.01"
+                                            className="sm:col-span-2 px-3 py-2 border border-gray-600 bg-gray-900 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    ) : (
+                                        <span className="sm:col-span-2 px-3 py-2 bg-gray-700 rounded-md text-white">
+                                            {typeof value === "number" ? value.toFixed(2) : value}
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                    </div>
+
+                    <div className="mt-8 flex flex-col sm:flex-row sm:justify-end gap-4">
+                        {isEditing ? (
+                            <>
+                                <button
+                                    onClick={handleEditToggle}
+                                    disabled={isLoading}
+                                    className="px-4 py-2 border border-gray-600 text-white rounded-md hover:bg-gray-700 transition disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isLoading}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition disabled:opacity-50"
+                                >
+                                    {isLoading ? "Saving..." : "Save Changes"}
+                                </button>
+                            </>
+                        ) : (
                             <button
-                                onClick={handleSave}
+                                onClick={handleEditToggle}
                                 disabled={isLoading}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition disabled:opacity-50"
                             >
-                                {isLoading ? "Saving..." : "Save Changes"}
+                                Edit Wallet
                             </button>
-                        </>
-                    ) : (
-                        <button
-                            onClick={handleEditToggle}
-                            disabled={isLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition disabled:opacity-50"
-                        >
-                            Edit Wallet
-                        </button>
-                    )}
+                        )}
+                    </div>
+
                 </div>
             </div>
         </div>

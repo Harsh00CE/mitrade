@@ -12,7 +12,7 @@ router.post("/", async (req, res) => {
         const user = await UserModel.findOne({ username })
             .select("+password +isVerified")
             .lean();
-
+            
         if (!user) {
             return res.status(200).json({ success: false, message: "User not found" });
         }
@@ -26,6 +26,7 @@ router.post("/", async (req, res) => {
         if (!isPasswordValid) {
             return res.status(200).json({ success: false, message: "Invalid password" });
         }
+
 
         // Generate JWT Token
         const token = jwt.sign(
@@ -42,6 +43,7 @@ router.post("/", async (req, res) => {
                 id: user._id,
                 username: user.username,
                 email: user.email,
+                walletType: user.walletType,
             },
         });
 

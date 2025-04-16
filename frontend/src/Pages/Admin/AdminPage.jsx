@@ -2,30 +2,18 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import useWebSocket from "react-use-websocket";
-import Select from "react-select";
 import { BASE_URL } from "../../utils/constant";
 import BackButton from "../../components/BackButton/BackButton";
-
-const leverageOptions = [
-    { value: 5, label: "5x" },
-    { value: 10, label: "10x" },
-    { value: 20, label: "20x" },
-    { value: 50, label: "50x" },
-    { value: 100, label: "100x" },
-    { value: 150, label: "150x" },
-    { value: 200, label: "200x" },
-    { value: 500, label: "500x" },
-];
 
 const AdminPage = () => {
     const { symbol } = useParams();
     const [currentPrice, setCurrentPrice] = useState(null);
     const [pairInfo, setPairInfo] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
 
     const [formData, setFormData] = useState({
         symbol: symbol || "",
         volumePerTrade: { min: "", max: "" },
-        leverages: [],
         ContractSize: "",
         maxVolumeOfOpenPosition: "",
         CurrencyOfQuote: "USD",
@@ -33,6 +21,7 @@ const AdminPage = () => {
         OvernightFundingRateBuy: "",
         OvernightFundingRateSell: "",
         OvernightFundingRateTime: "",
+        logo: "",
     });
 
     useEffect(() => {
@@ -45,12 +34,17 @@ const AdminPage = () => {
         try {
             const response = await axios.get(`http://${BASE_URL}:3000/api/pair-info?symbol=${symbol}`);
             if (response.data.success) {
-                setPairInfo(response.data.data);
+                const data = response.data.data;
+                setPairInfo(data);
                 setFormData({
-                    ...response.data.data,
-                    volumePerTrade: response.data.data.volumePerTrade,
-                    leverages: response.data.data.leverages || [],
+                    ...data,
+                    volumePerTrade: data.volumePerTrade,
                 });
+
+                // Set logo preview from saved value
+                if (data.logo) {
+                    setLogoPreview(data.logo);
+                }
             } else {
                 console.log("Pair info not found for symbol:", symbol);
             }
@@ -62,10 +56,11 @@ const AdminPage = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-    };
 
-    const handleLeverageChange = (selectedOptions) => {
-        setFormData((prev) => ({ ...prev, leverages: selectedOptions.map(option => option.value) }));
+        // Sync logo URL input with preview
+        if (name === "logo") {
+            setLogoPreview(value);
+        }
     };
 
     const handleVolumeChange = (e) => {
@@ -76,15 +71,61 @@ const AdminPage = () => {
         }));
     };
 
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert("Image size should be less than 5 MB.");
+                return;
+            }
+    
+            setFormData((prev) => ({
+                ...prev,
+                logo: file, // Save the File object directly
+            }));
+    
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         try {
-            const response = await axios.post(`http://${BASE_URL}:3000/api/admin`, formData);
+            const data = new FormData();
+            data.append("symbol", formData.symbol);
+            data.append("volumePerTrade[min]", formData.volumePerTrade.min);
+            data.append("volumePerTrade[max]", formData.volumePerTrade.max);
+            data.append("ContractSize", formData.ContractSize);
+            data.append("maxVolumeOfOpenPosition", formData.maxVolumeOfOpenPosition);
+            data.append("CurrencyOfQuote", formData.CurrencyOfQuote);
+            data.append("floatingSpread", formData.floatingSpread);
+            data.append("OvernightFundingRateBuy", formData.OvernightFundingRateBuy);
+            data.append("OvernightFundingRateSell", formData.OvernightFundingRateSell);
+            data.append("OvernightFundingRateTime", formData.OvernightFundingRateTime);
+
+            // Only append logo file if user uploaded a new one
+            if (formData.logo instanceof File) {
+                data.append("logo", formData.logo);
+            }
+
+            const response = await axios.post(`http://${BASE_URL}:3000/api/admin`, data, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+
             if (response.data.success) {
                 alert("Pair info added/updated successfully!");
                 fetchPairInfo();
             } else {
-                alert("Failed to add/update pair info.");
+                alert("Failed to add/update pair info: " + response.data.message);
             }
         } catch (error) {
             console.error("Error adding/updating pair info:", error);
@@ -92,31 +133,28 @@ const AdminPage = () => {
         }
     };
 
-    const { sendMessage, lastMessage, readyState } = useWebSocket(`ws://${BASE_URL}:3001`, {
+
+    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:3001`, {
         onOpen: () => {
-             sendMessage(JSON.stringify({ type: "subscribe", symbol }));
+            sendMessage(JSON.stringify({ type: "subscribe", symbol }));
         },
         shouldReconnect: () => true,
         reconnectInterval: 3000,
         onError: (err) => console.error("WebSocket Error", err),
     });
 
-
     useEffect(() => {
         if (!lastMessage?.data || !symbol) return;
 
         try {
             const message = JSON.parse(lastMessage.data);
-
             if (message.type === "priceUpdate") {
                 const { instrument, bid, ask } = message.data;
                 if (instrument === symbol) {
                     const avgPrice = ((parseFloat(bid) + parseFloat(ask)) / 2).toFixed(2);
                     setCurrentPrice(avgPrice);
                 }
-            }
-
-            else if (message.type === "allForexPrice" || message.type === "allCryptoPrice") {
+            } else if (message.type === "allForexPrice" || message.type === "allCryptoPrice") {
                 const instrumentData = message.data.find((item) => item.instrument === symbol);
                 if (instrumentData) {
                     const avgPrice = ((parseFloat(instrumentData.bid) + parseFloat(instrumentData.ask)) / 2).toFixed(2);
@@ -128,15 +166,12 @@ const AdminPage = () => {
         }
     }, [lastMessage, symbol]);
 
-
     return (
         <div className="min-h-screen bg-gray-900 text-white px-4 sm:px-6 lg:px-20 py-6">
             <div className="mb-6 w-full ml-10">
                 <BackButton />
             </div>
             <div className="max-w-4xl mx-auto bg-gray-800 shadow-md rounded-lg p-6">
-
-
                 <h1 className="text-xl sm:text-2xl font-bold mb-4">Admin Page - Pair Information</h1>
 
                 {currentPrice && (
@@ -146,6 +181,44 @@ const AdminPage = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Logo URL */}
+                    <div>
+                        <label className="block font-medium">Logo URL:</label>
+                        <input
+                            type="text"
+                            name="logo"
+                            value={formData.logo}
+                            onChange={handleChange}
+                            placeholder="https://example.com/logo.png"
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
+                        />
+                    </div>
+
+                    {/* Logo Upload */}
+                    <div>
+                        <label className="block font-medium">Upload Logo Image:</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                            className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
+                        />
+                    </div>
+
+                    {/* Logo Preview */}
+                    {logoPreview && (
+                        <div className="mb-4">
+                            <label className="block font-medium">Logo Preview:</label>
+                            <img
+                                // src={logoPreview}
+                                src={`http://${BASE_URL}:3000/${logoPreview.replace(/\\/g, '/')}`}
+                                alt="Logo Preview"
+                                className="w-16 h-16 object-contain border border-gray-600 rounded"
+                            />
+                        </div>
+                    )}
+
+                    {/* Volume Per Trade */}
                     <div>
                         <label className="block font-medium">Volume Per Trade:</label>
                         <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
@@ -170,6 +243,7 @@ const AdminPage = () => {
                         </div>
                     </div>
 
+                    {/* Other Fields */}
                     <div>
                         <label className="block font-medium">Max Volume of Open Positions:</label>
                         <input
@@ -260,52 +334,6 @@ const AdminPage = () => {
                             className="w-full px-3 py-2 border rounded-md bg-gray-700 border-gray-600 text-white"
                         />
                     </div>
-
-                    <div>
-                        <label className="block font-medium mb-1 text-white">Leverages:</label>
-                        <Select
-                            isMulti
-                            options={leverageOptions}
-                            value={leverageOptions.filter(option => formData.leverages.includes(option.value))}
-                            onChange={handleLeverageChange}
-                            className="text-white"
-                            styles={{
-                                control: (base) => ({
-                                    ...base,
-                                    backgroundColor: "#1f2937",
-                                    borderColor: "#374151",
-                                    color: "#ffffff",
-                                }),
-                                menu: (base) => ({
-                                    ...base,
-                                    backgroundColor: "#1f2937",
-                                    color: "#ffffff",
-                                }),
-                                option: (base, { isFocused }) => ({
-                                    ...base,
-                                    backgroundColor: isFocused ? "#374151" : "#1f2937",
-                                    color: "#ffffff",
-                                }),
-                                multiValue: (base) => ({
-                                    ...base,
-                                    backgroundColor: "#374151",
-                                }),
-                                multiValueLabel: (base) => ({
-                                    ...base,
-                                    color: "#ffffff",
-                                }),
-                                singleValue: (base) => ({
-                                    ...base,
-                                    color: "#ffffff",
-                                }),
-                                input: (base) => ({
-                                    ...base,
-                                    color: "#ffffff",
-                                }),
-                            }}
-                        />
-                    </div>
-
 
                     <button
                         type="submit"

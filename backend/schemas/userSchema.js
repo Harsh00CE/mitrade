@@ -34,6 +34,11 @@ const UserSchema = new Schema({
     default: false,
     index: true,
   },
+  walletType:{
+    type: String,
+    enum: ["demo", "active"],
+    default: "demo",
+  },
   demoWallet: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "DemoWallet",

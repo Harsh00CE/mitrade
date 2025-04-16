@@ -70,8 +70,14 @@ const closedOrdersSchema = new Schema(
             default: Date.now,
         },
 
-        takeProfit: Number,
-        stopLoss: Number,
+        takeProfit: {
+            type: Number,
+            default: null,
+        },
+        stoploss: {
+            type: Number,
+            default: null,
+        },
         // takeProfit: {
         //     type: {
         //         type: String,
@@ -113,7 +119,7 @@ const closedOrdersSchema = new Schema(
         tradingAccount: {
             type: String,
             required: true,
-            enum: ["demo", "live"],
+            enum: ["demo", "active"],
             index: true,
         },
         overnightFunding: {

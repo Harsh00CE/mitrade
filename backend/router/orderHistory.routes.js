@@ -2,6 +2,7 @@ import express from "express";
 import ClosedOrdersModel from "../schemas/closeOrderSchema.js";
 import connectDB from "../ConnectDB/ConnectionDB.js";
 import mongoose from "mongoose";
+import UserModel from "../schemas/userSchema.js";
 
 const router = express.Router();
 
@@ -39,12 +40,38 @@ router.get("/:userId", async (req, res) => {
             });
         }
 
-        // Fetch closed orders with optimized projection
+        const user = await UserModel.findById(userId)
+
+        if (!user || !user.demoWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User or wallet not found"
+            });
+        }
+
+        if (!user.walletType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+            })
+        }
+
+        if (!user.demoWallet && !user.activeWallet) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet not found",
+            })
+        }
+
+        const walletType = user.walletType;
+
+
+
         const orders = await ClosedOrdersModel.find(
-            { userId },
-            // ORDER_PROJECTION
+            { userId , tradingAccount: walletType },
         )
-        .lean()
+        
+
         return res.status(200).json({
             success: true,
             message: orders.length ? "Closed orders fetched successfully" : "No closed orders found",
@@ -62,9 +89,9 @@ router.get("/:userId", async (req, res) => {
 
 router.get("/", async (req, res) => {
     try {
-        
+
         const orders = await ClosedOrdersModel.find()
-        .lean()
+            .lean()
         return res.status(200).json({
             success: true,
             message: orders.length ? "Closed orders fetched successfully" : "No closed orders found",

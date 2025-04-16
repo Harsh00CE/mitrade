@@ -286,7 +286,6 @@ router.patch('/update-data/:id', (req, res) => {
                 }
             }
 
-            // Update document images if new ones are uploaded
             if (req.files?.documentFront) {
                 validUpdates['documentImage.front'] = req.files.documentFront[0].path;
             }
@@ -297,6 +296,8 @@ router.patch('/update-data/:id', (req, res) => {
             if (Object.keys(validUpdates).length === 0) {
                 return res.status(400).json({ message: 'No valid fields or files to update' });
             }
+
+            validUpdates.status = 'pending';
 
             const updatedKYC = await BasicKYC.findByIdAndUpdate(
                 kycId,
@@ -309,7 +310,7 @@ router.patch('/update-data/:id', (req, res) => {
             }
 
             res.status(200).json({
-                message: 'KYC data updated successfully',
+                message: 'KYC data updated successfully, status reset to pending',
                 success: true,
                 data: updatedKYC
             });
@@ -319,6 +320,7 @@ router.patch('/update-data/:id', (req, res) => {
         }
     });
 });
+
 
 
 
