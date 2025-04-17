@@ -49,7 +49,7 @@ const User = () => {
   }, [searchQuery, users]);
 
   return (
-    <div className="max-w-screen-xl mx-auto min-h-screen p-4 sm:p-6 font-sans bg-gray-900 text-white border border-red-800 rounded-lg shadow-md overflow-x-hidden">
+    <div className="max-w-screen-xl mx-auto min-h-screen p-4 sm:p-6 font-sans bg-gray-900 text-white shadow-md overflow-x-hidden">
 
       <div className="mb-6 w-full ml-10">
         <BackButton />

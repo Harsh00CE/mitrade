@@ -14,7 +14,7 @@ const TradingViewChart = () => {
 
             const widget = new window.TradingView.widget({
                 width: "100%",
-                height: 305,
+                height: 425,
                 symbol: formattedSymbol,
                 interval: "1",
                 timezone: "Etc/UTC",
@@ -51,7 +51,7 @@ const TradingViewChart = () => {
     }, [symbol]);
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '305px' }}>
+        <div style={{ position: 'relative', width: '100%', height: '425px' }}>
             {isLoading && (
                 <div style={{
                     position: 'absolute',

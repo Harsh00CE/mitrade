@@ -10,8 +10,6 @@ router.get("/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
 
-        console.log("User ID:", userId);
-
 
         if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(200).json({
@@ -21,15 +19,16 @@ router.get("/:userId", async (req, res) => {
         }
 
         const user = await UserModel.findById(userId)
-
+        
         if (!user) {
             return res.status(200).json({
                 success: false,
                 message: "User not found"
             });
         }
-
+        
         const wallet = await ActiveWalletModel.findOne({ userId: user._id }).lean();
+        
         if (!wallet) {
             return res.status(200).json({
                 success: false,
@@ -53,7 +52,7 @@ router.get("/:userId", async (req, res) => {
 });
 
 router.put("/:userId", async (req, res) => {
-    await connectDB();
+
     try {
         const { userId } = req.params;
         const { balance, equity, available, margin, leverage, marginLevel, pl } = req.body;
@@ -65,13 +64,21 @@ router.put("/:userId", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId).populate('activeWallet');
+        const user = await UserModel.findById(userId)
         if (!user) {
             return res.status(200).json({
                 success: false,
                 message: "User not found",
             });
         }
+
+        if (!user.activeWallet) {
+            return res.status(200).json({
+                success: false,
+                message: `User active wallet not found`,
+            })
+        }
+        
 
         const activeWallet = await ActiveWalletModel.findByIdAndUpdate(
             user.activeWallet._id,

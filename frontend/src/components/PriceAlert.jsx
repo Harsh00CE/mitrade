@@ -12,8 +12,6 @@ const PriceAlert = ({ userId }) => {
     const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
-        console.log("User ID:", userId);
-        
         axios.get(`http://${BASE_URL}:3000/api/alerts/${userId}`)
             .then(response => setAlerts(response.data.data))
             .catch(error => console.error("Error fetching alerts:", error));
