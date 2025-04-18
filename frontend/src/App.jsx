@@ -42,10 +42,7 @@ function App() {
     <div className="bg-gray-900 min-h-screen text-white">
       <Router>
         <Routes>
-          {/* Full screen view for trading chart */}
           <Route path="/chart/:symbol" element={<TradingViewChart />} />
-
-          {/* Routes with sidebar layout */}
           <Route
             path="/*"
             element={

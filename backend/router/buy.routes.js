@@ -3,12 +3,9 @@ import UserModel from "../schemas/userSchema.js";
 import { v4 as uuidv4 } from 'uuid';
 import OpenOrdersModel from "../schemas/openOrderSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
-import connectDB from "../ConnectDB/ConnectionDB.js";
 import ActiveWalletModel from "../schemas/activeWalletSchema.js";
 
 const router = express.Router();
-
-connectDB().catch(console.error);
 
 router.post("/", async (req, res) => {
     try {
@@ -23,7 +20,7 @@ router.post("/", async (req, res) => {
 
         if (status === "pending" && pendingValue === undefined) {
             return res.status(200).json({
-                success: false,  
+                success: false,
                 message: "Pending order requires pendingValue",
             });
         }
@@ -32,7 +29,7 @@ router.post("/", async (req, res) => {
             quantity <= 0 || price <= 0 || leverage < 1) {
             return res.status(200).json({
                 success: false,
-                message: "Quantity and price must be positive numbers, leverage must be ≥1",
+                message: `Quantity and price must be positive numbers, leverage must be ≥1 ===> ${quantity}, ${price}, ${leverage}`,
             });
         }
 
@@ -112,7 +109,7 @@ router.post("/", async (req, res) => {
         }
 
         console.log("user wallettype", user.walletType);
-        
+
 
         const order = new OpenOrdersModel({
             orderId,
@@ -165,5 +162,107 @@ router.post("/", async (req, res) => {
         }
     }
 });
+
+router.patch("/update-tp-sl", async (req, res) => {
+    try {
+        const { orderId, takeProfit, stopLoss } = req.body;
+
+        console.log(
+            "orderId:",
+            orderId,
+            "takeProfit:",
+            takeProfit,
+            "stopLoss:",
+            stopLoss
+        );
+        
+
+        if (!orderId) {
+            return res.status(200).json({
+                success: false,
+                message: "Missing orderId",
+            });
+        }
+
+        const order = await OpenOrdersModel.findById( orderId);
+
+        if (!order) {
+            return res.status(200).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+
+        let updatedFields = {};
+
+        // ✅ Update takeProfit if provided
+        if (takeProfit) {
+            if (typeof takeProfit === 'object' && takeProfit.type && takeProfit.value !== undefined) {
+                const allowedTypes = ['price', 'profit'];
+                if (!allowedTypes.includes(takeProfit.type) || isNaN(takeProfit.value)) {
+                    return res.status(200).json({
+                        success: false,
+                        message: "Invalid takeProfit format",
+                    });
+                }
+                updatedFields.takeProfit = {
+                    type: takeProfit.type,
+                    value: parseFloat(takeProfit.value)
+                };
+            } else {
+                return res.status(200).json({
+                    success: false,
+                    message: "Invalid takeProfit structure",
+                });
+            }
+        }
+
+        // ✅ Update stopLoss if provided
+        if (stopLoss) {
+            if (typeof stopLoss === 'object' && stopLoss.type && stopLoss.value !== undefined) {
+                const allowedTypes = ['price', 'loss'];
+                if (!allowedTypes.includes(stopLoss.type) || isNaN(stopLoss.value)) {
+                    return res.status(200).json({
+                        success: false,
+                        message: "Invalid stopLoss format",
+                    });
+                }
+                updatedFields.stopLoss = {
+                    type: stopLoss.type,
+                    value: parseFloat(stopLoss.value)
+                };
+            } else {
+                return res.status(200).json({
+                    success: false,
+                    message: "Invalid stopLoss structure",
+                });
+            }
+        }
+
+        if (Object.keys(updatedFields).length === 0) {
+            return res.status(200).json({
+                success: false,
+                message: "Nothing to update",
+            });
+        }
+
+        await OpenOrdersModel.updateOne({ orderId }, { $set: updatedFields });
+
+        return res.status(200).json({
+            success: true,
+            message: "Order updated successfully",
+            updated: updatedFields
+        });
+
+    } catch (error) {
+        console.error("Update TP/SL error:", error.message);
+        res.status(200).json({
+            success: false,
+            message: "Failed to update order",
+            error: error.message,
+        });
+    }
+});
+
 
 export default router;

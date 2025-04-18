@@ -464,6 +464,10 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
             
             if (!wallet || wallet.available < margin) {
                 console.log(`Insufficient margin for user ${userId}`);
+                res.status(200).json({
+                    success: false,
+                    message: "Insufficient available balance",
+                });
                 continue;
             }
 

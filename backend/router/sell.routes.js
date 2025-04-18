@@ -169,4 +169,111 @@ router.post("/", async (req, res) => {
     }
 });
 
+
+
+router.patch("/update-tp-sl", async (req, res) => {
+    try {
+        const { orderId, takeProfit, stopLoss } = req.body;
+
+        if (!orderId) {
+            return res.status(200).json({
+                success: false,
+                message: "Missing orderId",
+            });
+        }
+
+        const order = await OpenOrdersModel.findOne({ orderId });
+
+        if (!order) {
+            return res.status(200).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+
+        let updatedFields = {};
+
+        // ✅ Handle takeProfit
+        if (takeProfit) {
+            if (
+                typeof takeProfit === "object" &&
+                takeProfit.type &&
+                takeProfit.value !== undefined
+            ) {
+                const allowedTypes = ["price", "profit"];
+                if (
+                    !allowedTypes.includes(takeProfit.type) ||
+                    isNaN(takeProfit.value)
+                ) {
+                    return res.status(200).json({
+                        success: false,
+                        message: "Invalid takeProfit format",
+                    });
+                }
+                updatedFields.takeProfit = {
+                    type: takeProfit.type,
+                    value: parseFloat(takeProfit.value),
+                };
+            } else {
+                return res.status(200).json({
+                    success: false,
+                    message: "Invalid takeProfit structure",
+                });
+            }
+        }
+
+        // ✅ Handle stopLoss
+        if (stopLoss) {
+            if (
+                typeof stopLoss === "object" &&
+                stopLoss.type &&
+                stopLoss.value !== undefined
+            ) {
+                const allowedTypes = ["price", "loss"];
+                if (
+                    !allowedTypes.includes(stopLoss.type) ||
+                    isNaN(stopLoss.value)
+                ) {
+                    return res.status(200).json({
+                        success: false,
+                        message: "Invalid stopLoss format",
+                    });
+                }
+                updatedFields.stopLoss = {
+                    type: stopLoss.type,
+                    value: parseFloat(stopLoss.value),
+                };
+            } else {
+                return res.status(200).json({
+                    success: false,
+                    message: "Invalid stopLoss structure",
+                });
+            }
+        }
+
+        if (Object.keys(updatedFields).length === 0) {
+            return res.status(200).json({
+                success: false,
+                message: "No fields to update",
+            });
+        }
+
+        await OpenOrdersModel.updateOne({ orderId }, { $set: updatedFields });
+
+        return res.status(200).json({
+            success: true,
+            message: "Order updated successfully",
+            updated: updatedFields,
+        });
+    } catch (error) {
+        console.error("Update TP/SL error:", error.message);
+        return res.status(200).json({
+            success: false,
+            message: "Failed to update order",
+            error: error.message,
+        });
+    }
+});
+
+
 export default router;

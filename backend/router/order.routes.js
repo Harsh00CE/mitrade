@@ -160,6 +160,70 @@ router.get("/:userId", async (req, res) => {
     }
 });
 
+router.get("/panding/:userId", async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(200).json({
+                success: false,
+                message: "Invalid user ID format"
+            });
+        }
+
+        // Fetch user account type
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            return res.status(200).json({
+                success: false,
+                message: "User not found",
+                data: []
+            });
+        }
+
+        const accountType = user.walletType;
+        if (!accountType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+                data: []
+            });
+        }
+
+        // Fetch orders that match user's accountType
+        const orders = await OpenOrdersModel.find(
+            {
+                status: "pending",
+                position: "open",
+                tradingAccount: accountType
+            }
+        )
+            .lean()
+            .sort({ openingTime: -1 });
+
+        if (!orders.length) {
+            return res.status(200).json({
+                success: true,
+                message: "No open orders found",
+                data: []
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Open orders fetched successfully",
+            data: orders
+        });
+
+    } catch (error) {
+        console.error("Error fetching open orders:", error);
+        return res.status(200).json({
+            success: false,
+            message: "Error fetching orders"
+        });
+    }
+});
+
 
 
 export default router;

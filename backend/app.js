@@ -84,6 +84,7 @@ app.use("/api/admin", adminRoutes)
 app.use("/api/pair-info", getInfo)
 app.use("/api/favoriteTokens", favoriteTokensRouter);
 app.use("/api/user-orders", getUserOrders)
+app.use("/api/user-orders", getUserOrders)
 app.use("/api/alerts", alertRouter);
 app.use("/api/close-order", closeOrderRouter);
 app.use("/api/order-history", orderHistoryRouter);
