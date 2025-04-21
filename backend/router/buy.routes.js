@@ -18,6 +18,9 @@ router.post("/", async (req, res) => {
             });
         }
 
+        console.log("stoploss", stopLoss);
+
+
         if (status === "pending" && pendingValue === undefined) {
             return res.status(200).json({
                 success: false,
@@ -82,8 +85,41 @@ router.post("/", async (req, res) => {
             return new Date(now.getTime() + istOffset * 60 * 1000);
         };
 
-        // 🧠 Process takeProfit
-        let formattedTP = null;
+        function validateTPorSL(input, allowedTypes) {
+            if (
+                input &&
+                typeof input === 'object' &&
+                input.type &&
+                allowedTypes.includes(input.type) &&
+                input.value !== undefined &&
+                input.value !== '' &&
+                !isNaN(parseFloat(input.value))
+            ) {
+                return {
+                    type: input.type,
+                    value: parseFloat(input.value)
+                };
+            }
+            return null;
+        }
+
+        console.log("takeprofit", takeProfit);
+        console.log("stoploss", stopLoss);
+        
+
+        let formattedTP = validateTPorSL(takeProfit, ['price', 'profit']);
+
+        console.log("formattedtp", formattedTP);
+        if (takeProfit && !formattedTP) {
+            return res.status(200).json({ success: false, message: "Invalid takeProfit format" });
+        }
+
+        let formattedSL = validateTPorSL(stopLoss, ['price', 'loss']);
+        if (stopLoss && !formattedSL) {
+            return res.status(200).json({ success: false, message: "Invalid stopLoss format" });
+        }
+
+
         if (takeProfit && typeof takeProfit === 'object' && takeProfit.type && takeProfit.value !== undefined) {
             const allowedTypes = ['price', 'profit'];
             if (!allowedTypes.includes(takeProfit.type) || isNaN(takeProfit.value)) {
@@ -96,7 +132,6 @@ router.post("/", async (req, res) => {
         }
 
         // 🧠 Process stopLoss
-        let formattedSL = null;
         if (stopLoss && typeof stopLoss === 'object' && stopLoss.type && stopLoss.value !== undefined) {
             const allowedTypes = ['price', 'loss'];
             if (!allowedTypes.includes(stopLoss.type) || isNaN(stopLoss.value)) {
@@ -167,16 +202,6 @@ router.patch("/update-tp-sl", async (req, res) => {
     try {
         const { orderId, takeProfit, stopLoss } = req.body;
 
-        console.log(
-            "orderId:",
-            orderId,
-            "takeProfit:",
-            takeProfit,
-            "stopLoss:",
-            stopLoss
-        );
-        
-
         if (!orderId) {
             return res.status(200).json({
                 success: false,
@@ -184,7 +209,7 @@ router.patch("/update-tp-sl", async (req, res) => {
             });
         }
 
-        const order = await OpenOrdersModel.findById( orderId);
+        const order = await OpenOrdersModel.findById(orderId);
 
         if (!order) {
             return res.status(200).json({
@@ -246,7 +271,10 @@ router.patch("/update-tp-sl", async (req, res) => {
             });
         }
 
-        await OpenOrdersModel.updateOne({ orderId }, { $set: updatedFields });
+        // await OpenOrdersModel.updateOne({ orderId }, { $set: updatedFields });
+
+        await OpenOrdersModel.updateOne({ _id: order._id }, { $set: updatedFields });
+
 
         return res.status(200).json({
             success: true,

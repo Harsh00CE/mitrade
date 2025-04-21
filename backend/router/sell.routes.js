@@ -82,8 +82,36 @@ router.post("/", async (req, res) => {
             return new Date(now.getTime() + istOffset * 60 * 1000);
         };
 
+        function validateTPorSL(input, allowedTypes) {
+            if (
+                input &&
+                typeof input === 'object' &&
+                input.type &&
+                allowedTypes.includes(input.type) &&
+                input.value !== undefined &&
+                input.value !== '' &&
+                !isNaN(parseFloat(input.value))
+            ) {
+                return {
+                    type: input.type,
+                    value: parseFloat(input.value)
+                };
+            }
+            return null;
+        }
+        let formattedTP = validateTPorSL(takeProfit, ['price', 'profit']);
+        if (takeProfit && !formattedTP) {
+            return res.status(200).json({ success: false, message: "Invalid takeProfit format" });
+        }
+
+        let formattedSL = validateTPorSL(stopLoss, ['price', 'loss']);
+        if (stopLoss && !formattedSL) {
+            return res.status(200).json({ success: false, message: "Invalid stopLoss format" });
+        }
+
+
         // ✅ Format takeProfit if object
-        let formattedTP = null;
+        // let formattedTP = null;
         if (takeProfit && typeof takeProfit === 'object' && takeProfit.type && takeProfit.value !== undefined) {
             const validTypes = ['price', 'profit'];
             if (!validTypes.includes(takeProfit.type) || isNaN(takeProfit.value)) {
@@ -98,8 +126,11 @@ router.post("/", async (req, res) => {
             };
         }
 
+        console.log("stoploss", stopLoss);
+        
+
         // ✅ Format stopLoss if object
-        let formattedSL = null;
+        // let formattedSL = null;
         if (stopLoss && typeof stopLoss === 'object' && stopLoss.type && stopLoss.value !== undefined) {
             const validTypes = ['price', 'loss'];
             if (!validTypes.includes(stopLoss.type) || isNaN(stopLoss.value)) {

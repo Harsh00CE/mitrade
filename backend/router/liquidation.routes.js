@@ -1,12 +1,44 @@
 import express from "express";
 import connectDB from "../ConnectDB/ConnectionDB.js";
-import OrderModel from "../schemas/orderSchema.js";
-import OrderHistoryModel from "../schemas/orderHistorySchema.js";
 import UserModel from "../schemas/userSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
 import ActiveWalletModel from "../schemas/activeWalletSchema.js";
+import OpenOrdersModel from "../schemas/openOrderSchema.js";
+import ClosedOrdersModel from "../schemas/closeOrderSchema.js";
+import mongoose from "mongoose";
+
+
+
 
 const router = express.Router();
+
+
+const fetchOandaPrice = async (symbol) => {
+    const accountId = process.env.OANDA_ACCOUNT_ID;
+    const token = process.env.OANDA_API_KEY;
+
+    const url = `https://api-fxpractice.oanda.com/v3/accounts/${accountId}/pricing?instruments=${symbol}`;
+    const headers = {
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const res = await fetch(url, { headers });
+        const data = await res.json();
+
+        if (!data.prices || data.prices.length === 0) return null;
+
+        const priceInfo = data.prices[0];
+        const bid = parseFloat(priceInfo.bids[0].price);
+        const ask = parseFloat(priceInfo.asks[0].price);
+        const mid = (bid + ask) / 2;
+
+        return mid;
+    } catch (error) {
+        console.error("OANDA price fetch error:", error);
+        return null;
+    }
+};
 
 router.post("/:userId", async (req, res) => {
     await connectDB();
@@ -21,99 +53,113 @@ router.post("/:userId", async (req, res) => {
         }
 
         const user = await UserModel.findById(userId);
-
-        if (!user || !user.demoWallet) {
+        if (!user || !user.walletType || (!user.demoWallet && !user.activeWallet)) {
             return res.status(200).json({
                 success: false,
-                message: "User or wallet not found"
+                message: "User or wallet not found",
             });
-        }
-
-        if (!user.walletType) {
-            return res.status(200).json({
-                success: false,
-                message: "User wallet type not found",
-            })
-        }
-
-        if (!user.demoWallet && !user.activeWallet) {
-            return res.status(200).json({
-                success: false,
-                message: "User wallet not found",
-            })
         }
 
         const walletType = user.walletType;
-        let wallet;
+        const wallet = walletType === "demo"
+            ? await DemoWalletModel.findById(user.demoWallet)
+            : await ActiveWalletModel.findById(user.activeWallet);
 
-        if (walletType === "demo") {
-            wallet = await DemoWalletModel.findById(user.demoWallet);
-        } else {
-            wallet = await ActiveWalletModel.findById(user.activeWallet);
-        }
-
-
-
-
-        if (!user) {
+        if (!wallet) {
             return res.status(200).json({
                 success: false,
-                message: "User not found",
+                message: "Wallet not found",
             });
         }
 
-        const openOrders = await OrderModel.find({ userId, position: "open" });
+        const openOrders = await OpenOrdersModel.find({ userId: userId, position: "open" });
 
-        if (!openOrders || openOrders.length === 0) {
+        if (!openOrders.length) {
             return res.status(200).json({
                 success: false,
-                message: "No open orders found for this user",
+                message: "No open orders to liquidate",
             });
         }
-        const fetchClosingPrice = async (symbol) => {
-            try {
-                const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
-                const data = await response.json();
-                return parseFloat(data.price);
-            } catch (error) {
-                console.error("Error fetching closing price:", error);
-                return null;
-            }
-        };
 
+        let totalRealisedPL = 0;
 
         for (const order of openOrders) {
-            const closingPrice = await fetchClosingPrice(order.symbol);
-            const openingValue = order.price * order.quantity;
+            const closingPrice = await fetchOandaPrice(order.symbol);
+
+            console.log(
+                "Closing price for order:",
+                order.symbol,
+                "at price:",
+                closingPrice
+            );
+            
+
+            if (!closingPrice){
+                res.status(200).json({
+                    success: false,
+                    message: "Error fetching closing price",
+                });
+                continue;
+            }
+
+            const openingValue = order.openingPrice * order.quantity;
             const closingValue = closingPrice * order.quantity;
-            const realisedPL = order.type === "buy" ? closingValue - openingValue : openingValue - closingValue;
+            let realisedPL = order.type === "buy"
+                ? closingValue - openingValue
+                : openingValue - closingValue;
 
-            order.status = "closed";
-            order.position = "close";
-            order.closingTime = new Date();
-            order.closingValue = closingValue;
-            order.realisedPL = realisedPL;
+            realisedPL = parseFloat((realisedPL * order.contractSize).toFixed(2));
+            totalRealisedPL += realisedPL;
+            totalRealisedPL = parseFloat((totalRealisedPL ).toFixed(2));
 
-            await order.save();
+            // Remove from open orders
+            await OpenOrdersModel.findByIdAndDelete(order._id);
 
-            const orderHistory = new OrderHistoryModel({
-                ...order.toObject(),
-                _id: undefined,
-                openingValue: openingValue,
+            console.log("order -> ", order);
+
+            console.log("realisedPL -> ", realisedPL);
+            
+
+            // Create a closed order entry
+            const closedOrder = new ClosedOrdersModel({
+                originalOrderId: order._id,
+                orderId: new mongoose.Types.ObjectId().toString(),
+                userId: order.userId,
+                symbol: order.symbol,
+                contractSize: order.contractSize,
+                type: order.type,
+                quantity: order.quantity,
+                openingPrice: order.openingPrice,
+                closingPrice,
+                leverage: order.leverage,
+                status: "closed",
+                position: "close",
+                openingTime: order.openingTime,
+                closingTime: new Date(),
+                takeProfit: typeof order.takeProfit === "number" ? order.takeProfit : undefined,
+                stopLoss: typeof order.stopLoss === "number" ? order.stopLoss : undefined,
+                realisedPL,
+                margin: order.margin,
+                tradingAccount: walletType,
+                closeReason: "liquidation"
             });
 
-            await orderHistory.save();
+            await closedOrder.save();
 
-            user.orderHistory.push(orderHistory._id);
+            await UserModel.updateOne(
+                { _id: userId },
+                {
+                    $push: { closedOrders: closedOrder.orderId },
+                    $pull: { openOrders: order._id }
+                }
+            );
         }
 
-        await user.save();
-
+        // Reset wallet
         wallet.balance = 0;
         wallet.available = 0;
         wallet.equity = 0;
         wallet.margin = 0;
-
         await wallet.save();
 
         return res.status(200).json({
@@ -121,6 +167,7 @@ router.post("/:userId", async (req, res) => {
             message: "User liquidated successfully",
             data: {
                 closedOrders: openOrders.length,
+                totalRealisedPL,
                 updatedBalance: wallet.balance,
                 updatedAvailable: wallet.available,
             },
@@ -133,5 +180,6 @@ router.post("/:userId", async (req, res) => {
         });
     }
 });
+
 
 export default router;

@@ -116,6 +116,7 @@ const TradingViewChart = () => {
                 hide_side_toolbar: true,
                 hide_legend: true,
                 allow_symbol_change: false,
+                support_zoom: true,
                 details: false,
                 withdateranges: false,
                 hide_volume: true,
@@ -161,6 +162,10 @@ const TradingViewChart = () => {
                 className="w-full h-full"
                 style={{
                     visibility: isLoading ? "hidden" : "visible",
+                    overflow: "visible",
+                    pointerEvents: "auto",
+                    touchAction: "manipulation",
+                    WebkitOverflowScrolling: "touch",
                 }}
             ></div>
         </div>

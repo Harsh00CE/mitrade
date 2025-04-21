@@ -131,7 +131,8 @@ router.get("/:userId", async (req, res) => {
             {
                 status: "active",
                 position: "open",
-                tradingAccount: accountType
+                tradingAccount: accountType,
+                userId: userId
             }
         )
             .lean()
@@ -193,6 +194,7 @@ router.get("/panding/:userId", async (req, res) => {
         // Fetch orders that match user's accountType
         const orders = await OpenOrdersModel.find(
             {
+                userId: userId,
                 status: "pending",
                 position: "open",
                 tradingAccount: accountType
@@ -223,6 +225,59 @@ router.get("/panding/:userId", async (req, res) => {
         });
     }
 });
+
+router.delete("/cancel-pending/:orderId", async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(200).json({
+                success: false,
+                message: "Invalid order ID format",
+            });
+        }
+
+        // Find the order
+        const order = await OpenOrdersModel.findById(orderId);
+
+        if (!order) {
+            return res.status(200).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+
+        if (order.status !== "pending" || order.position !== "open") {
+            return res.status(200).json({
+                success: false,
+                message: "Only pending open orders can be canceled",
+            });
+        }
+
+        // Delete the order
+        await OpenOrdersModel.findByIdAndDelete(orderId);
+
+        // Optionally update the user's openOrders list
+        await UserModel.updateOne(
+            { _id: order.userId },
+            { $pull: { openOrders: orderId } }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Pending order cancelled successfully",
+            data: order
+        });
+
+    } catch (error) {
+        console.error("Error cancelling pending order:", error);
+        return res.status(200).json({
+            success: false,
+            message: "Error cancelling order"
+        });
+    }
+});
+
 
 
 

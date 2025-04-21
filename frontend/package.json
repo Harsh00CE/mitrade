@@ -25,6 +25,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.2.0",
     "react-select": "^5.10.1",
+    "react-toastify": "^11.0.5",
     "react-use-websocket": "^4.13.0",
     "react-websocket": "^2.1.0",
     "redux": "^5.0.1",

@@ -108,6 +108,7 @@ function subscribeToPairs(pairs) {
 
                             currentPrices.set(data.instrument, priceData);
                             broadcastToAllClients(priceData);
+                            // checkForLiquidations(wss);
                             checkAndSendAlerts(data.instrument, parseFloat(priceData.bid));
                             checkTP_SL_Triggers(data.instrument, parseFloat(priceData.bid), wss);
                             checkPendingOrders(data.instrument, parseFloat(priceData.bid), wss);
@@ -231,7 +232,6 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
 
     for (const trade of activeTrades) {
         const { _id, userId, takeProfit, stopLoss, type, openingPrice, quantity, contractSize } = trade;
-
         let isTP = false, isSL = false;
 
         const entryValue = openingPrice * quantity;
@@ -256,7 +256,7 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
 
         // --- Stop Loss ---
         if (stopLoss && stopLoss.value !== null) {
-            if (stopLoss.type === 'price') {
+            if (stopLoss.type === 'price') { 
                 if ((type === 'buy' && currentPrice <= stopLoss.value) ||
                     (type === 'sell' && currentPrice >= stopLoss.value)) {
                     isSL = true;
@@ -299,8 +299,8 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             position: "close",
             openingTime: openOrder.openingTime,
             closingTime: new Date(),
-            takeProfit: openOrder.takeProfit,
-            stopLoss: openOrder.stopLoss,
+            takeProfit: openOrder.takeProfit?.value ?? null,
+            stopLoss: openOrder.stopLoss?.value ?? null,
             realisedPL,
             margin: openOrder.margin,
             tradingAccount: openOrder.tradingAccount || "demo",
@@ -310,21 +310,21 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
         const user = await UserModel.findById(openOrder.userId)
 
         if (!user || !user.demoWallet) {
-            return res.status(200).json({
+            res.status(200).json({
                 success: false,
                 message: "User or wallet not found"
             });
         }
 
         if (!user.walletType) {
-            return res.status(200).json({
+            res.status(200).json({
                 success: false,
                 message: "User wallet type not found",
             })
         }
 
         if (!user.demoWallet && !user.activeWallet) {
-            return res.status(200).json({
+            res.status(200).json({
                 success: false,
                 message: "User wallet not found",
             })
@@ -387,6 +387,7 @@ const getISTDate = () => {
 
 
 const checkPendingOrders = async (symbol, currentPrice, wss) => {
+    
     const pendingOrders = await OpenOrdersModel.find({
         symbol,
         status: "pending",
@@ -409,10 +410,10 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
         if (triggerType == 'sell' && currentPrice >= triggerPrice) {
             shouldTrigger = true;
         }
+        // console.log("Trigger Type:", triggerType, "Current Price:", currentPrice, "Pending Trigger Price:", triggerPrice, "Should Trigger:", shouldTrigger);
 
 
 
-        // console.log("Trigger Type:", triggerType, "Current Price:", currentPrice, "Trigger Price:", triggerPrice, "Should Trigger:", shouldTrigger);
         if (!shouldTrigger) continue;
 
         const updatedOrder = await OpenOrdersModel.findByIdAndUpdate(
@@ -432,36 +433,36 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
             if (!user) continue;
 
             if (!user || !user.demoWallet) {
-                return res.status(200).json({
+                res.status(200).json({
                     success: false,
                     message: "User or wallet not found"
                 });
             }
-    
+
             if (!user.walletType) {
-                return res.status(200).json({
+                res.status(200).json({
                     success: false,
                     message: "User wallet type not found",
                 })
             }
-    
+
             if (!user.demoWallet && !user.activeWallet) {
-                return res.status(200).json({
+                res.status(200).json({
                     success: false,
                     message: "User wallet not found",
                 })
             }
-    
+
             const walletType = user.walletType;
             let wallet;
-    
+
             if (walletType === "demo") {
                 wallet = await DemoWalletModel.findById(user.demoWallet);
             } else {
                 wallet = await ActiveWalletModel.findById(user.activeWallet);
             }
-    
-            
+
+
             if (!wallet || wallet.available < margin) {
                 console.log(`Insufficient margin for user ${userId}`);
                 res.status(200).json({
@@ -497,5 +498,159 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
         });
 
         console.log(`[✓] Activated pending order ${_id} at price ${currentPrice}`);
+    }
+};
+
+
+const checkForLiquidations = async (wss) => {
+    try {
+        // Get all users with open positions
+        const usersWithOpenPositions = await UserModel.find()
+
+
+        for (const user of usersWithOpenPositions) {
+            const walletType = user.walletType;
+            let wallet;
+            
+            if (walletType === "demo") {
+                wallet = await DemoWalletModel.findById(user.demoWallet);
+            } else {
+                wallet = await ActiveWalletModel.findById(user.activeWallet);
+            }
+            
+
+            if (!wallet) continue;
+
+            // Recalculate available balance based on current prices
+            const openOrders = await OpenOrdersModel.find({ 
+                userId: user._id, 
+                status: "active" 
+            });
+
+            let totalUnrealizedPL = 0;
+            
+            for (const order of openOrders) {
+                const currentPriceData = currentPrices.get(order.symbol);
+                if (!currentPriceData) continue;
+                
+                const currentPrice = parseFloat(currentPriceData.bid);
+                const entryValue = order.openingPrice * order.quantity;
+                const currentValue = currentPrice * order.quantity;
+                
+                const unrealizedPL = order.type === "buy"
+                    ? (currentValue - entryValue) * order.contractSize
+                    : (entryValue - currentValue) * order.contractSize;
+                
+                totalUnrealizedPL += unrealizedPL;
+            }
+
+            // Calculate available balance (equity - margin used)
+            wallet.equity = parseFloat((wallet.balance + totalUnrealizedPL).toFixed(2));
+            wallet.available = parseFloat((wallet.equity - wallet.margin).toFixed(2));
+
+            
+            // Check for liquidation condition
+            if (wallet.available <= 0) {
+                // console.log(`Liquidating all positions for user ${user._id} due to negative available balance`);
+                await liquidateAllPositions(user._id, wallet, wss);
+            } else {
+                // Just update the wallet values if no liquidation needed
+                await wallet.save();
+            }
+        }
+    } catch (error) {
+        console.error('Error in liquidation check:', error);
+    }
+};
+const liquidateAllPositions = async (userId, wallet, wss) => {
+
+    
+    try {
+        // Get all active orders for the user
+        const activeOrders = await OpenOrdersModel.find({ 
+            userId, 
+            status: "active" 
+        });
+
+        // Close all active orders
+        for (const order of activeOrders) {
+            const currentPriceData = currentPrices.get(order.symbol);
+            if (!currentPriceData) continue;
+            
+            const currentPrice = parseFloat(currentPriceData.bid);
+            const entryValue = order.openingPrice * order.quantity;
+            const currentValue = currentPrice * order.quantity;
+            
+            let realisedPL = order.type === "buy"
+                ? (currentValue - entryValue) * order.contractSize
+                : (entryValue - currentValue) * order.contractSize;
+            
+            realisedPL = parseFloat(realisedPL.toFixed(2));
+
+            // Create closed order record
+            const closedOrder = new ClosedOrdersModel({
+                originalOrderId: order._id,
+                orderId: new mongoose.Types.ObjectId().toString(),
+                userId: order.userId,
+                symbol: order.symbol,
+                contractSize: order.contractSize,
+                type: order.type,
+                quantity: order.quantity,
+                openingPrice: order.openingPrice,
+                closingPrice: currentPrice,
+                leverage: order.leverage,
+                status: "closed",
+                position: "close",
+                openingTime: order.openingTime,
+                closingTime: new Date(),
+                takeProfit: order.takeProfit?.value ?? null,
+                stopLoss: order.stopLoss?.value ?? null,
+                realisedPL,
+                margin: order.margin,
+                tradingAccount: order.tradingAccount || "demo",
+                closeReason: "liquidation"
+            });
+
+            await closedOrder.save();
+
+            // Remove from open orders
+            await OpenOrdersModel.findByIdAndDelete(order._id);
+            
+            // Send WebSocket notification
+            wss.clients.forEach(client => {
+                if (client.readyState === 1) {
+                    client.send(JSON.stringify({
+                        type: 'tradeClosed',
+                        data: {
+                            tradeId: order._id,
+                            symbol: order.symbol,
+                            price: currentPrice,
+                            reason: 'liquidation',
+                            realisedPL
+                        }
+                    }));
+                }
+            });
+        }
+
+        // Reset wallet to zero balance
+        wallet.balance = 0;
+        wallet.available = 0;
+        wallet.margin = 0;
+        wallet.equity = 0;
+        await wallet.save();
+
+        // Update user document
+        await UserModel.updateOne(
+            { _id: userId },
+            {
+                $set: { openOrders: [] },
+                $push: { closedOrders: { $each: activeOrders.map(o => o._id) } }
+            },
+        );
+
+        // console.log(`Successfully liquidated all positions for user ${userId}`);
+    } catch (error) {
+        console.error('Error during liquidation:', error);
     }
 };
