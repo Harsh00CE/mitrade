@@ -59,10 +59,14 @@ router.post("/", async (req, res) => {
             closeReason: "manual"
         };
 
-        if (openOrder.stopLoss?.value !== null) {
+        console.log("stoploss", openOrder.stopLoss);    
+        console.log("takeprofit", openOrder.takeProfit);
+        
+
+        if (openOrder.stopLoss !== null) {
             closedOrderData.stopLoss = openOrder.stopLoss;
         }
-        if (openOrder.takeProfit?.value !== null) {
+        if (openOrder.takeProfit !== null) {
             closedOrderData.takeProfit = openOrder.takeProfit;
         }
 
