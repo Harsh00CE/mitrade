@@ -92,9 +92,9 @@ router.post("/:userId", async (req, res) => {
                 "at price:",
                 closingPrice
             );
-            
 
-            if (!closingPrice){
+
+            if (!closingPrice) {
                 res.status(200).json({
                     success: false,
                     message: "Error fetching closing price",
@@ -110,7 +110,7 @@ router.post("/:userId", async (req, res) => {
 
             realisedPL = parseFloat((realisedPL * order.contractSize).toFixed(2));
             totalRealisedPL += realisedPL;
-            totalRealisedPL = parseFloat((totalRealisedPL ).toFixed(2));
+            totalRealisedPL = parseFloat((totalRealisedPL).toFixed(2));
 
             // Remove from open orders
             await OpenOrdersModel.findByIdAndDelete(order._id);
@@ -118,7 +118,7 @@ router.post("/:userId", async (req, res) => {
             console.log("order -> ", order);
 
             console.log("realisedPL -> ", realisedPL);
-            
+
 
             // Create a closed order entry
             const closedOrder = new ClosedOrdersModel({
@@ -136,13 +136,20 @@ router.post("/:userId", async (req, res) => {
                 position: "close",
                 openingTime: order.openingTime,
                 closingTime: new Date(),
-                takeProfit: typeof order.takeProfit === "number" ? order.takeProfit : undefined,
-                stopLoss: typeof order.stopLoss === "number" ? order.stopLoss : undefined,
                 realisedPL,
                 margin: order.margin,
                 tradingAccount: walletType,
                 closeReason: "liquidation"
             });
+
+            if (order.stopLoss.type) {
+                closedOrder.stopLoss = order.stopLoss;
+            }
+
+            if (order.takeProfit.type) {
+                closedOrder.takeProfit = order.takeProfit;
+            }
+
 
             await closedOrder.save();
 

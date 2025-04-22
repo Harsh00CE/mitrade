@@ -146,7 +146,7 @@ const TradingViewChart = () => {
     }, [symbol]);
 
     return (
-        <div className="relative w-full" style={{ height: "100vh", minHeight: "300px" }}>
+        <div className="relative w-full bg-gray-900" style={{ height: "100vh", minHeight: "300px" }}>
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                     <img

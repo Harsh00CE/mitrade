@@ -299,13 +299,20 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             position: "close",
             openingTime: openOrder.openingTime,
             closingTime: new Date(),
-            takeProfit: openOrder.takeProfit ?? null,
-            stopLoss: openOrder.stopLoss ?? null,
             realisedPL,
             margin: openOrder.margin,
             tradingAccount: openOrder.tradingAccount || "demo",
             closeReason: isTP ? "take-profit" : "stop-loss"
         });
+
+        if (openOrder.stopLoss.type) {
+            closedOrder.stopLoss = openOrder.stopLoss;
+        }
+
+        if (openOrder.takeProfit.type) {
+            closedOrder.takeProfit = openOrder.takeProfit;
+        }
+
 
         const user = await UserModel.findById(openOrder.userId)
 
@@ -594,13 +601,19 @@ const liquidateAllPositions = async (userId, wallet, wss) => {
                 position: "close",
                 openingTime: order.openingTime,
                 closingTime: new Date(),
-                takeProfit: order.takeProfit ?? null,
-                stopLoss: order.stopLoss ?? null,
-                realisedPL,
+               realisedPL,
                 margin: order.margin,
                 tradingAccount: order.tradingAccount || "demo",
                 closeReason: "liquidation"
             });
+            if (order.stopLoss.type) {
+                closedOrder.stopLoss = order.stopLoss;
+            }
+    
+            if (order.takeProfit.type) {
+                closedOrder.takeProfit = order.takeProfit;
+            }
+    
 
             await closedOrder.save();
 

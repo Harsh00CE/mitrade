@@ -59,23 +59,13 @@ router.post("/", async (req, res) => {
             closeReason: "manual"
         };
 
-        console.log("stoploss", openOrder.stopLoss);
-        console.log("takeprofit", openOrder.takeProfit);
+        if (openOrder.stopLoss.type) {
+            closedOrderData.stopLoss = openOrder.stopLoss;
+        }
 
-
-        // if (openOrder.stopLoss && typeof openOrder.stopLoss === "object") {
-        //     closedOrderData.stopLoss = {
-        //         type: openOrder.stopLoss.type || null,
-        //         value: openOrder.stopLoss.value ?? null
-        //     };
-        // }
-
-        // if (openOrder.takeProfit && typeof openOrder.takeProfit === "object") {
-        //     closedOrderData.takeProfit = {
-        //         type: openOrder.takeProfit.type || null,
-        //         value: openOrder.takeProfit.value ?? null
-        //     };
-        // }
+        if (openOrder.takeProfit.type) {
+            closedOrderData.takeProfit = openOrder.takeProfit;
+        }
 
 
         const closedOrder = new ClosedOrdersModel(closedOrderData);

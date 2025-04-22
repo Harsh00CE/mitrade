@@ -185,13 +185,19 @@ async function liquidateUser(userId, wallet, wss) {
                 position: 'close',
                 openingTime: order.openingTime,
                 closingTime: new Date(),
-                takeProfit: order.takeProfit?.value ?? null,
-                stopLoss: order.stopLoss?.value ?? null,
                 realisedPL,
                 margin: order.margin,
                 tradingAccount: order.tradingAccount,
                 closeReason: 'liquidation'
             });
+            if (order.stopLoss.type) {
+                closedOrders.stopLoss = order.stopLoss;
+            }
+    
+            if (order.takeProfit.type) {
+                closedOrders.takeProfit = order.takeProfit;
+            }
+    
 
             deleteOrderIds.push(order._id);
         }
