@@ -59,9 +59,12 @@ router.post("/", async (req, res) => {
             closeReason: "manual"
         };
 
-        // Add SL/TP if they exist
-        if (openOrder.stopLoss?.value !== null) closedOrderData.stopLoss = openOrder.stopLoss;
-        if (openOrder.takeProfit?.value !== null) closedOrderData.takeProfit = openOrder.takeProfit;
+        if (openOrder.stopLoss?.value !== null) {
+            closedOrderData.stopLoss = openOrder.stopLoss;
+        }
+        if (openOrder.takeProfit?.value !== null) {
+            closedOrderData.takeProfit = openOrder.takeProfit;
+        }
 
         const closedOrder = new ClosedOrdersModel(closedOrderData);
 
