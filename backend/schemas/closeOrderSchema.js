@@ -70,36 +70,36 @@ const closedOrdersSchema = new Schema(
             default: Date.now,
         },
 
-        takeProfit: {
-            type: Number,
-            default: null,
-        },
-        stoploss: {
-            type: Number,
-            default: null,
-        },
         // takeProfit: {
-        //     type: {
-        //         type: String,
-        //         enum: ["price", "profit"],
-        //         default: null,
-        //     },
-        //     value: {
-        //         type: Number,
-        //         default: null,
-        //     }
+        //     type: Number,
+        //     default: null,
         // },
-        // stopLoss: {
-        //     type: {
-        //         type: String,
-        //         enum: ["price", "loss"],
-        //         default: null,
-        //     },
-        //     value: {
-        //         type: Number,
-        //         default: null,
-        //     }
+        // stoploss: {
+        //     type: Number,
+        //     default: null,
         // },
+        takeProfit: {
+            type: {
+                type: String,
+                enum: ["price", "profit"],
+                default: null,
+            },
+            value: {
+                type: Number,
+                default: null,
+            }
+        },
+        stopLoss: {
+            type: {
+                type: String,
+                enum: ["price", "loss"],
+                default: null,
+            },
+            value: {
+                type: Number,
+                default: null,
+            }
+        },
         trailingStop: {
             type: String,
             default: "Unset",
