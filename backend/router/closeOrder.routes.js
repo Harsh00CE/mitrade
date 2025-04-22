@@ -42,10 +42,10 @@ router.post("/", async (req, res) => {
             : openingValue - closingValue;
 
         realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
-        
+
         console.log("stoploss", openOrder.stopLoss);
         console.log("takeprofit", openOrder.takeProfit);
-        
+
 
         const closedOrder = new ClosedOrdersModel({
             originalOrderId: orderId,
@@ -62,8 +62,8 @@ router.post("/", async (req, res) => {
             position: "close",
             openingTime: openOrder.openingTime,
             closingTime: new Date(),
-            takeProfit: openOrder.takeProfit,
-            stopLoss: openOrder.stopLoss,
+            takeProfit: openOrder.takeProfit ? openOrder.takeProfit : undefined,
+            stopLoss: openOrder.stopLoss ? openOrder.stopLoss : undefined,
             realisedPL,
             margin: openOrder.margin,
             tradingAccount: openOrder.tradingAccount || "demo",
