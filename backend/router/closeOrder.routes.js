@@ -42,8 +42,11 @@ router.post("/", async (req, res) => {
             : openingValue - closingValue;
 
         realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
+        
+        console.log("stoploss", openOrder.stopLoss);
+        console.log("takeprofit", openOrder.takeProfit);
+        
 
-        // Create closed order
         const closedOrder = new ClosedOrdersModel({
             originalOrderId: orderId,
             orderId: new mongoose.Types.ObjectId().toString(),
