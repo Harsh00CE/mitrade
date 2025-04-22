@@ -14,6 +14,7 @@ import ClosedOrdersModel from "./schemas/closeOrderSchema.js";
 import mongoose from "mongoose";
 import DemoWalletModel from "./schemas/demoWalletSchema.js";
 import ActiveWalletModel from "./schemas/activeWalletSchema.js";
+import { startLiquidationService, updateCurrentPrices } from "./liquidationService.js";
 
 dotenv.config({ path: ".env" });
 
@@ -82,14 +83,12 @@ function subscribeToPairs(pairs) {
             const stream = response.data;
             oandaStreamController = stream;
 
-            let buffer = ''; // Buffer to accumulate incomplete JSON
+            let buffer = ''; 
 
             stream.on('data', chunk => {
-                buffer += chunk.toString(); // Append new chunk to buffer
+                buffer += chunk.toString();
                 const lines = buffer.split('\n');
-
-                // Process all complete lines except the last one (might be incomplete)
-                for (let i = 0; i < lines.length - 1; i++) {
+   for (let i = 0; i < lines.length - 1; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
 
@@ -107,6 +106,7 @@ function subscribeToPairs(pairs) {
                             };
 
                             currentPrices.set(data.instrument, priceData);
+                            updateCurrentPrices(currentPrices);
                             broadcastToAllClients(priceData);
                             // checkForLiquidations(wss);
                             checkAndSendAlerts(data.instrument, parseFloat(priceData.bid));
@@ -118,7 +118,6 @@ function subscribeToPairs(pairs) {
                     }
                 }
 
-                // Keep the last (potentially incomplete) line in the buffer
                 buffer = lines[lines.length - 1];
             });
 
@@ -137,6 +136,9 @@ function subscribeToPairs(pairs) {
             restartStream();
         });
 }
+
+
+startLiquidationService(wss);
 
 function sendAllPrices() {
     if (currentPrices.size > 0) {
@@ -240,7 +242,6 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             ? (currentValue - entryValue) * contractSize
             : (entryValue - currentValue) * contractSize;
 
-        // --- Take Profit ---
         if (takeProfit && takeProfit.value !== null) {
             if (takeProfit.type === 'price') {
                 if ((type === 'buy' && currentPrice >= takeProfit.value) ||
@@ -254,7 +255,6 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             }
         }
 
-        // --- Stop Loss ---
         if (stopLoss && stopLoss.value !== null) {
             if (stopLoss.type === 'price') { 
                 if ((type === 'buy' && currentPrice <= stopLoss.value) ||
@@ -543,18 +543,13 @@ const checkForLiquidations = async (wss) => {
                 
                 totalUnrealizedPL += unrealizedPL;
             }
-
-            // Calculate available balance (equity - margin used)
-            wallet.equity = parseFloat((wallet.balance + totalUnrealizedPL).toFixed(2));
+  wallet.equity = parseFloat((wallet.balance + totalUnrealizedPL).toFixed(2));
             wallet.available = parseFloat((wallet.equity - wallet.margin).toFixed(2));
 
-            
-            // Check for liquidation condition
             if (wallet.available <= 0) {
                 // console.log(`Liquidating all positions for user ${user._id} due to negative available balance`);
                 await liquidateAllPositions(user._id, wallet, wss);
             } else {
-                // Just update the wallet values if no liquidation needed
                 await wallet.save();
             }
         }
@@ -566,13 +561,11 @@ const liquidateAllPositions = async (userId, wallet, wss) => {
 
     
     try {
-        // Get all active orders for the user
         const activeOrders = await OpenOrdersModel.find({ 
             userId, 
             status: "active" 
         });
 
-        // Close all active orders
         for (const order of activeOrders) {
             const currentPriceData = currentPrices.get(order.symbol);
             if (!currentPriceData) continue;
@@ -586,9 +579,7 @@ const liquidateAllPositions = async (userId, wallet, wss) => {
                 : (entryValue - currentValue) * order.contractSize;
             
             realisedPL = parseFloat(realisedPL.toFixed(2));
-
-            // Create closed order record
-            const closedOrder = new ClosedOrdersModel({
+    const closedOrder = new ClosedOrdersModel({
                 originalOrderId: order._id,
                 orderId: new mongoose.Types.ObjectId().toString(),
                 userId: order.userId,
@@ -613,11 +604,9 @@ const liquidateAllPositions = async (userId, wallet, wss) => {
 
             await closedOrder.save();
 
-            // Remove from open orders
             await OpenOrdersModel.findByIdAndDelete(order._id);
             
-            // Send WebSocket notification
-            wss.clients.forEach(client => {
+           wss.clients.forEach(client => {
                 if (client.readyState === 1) {
                     client.send(JSON.stringify({
                         type: 'tradeClosed',
@@ -633,14 +622,12 @@ const liquidateAllPositions = async (userId, wallet, wss) => {
             });
         }
 
-        // Reset wallet to zero balance
         wallet.balance = 0;
         wallet.available = 0;
         wallet.margin = 0;
         wallet.equity = 0;
         await wallet.save();
 
-        // Update user document
         await UserModel.updateOne(
             { _id: userId },
             {

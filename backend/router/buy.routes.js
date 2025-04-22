@@ -105,7 +105,7 @@ router.post("/", async (req, res) => {
 
         console.log("takeprofit", takeProfit);
         console.log("stoploss", stopLoss);
-        
+
 
         let formattedTP = validateTPorSL(takeProfit, ['price', 'profit']);
 
@@ -166,10 +166,8 @@ router.post("/", async (req, res) => {
             userId
         });
 
-        if (status === "active") {
-            wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
-            wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
-        }
+        wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
+        wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
 
         await Promise.all([order.save(), wallet.save()]);
 

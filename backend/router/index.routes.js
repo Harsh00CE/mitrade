@@ -29,7 +29,7 @@ import withdrawRoutes from "./withdraw.routes.js"
 import countryNames from "./countries.routes.js";
 import adminAccountDetailsRouter from "./adminAccountDetails.routes.js";
 import getActiveWalletRouter from "./getActiveAcount.routes.js";
-
+import marketRoute from "./market.routes.js"
 
 export {
     cryptoRoutes,
@@ -63,4 +63,5 @@ export {
     countryNames,
     adminAccountDetailsRouter,
     getActiveWalletRouter,
+    marketRoute
 }

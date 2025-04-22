@@ -106,9 +106,9 @@ router.post("/", async (req, res) => {
         }
 
         wallet.balance = parseFloat((wallet.balance + realisedPL).toFixed(2));
+        wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
         wallet.available = parseFloat((wallet.available + realisedPL + openOrder.margin).toFixed(2));
         wallet.margin = parseFloat((wallet.margin - openOrder.margin).toFixed(2));
-        wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
 
         await Promise.all([
             closedOrder.save(),

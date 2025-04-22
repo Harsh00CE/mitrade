@@ -1,22 +1,15 @@
 import mongoose from "mongoose";
-import bcryptjs from "bcryptjs";
 
-const AdminSchema = new mongoose.Schema({
-  username: { 
-    type: String, 
-    required: true, 
-    unique: true,
-    trim: true
-  },
-  password: { 
-    type: String, 
-    required: true 
-  },
+const MarketSchema = new mongoose.Schema({
   isMarketOn: { 
     type: Boolean, 
     default: false 
   },
   nextScheduledClose: {  
+    type: Date,
+    default: null
+  },
+  nextScheduledReopen: {  
     type: Date,
     default: null
   },
@@ -35,4 +28,4 @@ const AdminSchema = new mongoose.Schema({
 });
 
 
-export default mongoose.model("Admin", AdminSchema);
+export default mongoose.model("Market", MarketSchema);

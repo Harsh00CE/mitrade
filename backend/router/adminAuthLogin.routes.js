@@ -42,21 +42,38 @@ router.post('/', async (req, res) => {
 
 router.post('/toggle-market', async (req, res) => {
   try {
+
+    const { closeReason } = req.body;
+
     const admin = await AdminSchema.findOne().sort({ createdAt: -1 });
     if (!admin) {
       return res.status(404).json({ error: 'Admin configuration not found' });
     }
+    
+    if(admin.isMarketOn){
+      if (!closeReason) {
+        return res.status(400).json({ error: 'Close reason is required' });
+      }else{
+        admin.closeReason = closeReason;
+        admin.isMarketOn = false;
+      }
 
-    admin.isMarketOn = !admin.isMarketOn;
+    }else{
+      admin.closeReason = "";
+      admin.isMarketOn = true;
+    }
+
     await admin.save();
 
     res.json({
       message: `Market ${admin.isMarketOn ? 'opened' : 'closed'} successfully`,
-      isMarketOn: admin.isMarketOn
+      isMarketOn: admin.isMarketOn,
+      closeReason: admin.closeReason,
+      success:true
     });
   } catch (err) {
     console.error('Market toggle error:', err);
-    res.status(500).json({ error: 'Error toggling market status' });
+    res.status(500).json({ message: 'Error toggling market status' , success:false });
   }
 });
 
@@ -99,7 +116,10 @@ router.get('/market-status', async (req, res) => {
     return res.json({
       isMarketOn: admin.isMarketOn,
       nextScheduledClose: admin.nextScheduledClose,
-      shouldCloseNow: admin.nextScheduledClose && new Date(admin.nextScheduledClose) <= new Date()
+      closeReason: admin.closeReason,
+      success: true,
+      shouldCloseNow: admin.nextScheduledClose && new Date(admin.nextScheduledClose) <= new Date(),
+      message: "Market status retrieved successfully",
     });
   } catch (err) {
     console.error('Market status error:', err);
