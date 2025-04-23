@@ -13,9 +13,14 @@ router.post("/", async (req, res) => {
         const { orderId, closingPrice } = req.body;
 
         // Validate inputs
-        if (!mongoose.Types.ObjectId.isValid(orderId) || typeof closingPrice !== "number") {
-            return res.status(200).json({ success: false, message: "Invalid input" });
+        if (
+            !mongoose.Types.ObjectId.isValid(orderId) ||
+            typeof closingPrice !== "number" ||
+            closingPrice < 0.01
+        ) {
+            return res.status(200).json({ success: false, message: "Invalid input: closingPrice must be ≥ 0.01" });
         }
+
 
         // Find and delete the open order
         const openOrder = await OpenOrdersModel.findOneAndDelete({ _id: orderId, status: "active" });
