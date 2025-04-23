@@ -100,15 +100,20 @@ router.post("/", async (req, res) => {
             return null;
         }
         let formattedTP = validateTPorSL(takeProfit, ['price', 'profit']);
+
+        
+        
         if (takeProfit && !formattedTP) {
             return res.status(200).json({ success: false, message: "Invalid takeProfit format" });
         }
-
+        
         let formattedSL = validateTPorSL(stopLoss, ['price', 'loss']);
         if (stopLoss && !formattedSL) {
             return res.status(200).json({ success: false, message: "Invalid stopLoss format" });
         }
-
+        
+        console.log("formattedtp", formattedTP);
+        console.log("stoploss" , formattedSL);
 
         // ✅ Format takeProfit if object
         // let formattedTP = null;
@@ -127,6 +132,8 @@ router.post("/", async (req, res) => {
         }
 
         console.log("stoploss", stopLoss);
+        console.log("takeprofit", takeProfit);
+        
         
 
         // ✅ Format stopLoss if object

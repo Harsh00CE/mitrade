@@ -59,7 +59,7 @@ router.post('/register', (req, res) => {
             const { userId, fname, lname, mname, email, mobile, address, nationality, documentType, documentNumber } = req.body;
 
             // Validate required fields
-            if (!fname || !lname || !mname || !email || !mobile || !nationality || !documentType || !documentNumber) {
+            if (!fname || !lname || !email || !mobile || !nationality || !documentType || !documentNumber) {
                 return res.status(200).json({ message: 'Missing required fields' });
             }
 
@@ -115,7 +115,7 @@ router.post('/register', (req, res) => {
             const newKYC = new BasicKYC({
                 userId,
                 fname,
-                mname,
+                mname: mname ? mname : "",
                 lname,
                 // gender,
                 // dateOfBirth,
@@ -138,8 +138,14 @@ router.post('/register', (req, res) => {
 
             const wallet = new ActiveWalletModel({
                 userId: userId,
+                leverage: 500,
+                pl: 0,
+                balance: 0,
+                equity: 0,
+                available: 0,
+                margin: 0,
+                marginLevel: 0,
             });
-            wallet.leverage = 1;
             await wallet.save();
 
             user.activeWallet = wallet._id;

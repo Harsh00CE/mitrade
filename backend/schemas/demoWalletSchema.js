@@ -12,44 +12,37 @@ const demoWalletSchema = new Schema({
         type: Number,
         required: [true, "Balance is required"],
         set: (value) => Number(value.toFixed(3)),
-        default: 50000,
     },
     equity: {
         type: Number,
         required: [true, "Equity is required"],
         set: (value) => Number(value.toFixed(3)),
-        default: 50000,
     },
     available: {
         type: Number,
         required: [true, "Available is required"],
         set: (value) => Number(value.toFixed(3)),
-        default: 50000,
     },
     margin: {
         type: Number,
         required: [true, "Margin is required"],
         set: (value) => Number(value.toFixed(3)),
-        default: 0,
     },
     marginLevel: {
         type: Number,
         required: [true, "Margin level is required"],
         set: (value) => Number(value.toFixed(3)),
-        default: 0,
     },
     leverage: {
         type: Number,
         required: true,
         min: 1,
-        default: 1,
-    },
+   },
     pl: {
         type: Number,
         required: [true, "pl is required"],
         set: (value) => Number(value.toFixed(3)),
-        default: 0,
-    },
+   },
 });
 
 const DemoWalletModel = mongoose.model("DemoWallet", demoWalletSchema);

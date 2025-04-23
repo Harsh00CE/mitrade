@@ -69,7 +69,7 @@ const WalletConfigPage = () => {
 
     const handleInputChange = (e, walletType) => {
         const { name, value } = e.target;
-        const parsedValue = parseFloat(value) || 0;
+        const parsedValue = parseFloat(value);
 
         if (walletType === "demo") {
             setEditedDemoWallet(prev => ({ ...prev, [name]: parsedValue }));

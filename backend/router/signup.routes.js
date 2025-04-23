@@ -39,9 +39,16 @@ router.post("/", async (req, res) => {
         await newUser.save();
         console.timeEnd("Saving Time");
 
-        
+
         const wallet = new DemoWalletModel({
             userId: newUser._id,
+            leverage: 500,
+            pl: 0,
+            balance: 10000,
+            equity: 10000,
+            available: 10000,
+            margin: 0,
+            marginLevel: 0,
         });
         await wallet.save();
 
