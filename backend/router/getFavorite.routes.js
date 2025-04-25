@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 const router = express.Router();
 
 router.get("/:userId", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { userId } = req.params;
 
@@ -20,8 +20,8 @@ router.get("/:userId", async (req, res) => {
 
         // Only query once by using findOne based on valid userId
         const user = await UserModel.findOne({ $or: [{ _id: userId }, { userId: userId }] })
-            .lean() 
-            .select("favoriteTokens"); 
+            .lean()
+            .select("favoriteTokens");
 
         // If user is not found
         if (!user) {

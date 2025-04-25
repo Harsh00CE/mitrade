@@ -41,7 +41,7 @@ const fetchOandaPrice = async (symbol) => {
 };
 
 router.post("/:userId", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { userId } = req.params;
 
@@ -86,12 +86,12 @@ router.post("/:userId", async (req, res) => {
         for (const order of openOrders) {
             const closingPrice = await fetchOandaPrice(order.symbol);
 
-            console.log(
-                "Closing price for order:",
-                order.symbol,
-                "at price:",
-                closingPrice
-            );
+            // console.log(
+            //     "Closing price for order:",
+            //     order.symbol,
+            //     "at price:",
+            //     closingPrice
+            // );
 
 
             if (!closingPrice) {

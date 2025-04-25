@@ -10,7 +10,7 @@ dotenv.config();
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { symbol, currentPrice } = req.body;
 

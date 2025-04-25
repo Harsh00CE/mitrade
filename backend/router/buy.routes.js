@@ -143,8 +143,6 @@ router.post("/", async (req, res) => {
             };
         }
 
-        console.log("user wallettype", user.walletType);
-
 
         const order = new OpenOrdersModel({
             orderId,
@@ -169,7 +167,9 @@ router.post("/", async (req, res) => {
         wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
         wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
 
-        await Promise.all([order.save(), wallet.save()]);
+        user.orderList.push(order.id);
+
+        await Promise.all([order.save(), wallet.save(), user.save()]);
 
         return res.status(200).json({
             success: true,

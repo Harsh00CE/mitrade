@@ -6,7 +6,7 @@ import UserModel from "../schemas/userSchema.js";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { userId, symbol, alertPrice, alertType, frequency } = req.body;
 
@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/:userId/:symbol", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { userId, symbol } = req.params;
 
@@ -79,7 +79,7 @@ router.get("/:userId/:symbol", async (req, res) => {
 });
 
 router.delete("/:alertId", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { alertId } = req.params;
 
@@ -115,7 +115,7 @@ router.delete("/:alertId", async (req, res) => {
 });
 
 router.put("/:alertId", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { alertId } = req.params;
         const { alertPrice, frequency } = req.body;

@@ -11,11 +11,18 @@ import { createServer } from 'http';
 import axios from 'axios';
 import OpenOrdersModel from "./schemas/openOrderSchema.js";
 import ClosedOrdersModel from "./schemas/closeOrderSchema.js";
-import mongoose from "mongoose";
+import mongoose, { set } from "mongoose";
 import DemoWalletModel from "./schemas/demoWalletSchema.js";
 import ActiveWalletModel from "./schemas/activeWalletSchema.js";
+import { Worker } from "worker_threads";
+import os from "os";
+
 import { startLiquidationService, updateCurrentPrices } from "./liquidationService.js";
-import PriceHistoryModel from "./schemas/priceHistorySchema.js";
+
+
+
+
+const NUM_CPUS = os.cpus().length;
 
 
 dotenv.config({ path: ".env" });
@@ -37,7 +44,7 @@ const TOP_100_CRYPTO_PAIRS = [
 const server = createServer();
 const wss = new WebSocketServer({ server });
 
-const PORT = 3001;
+const PORT = process.env.SOCKET_PORT || 3001;
 
 const OANDA_ACCOUNT_ID = '101-001-31219533-001';
 const OANDA_API_KEY = '5feac4ec1ff4d5d5fa28bd53f31a2fd7-d3da8ffeb17a5a449d6f46f583f9bc4a';
@@ -45,166 +52,6 @@ const OANDA_URL = `https://stream-fxpractice.oanda.com/v3/accounts/${OANDA_ACCOU
 
 const PRICE_UPDATE_INTERVAL = 1000;
 const currentPrices = new Map();
-
-
-const getStartOfDay = () => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return now;
-};
-
-
-const getYesterdayClosePrice = async (symbol) => {
-    try {
-        // Get the start of yesterday
-        const yesterdayStart = getYesterdayStart();
-        // Get the start of today (which is the end of yesterday)
-        const todayStart = getStartOfDay();
-
-        // Find the last price record from yesterday
-        const lastPrice = await PriceHistoryModel.findOne({
-            symbol: symbol,
-            timestamp: {
-                $gte: yesterdayStart,
-                $lt: todayStart
-            }
-        }).sort({ timestamp: -1 }); // Sort by timestamp descending to get the most recent
-
-        return lastPrice ? lastPrice.close : null;
-    } catch (err) {
-        console.error(`Error fetching yesterday's close for ${symbol}:`, err);
-        return null;
-    }
-};
-
-const getYesterdayStart = () => {
-    const date = new Date();
-    date.setDate(date.getDate() - 1);
-    date.setHours(0, 0, 0, 0);
-    return date;
-};
-
-// Store daily price data in memory for quick access
-const dailyPriceData = new Map();
-
-// Initialize daily data for all pairs
-function initializeDailyData() {
-    TOP_100_FOREX_PAIRS.forEach(pair => {
-        dailyPriceData.set(pair, {
-            open: null,
-            high: -Infinity,
-            low: Infinity,
-            close: null,
-            type: 'forex'
-        });
-    });
-
-    TOP_100_CRYPTO_PAIRS.forEach(pair => {
-        dailyPriceData.set(pair, {
-            open: null,
-            high: -Infinity,
-            low: Infinity,
-            close: null,
-            type: 'crypto'
-        });
-    });
-}
-
-initializeDailyData();
-
-async function handlePriceUpdate(data) {
-    const { instrument, bid, ask, type } = data;
-    const midPrice = (parseFloat(bid) + parseFloat(ask)) / 2;
-    const now = new Date();
-
-    // Get or initialize daily data for this instrument
-    const dailyData = dailyPriceData.get(instrument) || {
-        open: null,
-        high: -Infinity,
-        low: Infinity,
-        close: null,
-        type,
-        yesterdayClose: null
-    };
-
-    // If it's a new day, reset the data
-    if (dailyData.lastUpdate && dailyData.lastUpdate < getStartOfDay()) {
-        // Store yesterday's data before resetting
-        if (dailyData.close) {
-            await storeDailyPriceHistory(instrument, {
-                open: dailyData.open,
-                high: dailyData.high,
-                low: dailyData.low,
-                close: dailyData.close,
-                type: dailyData.type
-            });
-        }
-
-        // Set yesterday's close (which was the previous day's close)
-        dailyData.yesterdayClose = dailyData.close;
-
-        // Reset for new day
-        dailyData.open = midPrice;
-        dailyData.high = midPrice;
-        dailyData.low = midPrice;
-    } else if (dailyData.open === null) {
-        // First price of the day - fetch yesterday's close if not set
-        if (dailyData.yesterdayClose === null) {
-            dailyData.yesterdayClose = await getYesterdayClosePrice(instrument);
-        }
-
-        dailyData.open = midPrice;
-        dailyData.high = midPrice;
-        dailyData.low = midPrice;
-    } else {
-        // Update high/low
-        if (midPrice > dailyData.high) dailyData.high = midPrice;
-        if (midPrice < dailyData.low) dailyData.low = midPrice;
-    }
-
-    // Always update close price with latest
-    dailyData.close = midPrice;
-    dailyData.lastUpdate = now;
-    dailyData.type = type;
-
-    dailyPriceData.set(instrument, dailyData);
-
-    // Store price history every minute (adjust frequency as needed)
-    if (!dailyData.lastHistoryUpdate || (now - dailyData.lastHistoryUpdate) > 60000) {
-        await storePriceHistory(instrument, midPrice, type);
-        dailyData.lastHistoryUpdate = now;
-    }
-}
-
-// Store minute-level price history
-async function storePriceHistory(symbol, price, type) {
-    try {
-        await PriceHistoryModel.create({
-            symbol,
-            timestamp: new Date(),
-            open: price,
-            high: price,
-            low: price,
-            close: price,
-            type
-        });
-    } catch (err) {
-        console.error('Error storing price history:', err);
-    }
-}
-
-// Store daily summary
-async function storeDailyPriceHistory(symbol, data) {
-    try {
-        await PriceHistoryModel.create({
-            symbol,
-            timestamp: getYesterdayStart(),
-            ...data
-        });
-    } catch (err) {
-        console.error('Error storing daily price history:', err);
-    }
-}
 
 wss.on('connection', (ws) => {
     console.log('New client connected');
@@ -247,7 +94,7 @@ function subscribeToPairs(pairs) {
 
             let buffer = '';
 
-            stream.on('data', chunk => {
+            stream.on('data', async chunk => {
                 buffer += chunk.toString();
                 const lines = buffer.split('\n');
                 for (let i = 0; i < lines.length - 1; i++) {
@@ -258,42 +105,25 @@ function subscribeToPairs(pairs) {
                         const data = JSON.parse(line);
                         if (data.type === 'PRICE') {
                             const pairType = TOP_100_FOREX_PAIRS.includes(data.instrument) ? 'forex' : 'crypto';
-                            const currentPrice = (parseFloat(data.bids[0].price) + parseFloat(data.asks[0].price)) / 2;
-
-                            // Get the daily OHLC data for this instrument
-                            const dailyData = dailyPriceData.get(data.instrument) || {
-                                open: currentPrice,
-                                high: currentPrice,
-                                low: currentPrice,
-                                close: currentPrice,
-                                type: pairType
-                            };
-
                             const priceData = {
                                 instrument: data.instrument,
                                 time: data.time,
                                 bid: data.bids[0].price,
                                 ask: data.asks[0].price,
                                 spread: (data.asks[0].price - data.bids[0].price).toFixed(5),
-                                type: pairType,
-                                ohlc: {
-                                    open: dailyData.open,
-                                    high: dailyData.high,
-                                    low: dailyData.low,
-                                    close: dailyData.close,
-                                    // Optional: Include yesterday's close if available
-                                    yesterdayClose: null // You can populate this from your database
-                                },
-                                change: dailyData.open ?
-                                    ((currentPrice - dailyData.open) / dailyData.open * 100).toFixed(2) + '%' :
-                                    '0.00%'
+                                type: pairType
                             };
 
                             currentPrices.set(data.instrument, priceData);
-                            updateCurrentPrices(currentPrices);
-                            broadcastToAllClients(priceData);
+                            // updateCurrentPrices(currentPrices);
+                            // broadcastToAllClients(priceData);
 
-                            handlePriceUpdate(priceData);
+                            // checkForLiquidations(wss);
+
+                            // if (Math.random() < 0.2) { // 20% chance to run liquidation check
+                            //     checkForLiquidations(wss).catch(console.error);
+                            // }
+
                             checkAndSendAlerts(data.instrument, parseFloat(priceData.bid));
                             checkTP_SL_Triggers(data.instrument, parseFloat(priceData.bid), wss);
                             checkPendingOrders(data.instrument, parseFloat(priceData.bid), wss);
@@ -327,31 +157,7 @@ function subscribeToPairs(pairs) {
 
 function sendAllPrices() {
     if (currentPrices.size > 0) {
-        const allPrices = Array.from(currentPrices.values()).map(priceData => {
-            const instrument = priceData.instrument;
-            const dailyData = dailyPriceData.get(instrument) || {
-                open: priceData.bid,
-                high: priceData.bid,
-                low: priceData.bid,
-                close: priceData.bid,
-                yesterdayClose: null
-            };
-
-            return {
-                ...priceData,
-                ohlc: {
-                    open: dailyData.open,
-                    high: dailyData.high,
-                    low: dailyData.low,
-                    close: dailyData.close,
-                    yesterdayClose: dailyData.yesterdayClose
-                },
-                change: dailyData.open ?
-                    ((parseFloat(priceData.bid) - dailyData.open) / dailyData.open * 100).toFixed(2) + '%' :
-                    '0.00%'
-            };
-        });
-
+        const allPrices = Array.from(currentPrices.values());
         const forexPrices = allPrices.filter(price => price.type === 'forex');
         const cryptoPrices = allPrices.filter(price => price.type === 'crypto');
 
@@ -378,37 +184,14 @@ function sendAllPrices() {
 }
 
 function broadcastToAllClients(priceData) {
-    const instrument = priceData.instrument;
-    const dailyData = dailyPriceData.get(instrument) || {
-        open: priceData.bid,
-        high: priceData.bid,
-        low: priceData.bid,
-        close: priceData.bid,
-        yesterdayClose: null
-    };
-
-    const enhancedPriceData = {
-        ...priceData,
-        ohlc: {
-            open: dailyData.open,
-            high: dailyData.high,
-            low: dailyData.low,
-            close: dailyData.close,
-            yesterdayClose: dailyData.yesterdayClose
-        },
-        change: dailyData.yesterdayClose  ?
-            ((parseFloat(priceData.bid) - dailyData.yesterdayClose) / dailyData.yesterdayClose * 100).toFixed(2) + '%' :
-            '0.00%'
-    };
-
-    // wss.clients.forEach(client => {
-    //     if (client.readyState === WebSocket.OPEN) {
-    //         client.send(JSON.stringify({
-    //             type: 'priceUpdate',
-    //             data: enhancedPriceData
-    //         }));
-    //     }
-    // });
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'priceUpdate',
+                data: priceData
+            }));
+        }
+    });
 }
 
 function restartStream() {
@@ -537,11 +320,11 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             closeReason: isTP ? "take-profit" : "stop-loss"
         });
 
-        if (openOrder.stopLoss?.type) {
+        if (openOrder.stopLoss.type) {
             closedOrder.stopLoss = openOrder.stopLoss;
         }
 
-        if (openOrder.takeProfit?.type) {
+        if (openOrder.takeProfit.type) {
             closedOrder.takeProfit = openOrder.takeProfit;
         }
 
@@ -582,11 +365,8 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
 
         // Update wallet
         wallet.balance = parseFloat((wallet.balance + realisedPL).toFixed(2));
-
         wallet.available = parseFloat((wallet.available + realisedPL + openOrder.margin).toFixed(2));
-
         wallet.margin = parseFloat((wallet.margin - openOrder.margin).toFixed(2));
-
         wallet.equity = parseFloat((wallet.equity + realisedPL).toFixed(2));
 
         await Promise.all([
@@ -743,144 +523,184 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
     }
 };
 
-// // Add to your WebSocket server
-// function broadcastOHLCUpdates() {
-//     const ohlcData = {};
-
-//     for (const [symbol, data] of dailyPriceData.entries()) {
-//         ohlcData[symbol] = {
-//             open: data.open,
-//             high: data.high,
-//             low: data.low,
-//             close: data.close,
-//             type: data.type
-//         };
-//     }
-
-//     wss.clients.forEach(client => {
-//         if (client.readyState === WebSocket.OPEN) {
-//             client.send(JSON.stringify({
-//                 type: 'ohlcUpdate',
-//                 data: ohlcData,
-//                 timestamp: new Date().toISOString()
-//             }));
-//         }
-//     });
-// }
-
-// // Call this periodically (e.g., every minute)
-// setInterval(broadcastOHLCUpdates, 1000);
-
-
 const checkForLiquidations = async (wss) => {
     try {
-        // Get all users with open positions
-        const usersWithOpenPositions = await UserModel.find()
+        let pair = new Map();
+        let liquidationStart = new Map();
+
+        const openOrders = await OpenOrdersModel.find({
+            status: "active"
+        }).distinct("userId");
+
+        if (!openOrders.length) {
+            return;
+        }
+
+        const get_users_with_orders = await UserModel.find({
+            _id: { $in: openOrders }
+        }).populate("orderList demoWallet activeWallet");
 
 
-        for (const user of usersWithOpenPositions) {
-            const walletType = user.walletType;
-            let wallet;
+        if (!get_users_with_orders.length) {
+            return;
+        }
 
-            if (walletType === "demo") {
-                wallet = await DemoWalletModel.findById(user.demoWallet);
+        for (const single_user of get_users_with_orders) {
+            let wallet, totalUnrealizedPL = 0;
+
+
+
+
+            if (single_user.walletType === "demo") {
+                wallet = single_user.demoWallet;
             } else {
-                wallet = await ActiveWalletModel.findById(user.activeWallet);
+                wallet = single_user.activeWallet;
             }
-
 
             if (!wallet) continue;
+            if (wallet.available == 0) continue;
 
-            // Recalculate available balance based on current prices
-            const openOrders = await OpenOrdersModel.find({
-                userId: user._id,
-                status: "active"
-            });
 
-            let totalUnrealizedPL = 0;
+            if (!single_user.orderList.length) {
+                continue;
+            }
 
-            for (const order of openOrders) {
-                const currentPriceData = currentPrices.get(order.symbol);
+            for (const single_order of single_user.orderList) {
+                const currentPriceData = currentPrices.get(single_order.symbol);
+
                 if (!currentPriceData) continue;
 
-                const currentPrice = parseFloat(currentPriceData.bid);
-                const entryValue = order.openingPrice * order.quantity;
-                const currentValue = currentPrice * order.quantity;
+                const currentPrice = parseFloat(currentPriceData.bid)
 
-                const unrealizedPL = order.type === "buy"
-                    ? (currentValue - entryValue) * order.contractSize
-                    : (entryValue - currentValue) * order.contractSize;
+                const entryValue = single_order.openingPrice
+                const currentValue = currentPrice
+
+                const unrealizedPL = single_order.type === "buy"
+                    ? (currentValue - entryValue) * single_order.contractSize * single_order.quantity
+                    : (entryValue - currentValue) * single_order.contractSize * single_order.quantity;;
 
                 totalUnrealizedPL += unrealizedPL;
-            }
-            wallet.equity = parseFloat((wallet.balance + totalUnrealizedPL).toFixed(2));
-            wallet.available = parseFloat((wallet.equity - wallet.margin).toFixed(2));
 
-            if (wallet.available <= 0) {
-                // console.log(`Liquidating all positions for user ${user._id} due to negative available balance`);
-                await liquidateAllPositions(user._id, wallet, wss);
+                pair.set(single_order.symbol, currentPrice);
+            }
+
+            const available = parseFloat((wallet.available + totalUnrealizedPL).toFixed(2));
+
+            console.log("available ==> ", available);
+            const userIdStr = single_user._id.toString();
+
+            const find_user = await UserModel.findById(single_user._id);
+            const liquidationStatus = find_user.liquidated;
+
+            if (available <= 0 && liquidationStatus === false) {
+                await UserModel.updateOne(
+                    { _id: single_user._id },
+                    {
+                        $set: { liquidated: true },
+                    },
+                );
+                const { closedOrders, openOrdersToDelete, updatedWallet } = await liquidateAllPositions(single_user._id, wallet, wss, single_user.orderList, pair);
+                await OpenOrdersModel.bulkWrite(openOrdersToDelete);
+                await ClosedOrdersModel.bulkWrite(closedOrders);
+
+                if (single_user.walletType === "demo") {
+                    await DemoWalletModel.updateOne(
+                        { userId: new mongoose.Types.ObjectId(single_user._id) },
+                        {
+                            $set: updatedWallet
+                        },
+                    );
+                } else {
+                    await ActiveWalletModel.updateOne(
+                        { userId: new mongoose.Types.ObjectId(single_user._id) },
+                        {
+                            $set: updatedWallet
+                        },
+                    );
+                }
             } else {
-                await wallet.save();
+                pair = new set();
             }
         }
+        console.log("checkForLiquidations end")
+
     } catch (error) {
         console.error('Error in liquidation check:', error);
     }
 };
-const liquidateAllPositions = async (userId, wallet, wss) => {
 
-
+const liquidateAllPositions = async (userId, wallet, wss, openOrders, pair) => {
     try {
-        const activeOrders = await OpenOrdersModel.find({
-            userId,
-            status: "active"
-        });
+        console.log("liquidateAllPositions start")
+        const activeOrders = openOrders;
+        let closedOrders = [];
+        let openOrdersToDelete = [];
+        let updatedWallet = {};
 
         for (const order of activeOrders) {
-            const currentPriceData = currentPrices.get(order.symbol);
-            if (!currentPriceData) continue;
+            console.log("🚀 ~ liquidateAllPositions ~ order:", order)
+            console.log("🚀 ~ liquidateAllPositions ~ order.symbol:", order.symbol)
+            const currentPrice = pair.get(order.symbol);
+            console.log("currentPrice", currentPrice)
+            if (!currentPrice) continue;
 
-            const currentPrice = parseFloat(currentPriceData.bid);
-            const entryValue = order.openingPrice * order.quantity;
-            const currentValue = currentPrice * order.quantity;
+            const entryValue = order.openingPrice;
+            const currentValue = currentPrice
 
             let realisedPL = order.type === "buy"
-                ? (currentValue - entryValue) * order.contractSize
-                : (entryValue - currentValue) * order.contractSize;
+                ? (currentValue - entryValue) * order.contractSize * order.quantity
+                : (entryValue - currentValue) * order.contractSize * order.quantity;
 
             realisedPL = parseFloat(realisedPL.toFixed(2));
-            const closedOrder = new ClosedOrdersModel({
+
+            const closedOrderDoc = {
                 originalOrderId: order._id,
                 orderId: new mongoose.Types.ObjectId().toString(),
-                userId: order.userId,
+                userId: userId,
                 symbol: order.symbol,
                 contractSize: order.contractSize,
                 type: order.type,
                 quantity: order.quantity,
                 openingPrice: order.openingPrice,
-                closingPrice: currentPrice,
+                closingPrice: currentPrice, // assuming you have this
                 leverage: order.leverage,
                 status: "closed",
                 position: "close",
                 openingTime: order.openingTime,
                 closingTime: new Date(),
-                realisedPL,
+                realisedPL: realisedPL, // your custom function
                 margin: order.margin,
                 tradingAccount: order.tradingAccount || "demo",
                 closeReason: "liquidation"
+            };
+
+            if (order.stopLoss?.type) {
+                closedOrderDoc.stopLoss = order.stopLoss;
+            }
+
+            if (order.takeProfit?.type) {
+                closedOrderDoc.takeProfit = order.takeProfit;
+            }
+
+            closedOrders.push({
+                insertOne: {
+                    document: closedOrderDoc
+                }
             });
-            if (order.stopLoss.type) {
-                closedOrder.stopLoss = order.stopLoss;
-            }
 
-            if (order.takeProfit.type) {
-                closedOrder.takeProfit = order.takeProfit;
-            }
+            openOrdersToDelete.push({
+                deleteOne: {
+                    filter: { _id: order._id }
+                }
+            });
 
-
-            await closedOrder.save();
-
-            await OpenOrdersModel.findByIdAndDelete(order._id);
+            updatedWallet = {
+                _id: wallet._id,
+                balance: 0,
+                equity: 0,
+                available: 0,
+                margin: 0,
+            };
 
             wss.clients.forEach(client => {
                 if (client.readyState === 1) {
@@ -896,24 +716,24 @@ const liquidateAllPositions = async (userId, wallet, wss) => {
                     }));
                 }
             });
+
+            await UserModel.updateOne(
+                { _id: new mongoose.Types.ObjectId(userId) },
+                {
+                    $set: { orderList: [] },
+                    $push: { orderHistory: { $each: activeOrders.map(o => o._id) } }
+                },
+            );
+
         }
 
-        wallet.balance = 0;
-        wallet.available = 0;
-        wallet.margin = 0;
-        wallet.equity = 0;
-        await wallet.save();
-
-        await UserModel.updateOne(
-            { _id: userId },
-            {
-                $set: { openOrders: [] },
-                $push: { closedOrders: { $each: activeOrders.map(o => o._id) } }
-            },
-        );
-
-        // console.log(`Successfully liquidated all positions for user ${userId}`);
+        console.log("liquidateAllPositions end", closedOrders, openOrdersToDelete, updatedWallet)
+        return { closedOrders, openOrdersToDelete, updatedWallet };
     } catch (error) {
         console.error('Error during liquidation:', error);
     }
 };
+
+
+
+

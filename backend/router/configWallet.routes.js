@@ -6,7 +6,7 @@ import DemoWalletModel from "../schemas/demoWalletSchema.js";
 const router = express.Router();
 
 router.put("/:userId", async (req, res) => {
-    await connectDB();
+    // await connectDB();
     try {
         const { userId } = req.params;
         const { balance, equity, available, margin,leverage, marginLevel, pl } = req.body;

@@ -108,8 +108,8 @@ router.post("/", async (req, res) => {
             UserModel.updateOne(
                 { _id: openOrder.userId },
                 {
-                    $push: { closedOrders: closedOrder.orderId },
-                    $pull: { openOrders: orderId }
+                    $push: { orderHistory: closedOrder.orderId },
+                    $pull: { orderList: openOrder.id }
                 }
             )
         ]);

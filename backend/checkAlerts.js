@@ -133,7 +133,7 @@ const currentPrices = new Map();
 let activeSubscriptions = new Set();
 
 // Start server
-const PORT = 3001;
+const PORT = process.env.SOCKET_PORT||3001;
 
 server.listen(PORT, () => {
     console.log(`WebSocket server running on port ${PORT}`);

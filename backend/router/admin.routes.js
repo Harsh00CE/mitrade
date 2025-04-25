@@ -43,7 +43,7 @@ const upload = multer({
 // API to Create or Update Pair Info
 router.post("/", async (req, res) => {
     upload(req, res, async (err) => {
-        await connectDB();
+        // await connectDB();
 
         if (err) {
             return res.status(200).json({ success: false, message: err.message });

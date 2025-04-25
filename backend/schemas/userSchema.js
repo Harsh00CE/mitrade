@@ -34,7 +34,12 @@ const UserSchema = new Schema({
     default: false,
     index: true,
   },
-  walletType:{
+  liquidated: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  walletType: {
     type: String,
     enum: ["demo", "active"],
     default: "demo",
@@ -45,12 +50,12 @@ const UserSchema = new Schema({
   },
   activeWallet: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "ActiveWallet",
+    ref: "activeWallet",
   },
   orderList: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
+      ref: "OpenOrders",
     },
   ],
   favoriteTokens: {
@@ -70,7 +75,7 @@ const UserSchema = new Schema({
   orderHistory: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "OrderHistory",
+      ref: "closedorders",
     },
   ],
 });

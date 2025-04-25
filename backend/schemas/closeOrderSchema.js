@@ -12,6 +12,7 @@ const closedOrdersSchema = new Schema(
         originalOrderId: {
             type: String,
             required: true,
+            unique: true,
             index: true,
         },
         symbol: {
