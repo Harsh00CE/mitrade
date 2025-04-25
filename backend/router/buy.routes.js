@@ -164,8 +164,12 @@ router.post("/", async (req, res) => {
             userId
         });
 
-        wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
-        wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+        if (status == "active") {
+            wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
+            wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+
+        }
+
 
         user.orderList.push(order.id);
 
