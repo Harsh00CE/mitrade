@@ -70,6 +70,8 @@ router.get("/filter/:userId", async (req, res) => {
                 });
         }
 
+        const user = await UserModel.findById(userId);
+
         const walletType = user.walletType;
         if (!walletType) {
             return res.status(200).json({

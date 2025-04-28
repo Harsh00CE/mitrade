@@ -122,6 +122,11 @@ const closedOrdersSchema = new Schema(
             enum: ["demo", "active"],
             index: true,
         },
+        pairType: {
+            type: String,
+            required: true,
+            enum: ["crypto", "forex"],
+        },
         overnightFunding: {
             type: Number,
             default: 0,
