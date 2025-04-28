@@ -57,7 +57,7 @@ router.get("/filter/:userId", async (req, res) => {
                 break;
             case 'week':
                 startDate = new Date(now);
-                startDate.setDate(now.getDate() - now.getDay());
+                startDate.setDate(now.getDate() - 7);
                 startDate.setHours(0, 0, 0, 0);
                 break;
             case 'month':
