@@ -113,7 +113,14 @@ router.get("/:userId", async (req, res) => {
 
 router.get("/filter", async (req, res) => {
     try {
-        const { range } = req.body;
+        const { range, userId } = req.query;  // ✅ use req.query, not req.body
+
+        if (!range || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: "Range and userId are required. Example: ?range=today&userId=123"
+            });
+        }
 
         let startDate;
         const now = new Date();
@@ -123,7 +130,6 @@ router.get("/filter", async (req, res) => {
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 break;
             case 'week':
-                // Set to start of the week (Sunday)
                 startDate = new Date(now);
                 startDate.setDate(now.getDate() - now.getDay());
                 startDate.setHours(0, 0, 0, 0);
@@ -139,6 +145,7 @@ router.get("/filter", async (req, res) => {
         }
 
         const orders = await ClosedOrdersModel.find({
+            userId, // ✅ filter by userId
             closingTime: { $gte: startDate }
         }).lean();
 
@@ -156,5 +163,6 @@ router.get("/filter", async (req, res) => {
         });
     }
 });
+
 
 export default router;
