@@ -70,8 +70,17 @@ router.get("/filter/:userId", async (req, res) => {
                 });
         }
 
+        const walletType = user.walletType;
+        if (!walletType) {
+            return res.status(200).json({
+                success: false,
+                message: "User wallet type not found",
+            })
+        }
+
         const orders = await ClosedOrdersModel.find({
             userId,
+            tradingAccount: walletType,
             closingTime: { $gte: startDate }
         }).sort({ closingTime: -1 }).lean();
 
