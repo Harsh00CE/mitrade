@@ -68,7 +68,6 @@ const closedOrdersSchema = new Schema(
         closingTime: {
             type: Date,
             required: true,
-            default: Date.now,
         },
 
         // takeProfit: {

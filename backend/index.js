@@ -320,13 +320,15 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             closeReason: isTP ? "take-profit" : "stop-loss"
         });
 
-        if (openOrder.stopLoss.type) {
+        if (openOrder.stopLoss?.type) {
             closedOrder.stopLoss = openOrder.stopLoss;
         }
 
-        if (openOrder.takeProfit.type) {
+        if (openOrder.takeProfit?.type) {
             closedOrder.takeProfit = openOrder.takeProfit;
         }
+
+        
 
 
         const user = await UserModel.findById(openOrder.userId)
@@ -353,13 +355,11 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
         }
 
         const walletType = user.walletType;
-        let wallet;
+        // let wallet;
 
-        if (walletType === "demo") {
-            wallet = await DemoWalletModel.findById(user.demoWallet);
-        } else {
-            wallet = await ActiveWalletModel.findById(user.activeWallet);
-        }
+        const walletModel = user.walletType === "demo" ? DemoWalletModel : ActiveWalletModel;
+        const walletId = user.walletType === "demo" ? user.demoWallet : user.activeWallet;
+        const wallet = await walletModel.findById(walletId);
 
         if (!wallet) continue;
 

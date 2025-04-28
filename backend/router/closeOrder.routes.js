@@ -11,9 +11,9 @@ const router = express.Router();
 router.post("/", async (req, res) => {
     try {
         const { orderId, closingPrice } = req.body;
-        
+
         console.log("closing price", closingPrice);
-        
+
 
         if (
             !mongoose.Types.ObjectId.isValid(orderId) ||
@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
         ) {
             return res.status(200).json({ success: false, message: "Invalid input: closingPrice must be ≥ 0.01" });
         }
-        
+
 
         // Find and delete the open order
         const openOrder = await OpenOrdersModel.findOneAndDelete({ _id: orderId, status: "active" });
@@ -66,11 +66,11 @@ router.post("/", async (req, res) => {
             closeReason: "manual"
         };
 
-        if (openOrder.stopLoss.type) {
+        if (openOrder.stopLoss?.type) {
             closedOrderData.stopLoss = openOrder.stopLoss;
         }
 
-        if (openOrder.takeProfit.type) {
+        if (openOrder.takeProfit?.type) {
             closedOrderData.takeProfit = openOrder.takeProfit;
         }
 

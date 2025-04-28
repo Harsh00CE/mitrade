@@ -41,6 +41,7 @@ router.get("/:userId", async (req, res) => {
         }
 
         const user = await UserModel.findById(userId)
+        console.log("user", user);
 
         if (!user || !user.demoWallet) {
             return res.status(200).json({
@@ -48,6 +49,8 @@ router.get("/:userId", async (req, res) => {
                 message: "User or wallet not found"
             });
         }
+
+
 
         if (!user.walletType) {
             return res.status(200).json({
@@ -68,9 +71,9 @@ router.get("/:userId", async (req, res) => {
 
 
         const orders = await ClosedOrdersModel.find(
-            { userId , tradingAccount: walletType },
+            { userId, tradingAccount: walletType },
         )
-        
+
 
         return res.status(200).json({
             success: true,
@@ -87,11 +90,58 @@ router.get("/:userId", async (req, res) => {
     }
 });
 
-router.get("/", async (req, res) => {
-    try {
+// router.get("/", async (req, res) => {
+//     try {
 
-        const orders = await ClosedOrdersModel.find()
-            .lean()
+//         const orders = await ClosedOrdersModel.find()
+//             .lean()
+//         return res.status(200).json({
+//             success: true,
+//             message: orders.length ? "Closed orders fetched successfully" : "No closed orders found",
+//             data: orders
+//         });
+
+//     } catch (error) {
+//         console.error("Error fetching closed orders:", error);
+//         return res.status(200).json({
+//             success: false,
+//             message: "Error fetching closed orders"
+//         });
+//     }
+// });
+
+
+router.get("/filter", async (req, res) => {
+    try {
+        const { range } = req.body;
+
+        let startDate;
+        const now = new Date();
+
+        switch (range) {
+            case 'today':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                break;
+            case 'week':
+                // Set to start of the week (Sunday)
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - now.getDay());
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case 'month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            default:
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid range. Use 'today', 'week', or 'month'."
+                });
+        }
+
+        const orders = await ClosedOrdersModel.find({
+            closingTime: { $gte: startDate }
+        }).lean();
+
         return res.status(200).json({
             success: true,
             message: orders.length ? "Closed orders fetched successfully" : "No closed orders found",
@@ -99,10 +149,10 @@ router.get("/", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error fetching closed orders:", error);
-        return res.status(200).json({
+        console.error("Error fetching filtered closed orders:", error);
+        return res.status(500).json({
             success: false,
-            message: "Error fetching closed orders"
+            message: "Error fetching filtered closed orders"
         });
     }
 });
