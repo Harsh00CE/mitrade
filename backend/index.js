@@ -18,6 +18,7 @@ import { Worker } from "worker_threads";
 import os from "os";
 
 import { startLiquidationService, updateCurrentPrices } from "./liquidationService.js";
+import { log } from "console";
 
 
 
@@ -296,7 +297,7 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             : entryValue - closingValue;
 
         realisedPL = parseFloat((realisedPL * openOrder.contractSize).toFixed(2));
-        // console.log("Realised P/L:", realisedPL);
+        console.log("Realised P/L:", realisedPL);
 
         // Create Closed Order
         const closedOrder = new ClosedOrdersModel({
@@ -328,7 +329,7 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
             closedOrder.takeProfit = openOrder.takeProfit;
         }
 
-        
+
 
 
         const user = await UserModel.findById(openOrder.userId)
@@ -360,6 +361,8 @@ const checkTP_SL_Triggers = async (symbol, currentPrice, wss) => {
         const walletModel = user.walletType === "demo" ? DemoWalletModel : ActiveWalletModel;
         const walletId = user.walletType === "demo" ? user.demoWallet : user.activeWallet;
         const wallet = await walletModel.findById(walletId);
+
+        log("wallet", wallet);
 
         if (!wallet) continue;
 
