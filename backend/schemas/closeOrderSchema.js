@@ -144,6 +144,7 @@ const closedOrdersSchema = new Schema(
 );
 
 
+
 const ClosedOrdersModel = mongoose.models.ClosedOrders || mongoose.model("ClosedOrders", closedOrdersSchema);
 
 export default ClosedOrdersModel;

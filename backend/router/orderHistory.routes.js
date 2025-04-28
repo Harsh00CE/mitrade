@@ -73,7 +73,7 @@ router.get("/filter/:userId", async (req, res) => {
         const orders = await ClosedOrdersModel.find({
             userId,
             closingTime: { $gte: startDate }
-        }).lean();
+        }).sort({ closingTime: -1 }).lean();
 
         return res.status(200).json({
             success: true,
