@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
 
         if (!openOrder) {
             const alreadyClosed = await ClosedOrdersModel.exists({ originalOrderId: orderId }).lean();
-            return res.status(alreadyClosed ? 200 : 404).json({
+            return res.status(alreadyClosed ? 200 : 200).json({
                 success: false,
                 message: alreadyClosed ? "Order already closed" : "Active order not found"
             });
