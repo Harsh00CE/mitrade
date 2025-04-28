@@ -55,7 +55,7 @@ router.get("/filter/:userId", async (req, res) => {
             case 'Today':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 break;
-            case 'Week':
+            case 'Weekly':
                 startDate = new Date(now);
                 startDate.setDate(now.getDate() - 7);
                 startDate.setHours(0, 0, 0, 0);
@@ -66,7 +66,7 @@ router.get("/filter/:userId", async (req, res) => {
             default:
                 return res.status(400).json({
                     success: false,
-                    message: "Invalid range. Use 'today', 'week', or 'month'."
+                    message: "Invalid range. Use 'Today', 'Weekly', or 'Monthly'."
                 });
         }
 
