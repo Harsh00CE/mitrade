@@ -52,15 +52,15 @@ router.get("/filter/:userId", async (req, res) => {
         const now = new Date();
 
         switch (range) {
-            case 'today':
+            case 'Today':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 break;
-            case 'week':
+            case 'Week':
                 startDate = new Date(now);
                 startDate.setDate(now.getDate() - 7);
                 startDate.setHours(0, 0, 0, 0);
                 break;
-            case 'month':
+            case 'Monthly':
                 startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 break;
             default:
