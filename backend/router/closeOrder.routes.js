@@ -63,7 +63,8 @@ router.post("/", async (req, res) => {
             realisedPL,
             margin: openOrder.margin,
             tradingAccount: openOrder.tradingAccount || "demo",
-            closeReason: "manual"
+            closeReason: "manual",
+            pairType: openOrder.pairType
         };
 
         if (openOrder.stopLoss?.type) {
