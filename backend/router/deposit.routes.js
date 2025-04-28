@@ -101,7 +101,7 @@ router.post('/approve/:id', async (req, res) => {
 
         const user = await UserModel.findById(deposit.userId);
         if (!user) return res.status(200).json({ message: 'User not found' });
-
+        user.liquidated = false;
         const wallet = await ActiveWalletModel.findById(user.activeWallet);
         if (!wallet) return res.status(200).json({ message: 'Wallet not found' });
 
@@ -110,6 +110,7 @@ router.post('/approve/:id', async (req, res) => {
         wallet.equity = parseFloat((wallet.equity + deposit.amount).toFixed(2));
 
         await wallet.save();
+        await user.save();
 
 
         // Update deposit status
