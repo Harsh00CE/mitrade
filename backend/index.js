@@ -440,6 +440,33 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
 
 
         if (!shouldTrigger) continue;
+let totalUnrealizedPL = 0;
+
+        const activeOrders = await OpenOrdersModel.find({
+            status: "active", position: 'open'
+        }).distinct("userId");
+
+
+        if (!activeOrders.length) {
+            continue;
+        }
+
+        for (const order of activeOrders) {
+
+            const currentPriceData = currentPrices.get(order.symbol);
+
+            if (!currentPriceData) continue;
+
+            const currentPrice = parseFloat(currentPriceData.bid);
+            const entryValue = order.openingPrice;
+            const currentValue = currentPrice;
+
+            const unrealizedPL = order.type === "buy"
+                ? (currentValue - entryValue) * order.contractSize * order.quantity
+                : (entryValue - currentValue) * order.contractSize * order.quantity;
+
+            totalUnrealizedPL += unrealizedPL;
+        }
 
         const updatedOrder = await OpenOrdersModel.findByIdAndUpdate(
             _id,
