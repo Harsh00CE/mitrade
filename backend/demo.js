@@ -9,6 +9,7 @@ import ClosedOrdersModel from "./schemas/closeOrderSchema.js";
 import DemoWalletModel from "./schemas/demoWalletSchema.js";
 import ActiveWalletModel from "./schemas/activeWalletSchema.js";
 import connectDB from "./ConnectDB/ConnectionDB.js";
+import AlertModel from "./schemas/alertSchema.js";
 
 dotenv.config({ path: ".env" });
 
@@ -48,7 +49,7 @@ function connectToMainServer() {
 
     ws.on('message', (data) => {
       try {
-        const message = JSON.parse(data.toString()); // Convert Buffer to string
+        const message = JSON.parse(data.toString());
         if (message.type === 'priceUpdate') {
           currentPrices.set(message.data.instrument, message.data);
         } else if (message.type === 'allForexPrice' || message.type === 'allCryptoPrice') {
@@ -104,10 +105,8 @@ const checkForLiquidations = async (wss) => {
     let pair = new Map();
 
     const openOrders = await OpenOrdersModel.find({
-      status: "active"
+      status: "active", position: 'open'
     }).distinct("userId");
-
-    console.log("openOrders ==> ", openOrders.length);
 
 
     if (!openOrders.length) {
@@ -155,7 +154,7 @@ const checkForLiquidations = async (wss) => {
         pair.set(single_order.symbol, currentPrice);
       }
 
-      const available = parseFloat((wallet.available + totalUnrealizedPL).toFixed(2));
+      const available = parseFloat((wallet.equity + totalUnrealizedPL).toFixed(2));
       const find_user = await UserModel.findById(single_user._id);
       const liquidationStatus = find_user.liquidated;
 
