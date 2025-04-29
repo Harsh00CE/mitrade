@@ -514,8 +514,8 @@ let totalUnrealizedPL = 0;
                 wallet = await ActiveWalletModel.findById(user.activeWallet);
             }
 
-
-            if (!wallet || wallet.available < margin) {
+            const newAvailableBalance = parseFloat((wallet.available + totalUnrealizedPL).toFixed(2));
+            if (newAvailableBalance < margin) {
                 console.log(`Insufficient margin for user ${userId}`);
                 res.status(200).json({
                     success: false,
