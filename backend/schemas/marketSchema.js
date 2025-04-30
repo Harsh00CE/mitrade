@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
 const MarketSchema = new mongoose.Schema({
-  isMarketOn: { 
-    type: Boolean, 
-    default: false 
+  isMarketOn: {
+    type: Boolean,
+    default: false
   },
-  nextScheduledClose: {  
+  nextScheduledClose: {
     type: Date,
     default: null
   },
-  nextScheduledReopen: {  
+  nextScheduledReopen: {
     type: Date,
     default: null
   },
@@ -17,13 +17,18 @@ const MarketSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  closeReason:{
-    type:String,
-    default:""
+  closeReason: {
+    type: String,
+    default: ""
   },
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  marketType: {
+    type: String,
+    enum: ["Forex", "Crypto", "Forex-Crypto"],
+    default: ""
   }
 });
 

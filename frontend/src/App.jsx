@@ -23,6 +23,7 @@ import ApprovedDeposits from "./Pages/DepositReport/ApprovedDeposits.jsx";
 import RejectedDeposits from "./Pages/DepositReport/RejectedDeposits.jsx";
 import WithdrawApproved from "./Pages/WithdrawReport/WithdrawApproved.jsx";
 import WithdrawRejected from "./Pages/WithdrawReport/WithdrawRejected.jsx";
+import Benner from "./Pages/Benner/Benner.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -163,6 +164,11 @@ function App() {
                   <Route path="/admin-bank-details" element={
                     <ProtectedRoute>
                       <AdminBankForm />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/benner" element={
+                    <ProtectedRoute>
+                      <Benner />
                     </ProtectedRoute>
                   } />
                   {/* <Route path="/forex" element={<Forex />} />

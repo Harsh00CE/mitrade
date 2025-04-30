@@ -9,12 +9,12 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, pendingValue, status } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, pendingValue, status, availableBalance } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status) {
+        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status || !availableBalance) {
             return res.status(200).json({
                 success: false,
-                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status",
+                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status , availableBalance",
             });
         }
 
@@ -71,10 +71,12 @@ router.post("/", async (req, res) => {
 
         const marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
 
-        if (wallet.available < marginRequired) {
+
+        // region Change available value conditionally
+        if (availableBalance < marginRequired) {
             return res.status(200).json({
                 success: false,
-                message: `Insufficient available balance. Required: ${marginRequired}, Available: ${wallet.available}`,
+                message: `Insufficient available balance. Required: ${marginRequired}, Available: ${availableBalance}`,
             });
         }
 
@@ -161,7 +163,7 @@ router.post("/", async (req, res) => {
             openingTime: getISTDate(),
             margin: marginRequired,
             tradingAccount: user.walletType,
-            userId
+            userId,
         });
 
         if (status == "active") {

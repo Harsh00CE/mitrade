@@ -77,8 +77,8 @@ const openOrdersSchema = new Schema(
             }
         },
         pendingValue: {
-                type: Number,
-                default: null,
+            type: Number,
+            default: null,
         },
         trailingStop: {
             type: String,
@@ -93,6 +93,11 @@ const openOrdersSchema = new Schema(
             required: true,
             enum: ["demo", "active"],
             index: true,
+        },
+        pairType: {
+            type: String,
+            enum: ["crypto", "forex"],
+            // required: true,
         },
         overnightFunding: {
             type: Number,

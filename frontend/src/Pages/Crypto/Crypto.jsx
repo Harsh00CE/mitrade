@@ -1,37 +1,47 @@
 import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import { useNavigate } from "react-router-dom";
-import TradingViewChart from "../Chart/TradingViewChart";
 import { BASE_URL } from "../../utils/constant";
 import BackButton from "../../components/BackButton/BackButton";
 
 const Crypto = () => {
     const [allTickers, setAllTickers] = useState([]);
-    const [selectedSymbol, setSelectedSymbol] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage] = useState(10);
     const [search, setSearch] = useState("");
-
     const navigate = useNavigate();
+
+    // Replace with actual user ID from your auth system
     const userId = "67ea83a1df43302963e04095";
 
-    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:3001`, {
+    const { sendMessage, lastMessage } = useWebSocket(`ws://${BASE_URL}:8080`, {
         onOpen: () => {
-            console.log("Connected to WebSocket ✅");
-            sendMessage(JSON.stringify({ type: "subscribeFavorites", userId }));
+            console.log("Connected to Crypto WebSocket");
+            sendMessage(JSON.stringify({
+                type: "subscribeFavorites",
+                userId
+            }));
         },
-        onError: (event) => console.error("WebSocket Error: ", event),
+        onError: (event) => console.error("WebSocket Error:", event),
+        shouldReconnect: () => true,
+        reconnectInterval: 3000
     });
 
     useEffect(() => {
         if (lastMessage) {
-            const data = JSON.parse(lastMessage.data);
-            if (data.type === "allCryptoPrice") setAllTickers(data.data);
+            try {
+                const data = JSON.parse(lastMessage.data);
+                if (data.type === "allTokens" && Array.isArray(data.data)) {
+                    setAllTickers(data.data);
+                }
+            } catch (error) {
+                console.error("Error parsing WebSocket message:", error);
+            }
         }
     }, [lastMessage]);
 
-    const handleCoinClick = (symbol) => {
-        navigate(`/admin/${symbol}`);
+    const handleCoinClick = (instrument) => {
+        navigate(`/admin/${instrument}`);
     };
 
     const filteredTickers = allTickers.filter((ticker) =>
@@ -45,40 +55,32 @@ const Crypto = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gray-900 min-h-screen w-full text-white">
-
-
-            {/* Search */}
             <div className="p-4">
                 <BackButton />
                 <h1 className="text-2xl font-bold text-center mt-4 text-blue-400">
                     📈 Real-Time Crypto Dashboard
                 </h1>
             </div>
+
             <div className="mb-6">
                 <input
                     type="text"
-                    placeholder="Search token symbol..."
+                    placeholder="Search token instrument..."
                     value={search}
                     onChange={(e) => {
                         setSearch(e.target.value);
-                        setCurrentPage(1); // Reset page on search
+                        setCurrentPage(1);
                     }}
                     className="w-full sm:w-1/2 p-2 rounded-lg bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
 
-            {/* {selectedSymbol && (
-                <div className="mb-8 bg-gray-800 p-4 sm:p-6 rounded-lg">
-                    <h2 className="text-lg sm:text-xl font-semibold text-blue-400 mb-4">
-                        TradingView Chart for {selectedSymbol}
-                    </h2>
-                    <TradingViewChart symbol={`BINANCE:${selectedSymbol}`} />
-                </div>
-            )} */}
+            <TokenTable
+                title="📊 All Crypto"
+                tickers={currentTickers}
+                handleCoinClick={handleCoinClick}
+            />
 
-            <TokenTable title="📊 All Crypto" tickers={currentTickers} handleCoinClick={handleCoinClick} />
-
-            {/* Pagination */}
             <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
                 <button
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -112,10 +114,9 @@ const TokenTable = ({ title, tickers, handleCoinClick }) => {
                 <table className="w-full border-collapse shadow-md bg-gray-800 rounded-lg text-white">
                     <thead className="bg-blue-600 text-white uppercase text-sm">
                         <tr>
-                            <th className="py-3 px-4 text-left">Symbol</th>
-                            <th className="py-3 px-4 text-left">Price (USD)</th>
-                            <th className="py-3 px-4 text-left">24h Volume</th>
-                            <th className="py-3 px-4 text-left">24h Change (%)</th>
+                            <th className="py-3 px-4 text-left">instrument</th>
+                            <th className="py-3 px-4 text-left">bid</th>
+                            <th className="py-3 px-4 text-left">24h Change</th>
                             <th className="py-3 px-4 text-center">Actions</th>
                         </tr>
                     </thead>
@@ -129,25 +130,24 @@ const TokenTable = ({ title, tickers, handleCoinClick }) => {
                                     <td className="py-3 px-4 font-medium" onClick={() => handleCoinClick(ticker.instrument)}>
                                         {ticker.instrument}
                                     </td>
-                                    <td className="py-3 px-4">${ticker.ask}</td>
-                                    <td className="py-3 px-4">{ticker.spread}</td>
-                                    <td className={`py-3 px-4 font-semibold ${ticker.spread >= 0 ? "text-green-400" : "text-red-400"}`}>
-                                        {(ticker.spread / 100).toFixed(2)}%
+                                    <td className="py-3 px-4">${parseFloat(ticker.bid).toFixed(4)}</td>
+                                    <td className={`py-3 px-4 font-semibold ${parseFloat(ticker.spread) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                        {parseFloat(ticker.spread).toFixed(2)}%
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                         <button
                                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm"
                                             onClick={() => handleCoinClick(ticker.instrument)}
                                         >
-                                            Config
+                                            Trade
                                         </button>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="5" className="text-center py-4 text-gray-400">
-                                    No data available.
+                                <td colSpan="4" className="text-center py-4 text-gray-400">
+                                    Loading crypto data...
                                 </td>
                             </tr>
                         )}
@@ -166,29 +166,26 @@ const TokenTable = ({ title, tickers, handleCoinClick }) => {
                         >
                             <div className="flex justify-between">
                                 <span className="text-blue-400 font-semibold">{ticker.instrument}</span>
-                                <span>${ticker.ask}</span>
-                            </div>
-                            <div className="flex justify-between text-sm text-gray-300">
-                                <span>24h Volume:</span>
-                                <span>{(ticker.spread / 1).toFixed(2)}</span>
+                                <span>${parseFloat(ticker.bid).toFixed(4)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span>Change:</span>
-                                <span className={ticker.spread >= 0 ? "text-green-400" : "text-red-400"}>
-                                    {(ticker.spread / 100).toFixed(2)}%
+                                <span>24h Change:</span>
+                                <span className={parseFloat(ticker.spread) >= 0 ? "text-green-400" : "text-red-400"}>
+                                    {parseFloat(ticker.spread).toFixed(2)}%
                                 </span>
                             </div>
                             <div className="text-right">
                                 <button
                                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md text-sm"
+                                    onClick={() => handleCoinClick(ticker.instrument)}
                                 >
-                                    Config
+                                    Trade
                                 </button>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <p className="text-center text-gray-400">No data available.</p>
+                    <p className="text-center text-gray-400">Loading crypto data...</p>
                 )}
             </div>
         </div>

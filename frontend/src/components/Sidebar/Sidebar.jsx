@@ -60,10 +60,15 @@ const Sidebar = () => {
       ]
     },
     // { name: "Withdraw Wallet", icon: <Wallet size={20} />, path: "/withdraw-wallet" },
-    { name: "KYC Submit", icon: <ShieldCheck size={20} />, 
-    path: "/kyc-submit" },
+    {
+      name: "KYC Submit", icon: <ShieldCheck size={20} />,
+      path: "/kyc-submit"
+    },
     {
       name: "Admin Bank Details", icon: <FileText size={20} />, path: "/admin-bank-details"
+    },
+    {
+      name: "Benner", icon: <FileText size={20} />, path: "/benner"
     }
   ];
 

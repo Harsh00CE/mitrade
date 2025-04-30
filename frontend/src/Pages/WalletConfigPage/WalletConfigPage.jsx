@@ -134,7 +134,7 @@ const WalletConfigPage = () => {
                     <BackButton />
                 </div>
                 <div className="flex justify-center items-center min-h-screen">
-                    <img src={loader} height={100} width={100} alt="" /> 
+                    <img src={loader} height={100} width={100} alt="" />
                 </div>
             </div>
         );

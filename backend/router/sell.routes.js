@@ -9,12 +9,12 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, status, pendingValue } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, status, pendingValue, availableBalance } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status) {
+        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status || !availableBalance) {
             return res.status(200).json({
                 success: false,
-                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status",
+                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status , availableBalance",
             });
         }
 
@@ -68,10 +68,11 @@ router.post("/", async (req, res) => {
 
         const marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
 
-        if (wallet.available < marginRequired) {
+        // region Change available value conditionally
+        if (availableBalance < marginRequired) {
             return res.status(200).json({
                 success: false,
-                message: `Insufficient balance. Required: ${marginRequired}, Available: ${wallet.available}`
+                message: `Insufficient balance. Required: ${marginRequired}, Available: ${availableBalance}`
             });
         }
 
@@ -101,19 +102,19 @@ router.post("/", async (req, res) => {
         }
         let formattedTP = validateTPorSL(takeProfit, ['price', 'profit']);
 
-        
-        
+
+
         if (takeProfit && !formattedTP) {
             return res.status(200).json({ success: false, message: "Invalid takeProfit format" });
         }
-        
+
         let formattedSL = validateTPorSL(stopLoss, ['price', 'loss']);
         if (stopLoss && !formattedSL) {
             return res.status(200).json({ success: false, message: "Invalid stopLoss format" });
         }
-        
+
         console.log("formattedtp", formattedTP);
-        console.log("stoploss" , formattedSL);
+        console.log("stoploss", formattedSL);
 
         // ✅ Format takeProfit if object
         // let formattedTP = null;
@@ -133,8 +134,8 @@ router.post("/", async (req, res) => {
 
         console.log("stoploss", stopLoss);
         console.log("takeprofit", takeProfit);
-        
-        
+
+
 
         // ✅ Format stopLoss if object
         // let formattedSL = null;
@@ -169,7 +170,7 @@ router.post("/", async (req, res) => {
             openingTime: getISTDate(),
             margin: marginRequired,
             tradingAccount: user.walletType,
-            userId
+            userId,
         });
 
         if (status === "active") {
@@ -182,7 +183,7 @@ router.post("/", async (req, res) => {
 
         user.orderList.push(order.id);
 
-        await Promise.all([order.save(), wallet.save() , user.save()]);
+        await Promise.all([order.save(), wallet.save(), user.save()]);
 
         return res.status(200).json({
             success: true,

@@ -18,6 +18,16 @@ const adminAccountDetailsSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    usdtAddress: {
+        type: String,
+    },
+    usdtType: {
+        type: String,
+    },
+    qrCodeImage: {
+        type: String, 
+    }
+    
 })
 
 const AdminAccountDetails = mongoose.model('AdminAccountDetails', adminAccountDetailsSchema);

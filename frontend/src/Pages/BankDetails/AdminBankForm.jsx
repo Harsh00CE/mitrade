@@ -10,11 +10,16 @@ const AdminBankForm = () => {
         holderName: "",
         IFSCcode: "",
         bankName: "",
+        usdtAddress: "",
+        usdtType: "",
     });
 
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
+    const [qrImagePreview, setQrImagePreview] = useState(null);
+    const [qrFile, setQrFile] = useState(null);
+
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -41,13 +46,27 @@ const AdminBankForm = () => {
         }));
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        setQrFile(file);
+        setQrImagePreview(URL.createObjectURL(file));
+    };
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage("");
 
         try {
-            const res = await axios.post(`http://${BASE_URL}:3000/api/admin-account-details`, formData);
+            const form = new FormData();
+            for (let key in formData) form.append(key, formData[key]);
+            if (qrFile) form.append("qrCodeImage", qrFile);
+
+            const res = await axios.post(`http://${BASE_URL}:3000/api/admin-account-details`, form, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
             if (res.data.success) {
                 setMessage("Admin bank details updated successfully.");
             } else {
@@ -60,6 +79,7 @@ const AdminBankForm = () => {
             setLoading(false);
         }
     };
+
 
     if (fetching) {
         return (
@@ -118,6 +138,54 @@ const AdminBankForm = () => {
                         className="w-full p-2 border rounded"
                         required
                     />
+                    <p className="mt-4 mb-0">USDT Address:</p>
+                    <input
+                        type="text"
+                        name="usdtAddress"
+                        placeholder="USDT Address"
+                        value={formData.usdtAddress}
+                        onChange={handleChange}
+                        className="w-full p-2 border rounded"
+                        required
+                    />
+                    <p className="mt-4 mb-0">USDT Type:</p>
+                    <input
+                        type="text"
+                        name="usdtType"
+                        placeholder="USDT Type"
+                        value={formData.usdtType}
+                        onChange={handleChange}
+                        className="w-full p-2 border rounded"
+                        required
+                    />
+
+
+                    <p className="mt-4 mb-0">Upload QR Code:</p>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="w-full p-2 border rounded"
+                    />
+
+                    {qrImagePreview && (
+                        <img
+                            src={qrImagePreview}
+                            alt="QR Code Preview"
+                            className="w-40 h-40 object-contain mt-4 mx-auto border border-gray-500 rounded"
+                        />
+                    )}
+
+                    {/* Show existing QR code from backend */}
+                    {!qrImagePreview && formData.qrCodeImage && (
+                        <img
+                            src={`http://${BASE_URL}:3000/uploads/qrcodes/${formData.qrCodeImage}`}
+                            alt="Current QR"
+                            className="w-40 h-40 object-contain mt-4 mx-auto border border-gray-500 rounded"
+                        />
+                    )}
+
+
 
                     <button
                         type="submit"
@@ -126,6 +194,10 @@ const AdminBankForm = () => {
                     >
                         {loading ? "Submitting..." : "Save Details"}
                     </button>
+
+
+
+
                 </form>
 
                 {message && (

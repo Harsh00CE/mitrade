@@ -1,29 +1,33 @@
 import express from "express";
 import AdminAccountDetails from "../schemas/adminAccountDetails.js";
+import upload from "../utils/multer.js";
+import path from "path";
 
 const router = express.Router();
 
-// ✅ Create or Replace Admin Bank Details
-router.post("/", async (req, res) => {
+router.post("/", upload.single("qrCodeImage"), async (req, res) => {
     try {
-        const { accountNumber, holderName, IFSCcode, bankName } = req.body;
+        const { accountNumber, holderName, IFSCcode, bankName, usdtAddress, usdtType } = req.body;
+        const qrCodeImage = req.file?.filename;
 
-        if (!accountNumber || !holderName || !IFSCcode || !bankName) {
-            return res.status(200).json({
+        if (!accountNumber || !holderName || !IFSCcode || !bankName || !usdtAddress || !usdtType) {
+            return res.status(400).json({
                 success: false,
                 message: "Missing required fields",
             });
         }
 
-        // Check if a record already exists (only one admin account assumed)
         const existing = await AdminAccountDetails.findOne();
 
         if (existing) {
-            // Update the existing one
             existing.accountNumber = accountNumber;
             existing.holderName = holderName;
             existing.IFSCcode = IFSCcode;
             existing.bankName = bankName;
+            existing.usdtAddress = usdtAddress;
+            existing.usdtType = usdtType;
+            if (qrCodeImage) existing.qrCodeImage = qrCodeImage;
+
             await existing.save();
 
             return res.status(200).json({
@@ -32,12 +36,14 @@ router.post("/", async (req, res) => {
                 data: existing,
             });
         } else {
-            // Create new record
             const newDetails = await AdminAccountDetails.create({
                 accountNumber,
                 holderName,
                 IFSCcode,
                 bankName,
+                usdtAddress,
+                usdtType,
+                qrCodeImage,
             });
 
             return res.status(200).json({
@@ -54,10 +60,9 @@ router.post("/", async (req, res) => {
         });
     }
 });
-
 router.get("/", async (req, res) => {
     try {
-        const details = await AdminAccountDetails.findOne(); 
+        const details = await AdminAccountDetails.findOne();
         if (!details) {
             return res.status(404).json({
                 success: false,
