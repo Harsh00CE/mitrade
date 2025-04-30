@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const alert = await AlertModel.create({
+        const alert = await AlertModel.create({  
             userId,
             symbol,
             alertPrice,
@@ -25,7 +25,7 @@ router.post("/", async (req, res) => {
             frequency,
         });
 
-        await UserModel.findByIdAndUpdate(userId, { $push: { alerts: alert._id } });
+        await UserModel.findByIdAndUpdate(userId, { $push: { alerts: alert._id } });      
 
         return res.status(200).json({
             success: true,
@@ -63,7 +63,7 @@ router.get("/:userId/:symbol", async (req, res) => {
                 message: "No alerts found for this user",
             });
         }
-
+ 
         return res.status(200).json({
             success: true,
             message: "Alerts fetched successfully",

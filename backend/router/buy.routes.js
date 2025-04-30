@@ -18,8 +18,6 @@ router.post("/", async (req, res) => {
             });
         }
 
-        console.log("stoploss", stopLoss);
-
 
         if (status === "pending" && pendingValue === undefined) {
             return res.status(200).json({

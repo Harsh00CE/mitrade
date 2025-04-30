@@ -30,6 +30,8 @@ import countryNames from "./countries.routes.js";
 import adminAccountDetailsRouter from "./adminAccountDetails.routes.js";
 import getActiveWalletRouter from "./getActiveAcount.routes.js";
 import marketRoute from "./market.routes.js"
+import getAllCryptoPairs from "./getAllCryptoPairs.routes.js";
+import hedgingRoutes from "./hedging.routes.js";
 
 export {
     cryptoRoutes,
@@ -50,7 +52,7 @@ export {
     liquidationRouter,
     getFavoriteRouter,
     getChartRouter,
-    sendAlertsRouter,    
+    sendAlertsRouter,
     getUsersRouter,
     configWallet,
     kycRoutes,
@@ -63,5 +65,7 @@ export {
     countryNames,
     adminAccountDetailsRouter,
     getActiveWalletRouter,
-    marketRoute
+    marketRoute,
+    getAllCryptoPairs,
+    hedgingRoutes,
 }

@@ -9,7 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createClient } from 'redis';
-import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes, adminAuthLogin, adminAuthRegister, depositRoutes, withdrawRoutes, countryNames, adminAccountDetailsRouter, getActiveWalletRouter, marketRoute, getAllCryptoPairs } from "./router/index.routes.js";
+import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes, adminAuthLogin, adminAuthRegister, depositRoutes, withdrawRoutes, countryNames, adminAccountDetailsRouter, getActiveWalletRouter, marketRoute, getAllCryptoPairs, hedgingRoutes } from "./router/index.routes.js";
 import { authMiddleware, verifyAdmin } from "./middleware/auth.js";
 
 
@@ -108,6 +108,7 @@ app.use("/api/admin-account-details", adminAccountDetailsRouter);
 app.use("/api/get-active-wallet", getActiveWalletRouter);
 app.use("/api/market", marketRoute);
 app.use('/api/all-crypto-pairs', getAllCryptoPairs);
+app.use("/api/hedging", hedgingRoutes);
 
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
