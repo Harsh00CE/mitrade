@@ -17,7 +17,11 @@ const alertSchema = new Schema({
     alertType: {
         type: String,
         required: [true, "Alert type is required (buy/sell)"],
-        enum: ["buy", "sell"], 
+        enum: ["buy", "sell"],
+    },
+    pairType: {
+        type: String,
+        enum: ["crypto", "forex"],
     },
     frequency: {
         type: String,
