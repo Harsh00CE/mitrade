@@ -9,12 +9,12 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, status, pendingValue, availableBalance } = req.body;
+        const { userId, symbol, quantity, price, leverage, takeProfit, stopLoss, contractSize, status, pendingValue, availableBalance, pairType } = req.body;
 
-        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status || !availableBalance) {
+        if (!userId || !symbol || !quantity || !price || !leverage || !contractSize || !status || !availableBalance || !pairType) {
             return res.status(200).json({
                 success: false,
-                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status , availableBalance",
+                message: "Required fields: userId, symbol, quantity, price, leverage , contractSize , status , availableBalance and pairType",
             });
         }
 
@@ -171,6 +171,7 @@ router.post("/", async (req, res) => {
             margin: marginRequired,
             tradingAccount: user.walletType,
             userId,
+            pairType: pairType,
         });
 
         if (status === "active") {

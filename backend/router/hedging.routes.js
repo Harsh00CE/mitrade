@@ -17,20 +17,21 @@ router.post("/", async (req, res) => {
         for (const orderData of orders) {
             const {
                 userId, symbol, quantity, price,
-                status, availableBalance
+                type, availableBalance, leverage, contractSize
             } = orderData;
 
-            if (!userId || !symbol || !quantity || !price || !status || !availableBalance) {
+            if (!userId || !symbol || !quantity || !price || !type || !availableBalance || !leverage || !contractSize) {
                 responses.push({
                     success: false,
                     message: "Missing required fields",
                     data: orderData
                 });
-                continue; 
+                continue;
             }
 
             const symbolInfo = await PairInfoModel.findOne({ symbol });
-            
+
+
             if (!symbolInfo) {
                 responses.push({
                     success: false,
@@ -39,8 +40,6 @@ router.post("/", async (req, res) => {
                 });
                 continue;
             }
-
-            const { contractSize, leverage } = symbolInfo;
 
             if (isNaN(quantity) || isNaN(price) || quantity <= 0 || price <= 0 || leverage < 1) {
                 responses.push({
@@ -77,16 +76,32 @@ router.post("/", async (req, res) => {
                 continue;
             }
 
-            const marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
+            let marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
 
-            if (availableBalance < marginRequired) {
-                responses.push({
-                    success: false,
-                    message: `Insufficient balance: Required ${marginRequired}, Available ${availableBalance}`,
-                    data: orderData
-                });
-                continue;
+            // if (availableBalance < marginRequired) {
+            //     responses.push({
+            //         success: false,
+            //         message: `Insufficient balance: Required ${marginRequired}, Available ${availableBalance}`,
+            //         data: orderData
+            //     });
+            //     continue;
+            // }
+
+            const currentAvailable = parseFloat(wallet.available) || 0;
+            const currentMargin = parseFloat(wallet.margin) || 0;
+
+            if (availableBalance > marginRequired) {
+                wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
+                wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
+            } else if (availableBalance <= marginRequired && availableBalance > 0) {
+                marginRequired = parseFloat(availableBalance);
+                wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
+                wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
+            } else {
+                marginRequired = 0;
+                wallet.available = 0;
             }
+
 
             const orderId = uuidv4();
             const getISTDate = () => {
@@ -99,7 +114,7 @@ router.post("/", async (req, res) => {
                 orderId,
                 symbol,
                 contractSize,
-                type: status,
+                type: type,
                 quantity: parseFloat(quantity),
                 openingPrice: parseFloat(price),
                 leverage: parseInt(leverage),
@@ -112,10 +127,6 @@ router.post("/", async (req, res) => {
                 userId,
             });
 
-            if (wallet.available > marginRequired) {
-                wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
-                wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
-            }
 
 
             user.orderList.push(order._id);
@@ -125,15 +136,6 @@ router.post("/", async (req, res) => {
             responses.push({
                 success: true,
                 message: `Buy order placed for ${symbol}`,
-                data: {
-                    orderId,
-                    symbol,
-                    quantity,
-                    price,
-                    marginRequired,
-                    openingTime: order.openingTime,
-                    status: order.status,
-                }
             });
         }
 

@@ -94,6 +94,9 @@ const TradingViewChart = () => {
     const chartRef = useRef(null);
     const { symbol } = useParams();
     const formattedSymbol = symbol.replace("_", "");
+
+    console.log("TradingViewChart", symbol, formattedSymbol);
+
     const [isLoading, setIsLoading] = useState(true);
     const [widgetInstance, setWidgetInstance] = useState(null);
 

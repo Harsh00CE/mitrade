@@ -98,7 +98,7 @@ const openOrdersSchema = new Schema(
             type: String,
             enum: ["crypto", "forex"],
             // required: true,
-        },
+        }, 
         overnightFunding: {
             type: Number,
             default: 0,
