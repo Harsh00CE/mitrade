@@ -11,7 +11,7 @@ const depositSchema = new mongoose.Schema({
     },
     amountType:{
         type: String,
-        enum: ['USD', 'INR'],
+        enum: ['USDT', 'INR'],
         required: true
     },
     documentImage: {
