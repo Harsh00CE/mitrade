@@ -525,8 +525,23 @@ let totalUnrealizedPL = 0;
                 continue;
             }
 
-            wallet.available = parseFloat((wallet.available - margin).toFixed(2));
-            wallet.margin = parseFloat((wallet.margin + margin).toFixed(2));
+const currentAvailable = parseFloat(wallet.available) || 0;
+            const currentMargin = parseFloat(wallet.margin) || 0;
+
+            if (newAvailableBalance > margin) {
+                wallet.available = parseFloat((currentAvailable - margin).toFixed(2));
+            wallet.margin = parseFloat((currentMargin + margin).toFixed(2));
+            } else if (newAvailableBalance <= margin && newAvailableBalance > 0) {
+                margin = parseFloat(newAvailableBalance);
+                wallet.available = parseFloat((currentAvailable - margin).toFixed(2));
+                wallet.margin = parseFloat((currentMargin + margin).toFixed(2));
+            } else {
+                margin = 0;
+                wallet.available = 0;
+            }
+
+            // wallet.available = parseFloat((wallet.available - margin).toFixed(2));
+            // wallet.margin = parseFloat((wallet.margin + margin).toFixed(2));
             await wallet.save();
         }
 

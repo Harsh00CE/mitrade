@@ -75,8 +75,8 @@ router.post("/", async (req, res) => {
 
             // Fetch all active buy and sell orders for the user and symbol
             const [findSellOrder, findBuyOrder] = await Promise.all([
-                OpenOrdersModel.find({ userId: user._id, symbol, type: "sell" }),
-                OpenOrdersModel.find({ userId: user._id, symbol, status: "active", type: "buy" })
+                OpenOrdersModel.find({ userId: user._id, symbol, status: "active", type: "sell" }),
+                OpenOrdersModel.find({ userId: user._id, symbol, type: "buy" })
             ]);
 
             // Initialize quantities to 0
@@ -94,21 +94,6 @@ router.post("/", async (req, res) => {
             });
 
             if (totalSellQuantity > totalBuyQuantity) {
-                const currentAvailable = parseFloat(wallet.available) || 0;
-                const currentMargin = parseFloat(wallet.margin) || 0;
-
-                if (availableBalance > marginRequired) {
-                    wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
-                    wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
-                } else if (availableBalance <= marginRequired && availableBalance > 0) {
-                    marginRequired = parseFloat(availableBalance);
-                    wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
-                    wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
-                } else {
-                    marginRequired = 0;
-                    wallet.available = 0;
-                }
-
                 const orderId = uuidv4();
                 const getISTDate = () => {
                     const now = new Date();
@@ -197,8 +182,23 @@ router.post("/", async (req, res) => {
                 });
 
                 if (status == "active") {
-                    wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
-                    wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
+                    const currentAvailable = parseFloat(wallet.available) || 0;
+                    const currentMargin = parseFloat(wallet.margin) || 0;
+
+                    if (availableBalance > marginRequired) {
+                        wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
+                        wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
+                    } else if (availableBalance <= marginRequired && availableBalance > 0) {
+                        marginRequired = parseFloat(availableBalance);
+                        wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
+                        wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
+                    } else {
+                        marginRequired = 0;
+                        wallet.available = 0;
+                    }
+
+                    // wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
+                    // wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
 
                 }
 
