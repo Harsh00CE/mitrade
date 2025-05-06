@@ -93,7 +93,7 @@ router.post("/", async (req, res) => {
                 totalBuyQuantity += order.quantity;
             });
 
-            if (totalSellQuantity > totalBuyQuantity) {
+            if (totalSellQuantity >= totalBuyQuantity) {
                 const orderId = uuidv4();
                 const getISTDate = () => {
                     const now = new Date();
