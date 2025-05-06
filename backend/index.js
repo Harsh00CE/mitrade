@@ -419,7 +419,7 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
         "pendingValue": { $ne: null }
     });
     for (const order of pendingOrders) {
-        const { _id, userId, type, quantity, contractSize, leverage, margin, tradingAccount, pendingValue } = order;
+        let { _id, userId, type, quantity, contractSize, leverage, margin, tradingAccount, pendingValue } = order;
 
         if (!pendingValue) continue;
 

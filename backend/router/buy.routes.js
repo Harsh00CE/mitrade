@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId);
+        let user = await UserModel.findById(userId);
 
         if (!user) {
             return res.status(200).json({
@@ -67,7 +67,7 @@ router.post("/", async (req, res) => {
         }
 
 
-        const marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
+        let marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
 
 
         // region Change available value conditionally

@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
             });
         }
 
-        const user = await UserModel.findById(userId)
+        let user = await UserModel.findById(userId)
 
         if (!user || !user.demoWallet) {
             return res.status(200).json({
@@ -66,7 +66,7 @@ router.post("/", async (req, res) => {
         }
 
 
-        const marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
+        let marginRequired = parseFloat(((quantity * price * contractSize) / leverage).toFixed(2));
 
         // region Change available value conditionally
         if (availableBalance < marginRequired) {
@@ -78,8 +78,8 @@ router.post("/", async (req, res) => {
             ]);
 
             // Initialize quantities to 0
-            let totalSellQuantity = 0;
-            let totalBuyQuantity = quantity;
+            let totalSellQuantity = quantity;
+            let totalBuyQuantity = 0;
 
             // Sum quantities for sell orders
             findSellOrder.forEach(order => {
