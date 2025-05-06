@@ -74,7 +74,7 @@ router.post("/", async (req, res) => {
             // Fetch all active buy and sell orders for the user and symbol
             const [findSellOrder, findBuyOrder] = await Promise.all([
                 OpenOrdersModel.find({ userId: user._id, symbol, status: "active", type: "sell" }),
-                OpenOrdersModel.find({ userId: user._id, symbol, status: "active", type: "buy" })
+                OpenOrdersModel.find({ userId: user._id, symbol, type: "buy" })
             ]);
 
             // Initialize quantities to 0
