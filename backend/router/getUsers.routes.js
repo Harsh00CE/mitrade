@@ -3,26 +3,28 @@ import UserModel from "../schemas/userSchema.js";
 import DemoWalletModel from "../schemas/demoWalletSchema.js";
 const router = express.Router();
 
-
-
-
 // GET /api/users?page=1&limit=10&search=abc
-router.get('/', async (req, res) => {
-    const { page = 1, limit = 10, search = '' } = req.query;
+router.get("/", async (req, res) => {
+    const { page = 1, limit = 10, search = "" } = req.query;
 
-    const query = {
-        $or: [
-            { email: { $regex: search, $options: 'i' } },
-            { username: { $regex: search, $options: 'i' } },
-            { userId: { $regex: search, $options: 'i' } },
-        ],
-    };
+    let query = {};
+
+    if (search) {
+        query = {
+            $or: [
+                { email: { $regex: search, $options: "i" } },
+                { username: { $regex: search, $options: "i" } },
+                { userId: { $regex: search, $options: "i" } },
+            ],
+        };
+    }
 
     const total = await UserModel.countDocuments(query);
     const users = await UserModel.find(query)
-        .populate('demoWallet')
+        .populate("demoWallet")
         .skip((page - 1) * limit)
-        .limit(Number(limit));
+        .limit(Number(limit))
+        .sort({ _id: -1 });
 
     return res.status(200).json({
         data: users,
@@ -32,7 +34,6 @@ router.get('/', async (req, res) => {
         },
     });
 });
-
 
 // router.get("/", async (req, res) => {
 //     try {
@@ -115,10 +116,10 @@ router.get("/:userId", async (req, res) => {
     }
 });
 
-router.post("/:userId", async(req , res) => {
+router.post("/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
-        const {walletType} = req.body;
+        const { walletType } = req.body;
 
         if (!userId) {
             return res.status(200).json({
@@ -139,7 +140,6 @@ router.post("/:userId", async(req , res) => {
             success: true,
             message: `switched to ${walletType} wallet`,
         });
-        
     } catch (error) {
         console.error("Error fetching user:", error);
         return res.status(200).json({
@@ -147,8 +147,7 @@ router.post("/:userId", async(req , res) => {
             message: "Internal server error",
             error: error.message,
         });
-        
     }
-})
+});
 
 export default router;
