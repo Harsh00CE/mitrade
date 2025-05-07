@@ -159,6 +159,19 @@ router.post("/", async (req, res) => {
                     };
                 }
 
+                if (status == "active") {
+                    const currentAvailable = parseFloat(wallet.available) || 0;
+                    const currentMargin = parseFloat(wallet.margin) || 0;
+
+                    if (availableBalance <= marginRequired && availableBalance > 0) {
+                        marginRequired = parseFloat(availableBalance);
+                        wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
+                        wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
+                    } else {
+                        marginRequired = 0;
+                        wallet.available = 0;
+                    }
+                }
 
                 const order = new OpenOrdersModel({
                     orderId,
@@ -179,29 +192,8 @@ router.post("/", async (req, res) => {
                     tradingAccount: user.walletType,
                     userId,
                     pairType: pairType,
+                    is_hedged: true
                 });
-
-                if (status == "active") {
-                    const currentAvailable = parseFloat(wallet.available) || 0;
-                    const currentMargin = parseFloat(wallet.margin) || 0;
-
-                    if (availableBalance > marginRequired) {
-                        wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
-                        wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
-                    } else if (availableBalance <= marginRequired && availableBalance > 0) {
-                        marginRequired = parseFloat(availableBalance);
-                        wallet.available = parseFloat((currentAvailable - marginRequired).toFixed(2));
-                        wallet.margin = parseFloat((currentMargin + marginRequired).toFixed(2));
-                    } else {
-                        marginRequired = 0;
-                        wallet.available = 0;
-                    }
-
-                    // wallet.available = parseFloat((wallet.available - marginRequired).toFixed(2));
-                    // wallet.margin = parseFloat((wallet.margin + marginRequired).toFixed(2));
-
-                }
-
 
                 user.orderList.push(order.id);
 

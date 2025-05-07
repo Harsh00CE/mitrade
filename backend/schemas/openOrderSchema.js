@@ -103,6 +103,10 @@ const openOrdersSchema = new Schema(
             type: Number,
             default: 0,
         },
+        is_hedged: {
+            type: Boolean,
+            default: false,
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

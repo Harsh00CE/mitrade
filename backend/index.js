@@ -515,7 +515,7 @@ let totalUnrealizedPL = 0;
             }
 
             const newAvailableBalance = parseFloat((wallet.available + totalUnrealizedPL).toFixed(2));
-            
+
             if (newAvailableBalance < margin) {
                 console.log(`Insufficient margin for user ${userId}`);
                 res.status(200).json({
@@ -525,12 +525,12 @@ let totalUnrealizedPL = 0;
                 continue;
             }
 
-const currentAvailable = parseFloat(wallet.available) || 0;
+            const currentAvailable = parseFloat(wallet.available) || 0;
             const currentMargin = parseFloat(wallet.margin) || 0;
 
             if (newAvailableBalance > margin) {
                 wallet.available = parseFloat((currentAvailable - margin).toFixed(2));
-            wallet.margin = parseFloat((currentMargin + margin).toFixed(2));
+                wallet.margin = parseFloat((currentMargin + margin).toFixed(2));
             } else if (newAvailableBalance <= margin && newAvailableBalance > 0) {
                 margin = parseFloat(newAvailableBalance);
                 wallet.available = parseFloat((currentAvailable - margin).toFixed(2));
