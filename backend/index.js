@@ -440,7 +440,7 @@ const checkPendingOrders = async (symbol, currentPrice, wss) => {
 
 
         if (!shouldTrigger) continue;
-let totalUnrealizedPL = 0;
+        let totalUnrealizedPL = 0;
 
         const activeOrders = await OpenOrdersModel.find({
             status: "active", position: 'open'
@@ -480,7 +480,7 @@ let totalUnrealizedPL = 0;
         ).lean();
 
         // Update user's wallet: only if demo account (you can add real account logic similarly)
-        if (tradingAccount === "demo") {
+        // if (tradingAccount === "demo") {
             const user = await UserModel.findById(userId)
             if (!user) continue;
 
@@ -508,7 +508,7 @@ let totalUnrealizedPL = 0;
             const walletType = user.walletType;
             let wallet;
 
-            if (walletType === "demo") {
+            if (tradingAccount === "demo") {
                 wallet = await DemoWalletModel.findById(user.demoWallet);
             } else {
                 wallet = await ActiveWalletModel.findById(user.activeWallet);
@@ -543,7 +543,7 @@ let totalUnrealizedPL = 0;
             // wallet.available = parseFloat((wallet.available - margin).toFixed(2));
             // wallet.margin = parseFloat((wallet.margin + margin).toFixed(2));
             await wallet.save();
-        }
+        // }
 
         wss.clients.forEach(client => {
             if (client.readyState === 1) {
