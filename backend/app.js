@@ -11,6 +11,7 @@ import { dirname } from 'path';
 import { createClient } from 'redis';
 import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, adminRoutes, buyRoutes, getInfo, getUserWallet, favoriteTokensRouter, getUserOrders, sellRoutes, alertRouter, closeOrderRouter, orderHistoryRouter, liquidationRouter, getFavoriteRouter, getChartRouter, sendAlertsRouter, getUsersRouter, configWallet, kycRoutes, forgorPasswordRoutes, updartePasswordRoutes, adminAuthLogin, adminAuthRegister, depositRoutes, withdrawRoutes, countryNames, adminAccountDetailsRouter, getActiveWalletRouter, marketRoute, getAllCryptoPairs, hedgingRoutes } from "./router/index.routes.js";
 import { authMiddleware, verifyAdmin } from "./middleware/auth.js";
+import Userrouter from "./router/user.routes.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -112,6 +113,7 @@ app.use("/api/hedging", hedgingRoutes);
 
 // app.use("/api/auth" ,auth) 
 app.use("/api", cryptoRoutes)
+app.use("/api", Userrouter)
 
 export { app };
 

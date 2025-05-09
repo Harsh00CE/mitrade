@@ -26,25 +26,17 @@ const WalletConfigPage = () => {
                 return;
             }
 
-            const response = await axios.get(`http://${BASE_URL}:3000/api/adminuserwallet/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            const activeWalletResponse = await axios.get(`http://${BASE_URL}:3000/api/get-active-wallet/${userId}`, {
+            const response = await axios.get(`http://${BASE_URL}:3000/api/get_wallet_data/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
             if (response.data.success) {
-                setUserWallet(response.data.data);
-                setEditedDemoWallet(response.data.data);
+                setUserWallet(response.data.data.demoWallet);
+                setEditedDemoWallet(response.data.data.demoWallet);
+                setUserActiveWallet(response.data.data.activeWallet);
+                setEditedActiveWallet(response.data.data.activeWallet);
             } else {
                 setUserWallet(null);
-            }
-
-            if (activeWalletResponse.data.success) {
-                setUserActiveWallet(activeWalletResponse.data.data);
-                setEditedActiveWallet(activeWalletResponse.data.data);
-            } else {
                 setUserActiveWallet(null);
             }
         } catch (error) {
