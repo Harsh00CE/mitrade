@@ -13,7 +13,6 @@ import { cryptoRoutes, signUpRoutes, logInRoutes, bodyParser, verifyCodeRoutes, 
 import { authMiddleware, verifyAdmin } from "./middleware/auth.js";
 import Userrouter from "./router/user.routes.js";
 import Raterouter from "./router/rate.routes.js";
-import Raterouter from "./router/rate.routes.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
