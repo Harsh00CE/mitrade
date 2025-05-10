@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Banknote
 } from "lucide-react";
 import AdminAccountDetails from "../../../../backend/schemas/adminAccountDetails";
 
@@ -69,6 +70,9 @@ const Sidebar = () => {
     },
     {
       name: "Benner", icon: <FileText size={20} />, path: "/benner"
+    },
+    {
+      name: "Rates", icon: <Banknote size={20} />, path: "/rate"
     }
   ];
 

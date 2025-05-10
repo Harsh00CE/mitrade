@@ -24,6 +24,7 @@ import RejectedDeposits from "./Pages/DepositReport/RejectedDeposits.jsx";
 import WithdrawApproved from "./Pages/WithdrawReport/WithdrawApproved.jsx";
 import WithdrawRejected from "./Pages/WithdrawReport/WithdrawRejected.jsx";
 import Benner from "./Pages/Benner/Benner.jsx";
+import Rate from "./Pages/Rates/index.jsx";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -169,6 +170,11 @@ function App() {
                   <Route path="/benner" element={
                     <ProtectedRoute>
                       <Benner />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/rate" element={
+                    <ProtectedRoute>
+                      <Rate />
                     </ProtectedRoute>
                   } />
                   {/* <Route path="/forex" element={<Forex />} />
